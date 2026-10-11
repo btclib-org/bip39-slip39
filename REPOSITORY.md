@@ -96,10 +96,10 @@ hyphenated, and it is.** `pyproject.toml` declares
 
 **Never name matrix contexts in the branch rule.** The rule lives outside
 the repository, so a context that stops being produced blocks every merge
-with nothing in the tree to explain why. `test: every job passed` is an
-aggregate job at the end of `test.yml` that `needs` every other job there;
-a new job in `test.yml` belongs in that job's `needs`, or it gates
-nothing.
+that waits for the checks, with nothing in the tree to explain why.
+`test: every job passed` is an aggregate job at the end of `test.yml`
+that `needs` every other job there; a new job in `test.yml` belongs in
+that job's `needs`, or it gates nothing.
 
 `main` requires these checks and nothing else:
 
@@ -208,9 +208,11 @@ JSON
 `main-self-merge` requires a pull request, with the maintainer as the
 only bypass actor and in **`pull_request` mode**, which excuses the
 approving review and nothing else: a direct push to `main` is refused for
-everyone. The ruleset sets no condition on the bypass; the maintainer
-uses it only in an emergency, and every other pull request lands with an
-approving review from somebody other than its author.
+everyone. The ruleset sets no condition on the bypass.
+btclib-org/.github's
+[`GOVERNANCE.md`](https://github.com/btclib-org/.github/blob/main/GOVERNANCE.md#how-a-decision-is-made),
+*How a decision is made*, says when the maintainer uses it, and
+`CONTRIBUTING.md`'s *Landing it* has the commands.
 
 ```shell
 gh api -X POST repos/btclib-org/btclib-mnemonics/rulesets --input - <<'JSON'
