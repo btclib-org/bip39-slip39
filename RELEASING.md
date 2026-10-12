@@ -414,10 +414,10 @@ result.
 1. Merge it as CONTRIBUTING.md's *Landing it* says.
 
    Where it lands through `--admin`, name the release commit's title and
-   body explicitly — `gh pr merge <n> --squash --admin --body-file <path>
-   --subject <title>` — rather than leave them to
-   `squash_merge_commit_message`'s repository default, which concatenates
-   the branch's commit messages.
+   body explicitly — `gh pr merge <n> --squash --admin
+   --match-head-commit <head> --body-file <path> --subject <title>` —
+   rather than leave them to `squash_merge_commit_message`'s repository
+   default, which concatenates the branch's commit messages.
 
    That the commit is composed by GitHub and signed with its web-flow
    key rather than yours costs nothing. What `main-integrity` requires
