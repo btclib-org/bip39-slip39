@@ -1,20 +1,20 @@
 ---
 name: api-break
 
-# The `api-break` label on a pull request that takes something from the
-# public API: btclib-org/.github's `reusable-api-break.yml` walks the
-# package with griffe against the pull request's base commit
-# (btclib-org/.github#1674). It is advisory and gates nothing: before 1.0 a
-# package breaks its surface deliberately, and the label is for the
-# reviewer to weigh. `release.yml`'s `public-api` job asks the same
-# question of a release.
+# The `api-break` label on a pull request that breaks the public API:
+# btclib-org/.github's `reusable-api-break.yml` walks the package with griffe
+# against the pull request's base commit (btclib-org/.github#1674). It is
+# advisory and gates nothing: before 1.0 a package breaks its surface
+# deliberately, and the label is for the reviewer to weigh. `release.yml`'s
+# `public-api` job asks the same question of a release.
 #
 # The trigger, its types and the concurrency group are here, as section 10
-# of the organization's standard has them. The job, the script and the
-# label's logic are the callee's, called at `@main` so a fix there reaches
-# this tree in one landing. No `pull_request_target`: the walk reads the
-# pull request's code, and a fork's pull request has a read-only token, so
-# the callee labels only where the token can.
+# of the organization's standard has them, with the job's `permissions:`
+# and the `package` input. The job, the script and the label's logic are the
+# callee's, called at `@main` so a fix there reaches this tree in one
+# landing. No `pull_request_target`: section 12 of the organization's
+# standard says why a fork's pull request is not labelled
+# (`OSPS-BR-01.01`).
 
 on:
   pull_request:
