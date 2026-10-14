@@ -617,6 +617,7 @@ them or passing them beside it on the same sha, which is the reliance
 | `test` | pull request, push | — |
 | `lint`, `docs` | pull request, push | — |
 | `claude-review` | pull request, and `@claude` in a comment | — |
+| `api-break` | pull request | — |
 | `codeql` | pull request, push, and weekly | the languages |
 | `os-ubuntu` | weekly, a release | images × interpreters |
 | `os-macos` | weekly, a release | images × interpreters |

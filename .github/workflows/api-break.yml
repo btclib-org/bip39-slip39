@@ -1,0 +1,48 @@
+---
+name: api-break
+
+# The `api-break` label on a pull request that takes something from the
+# public API: btclib-org/.github's `reusable-api-break.yml` walks the
+# package with griffe against the pull request's base commit
+# (btclib-org/.github#1674). It is advisory and gates nothing: before 1.0 a
+# package breaks its surface deliberately, and the label is for the
+# reviewer to weigh. `release.yml`'s `public-api` job asks the same
+# question of a release.
+#
+# The trigger, its types and the concurrency group are here, as section 10
+# of the organization's standard has them. The job, the script and the
+# label's logic are the callee's, called at `@main` so a fix there reaches
+# this tree in one landing. No `pull_request_target`: the walk reads the
+# pull request's code, and a fork's pull request has a read-only token, so
+# the callee labels only where the token can.
+
+on:
+  pull_request:
+    # closed so that the run for a pull request that has stopped taking
+    # changes enters the group below and cancels the run in flight; the
+    # callee's `if:` declines the closed run itself
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+  workflow_dispatch:
+
+# least privilege for the GITHUB_TOKEN at the workflow level, elevated on
+# the calling job below
+permissions:
+  contents: read
+
+# named literally rather than through github.workflow, as everywhere else
+# here. A push supersedes the run it overtakes
+concurrency:
+  group: api-break-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-break:
+    # a caller's permissions: block bounds the called workflow and refuses
+    # rather than trims, so the scope the callee's job asks for is named
+    # here
+    permissions:
+      contents: read
+      pull-requests: write # the label; read-only on a fork
+    uses: btclib-org/.github/.github/workflows/reusable-api-break.yml@main
+    with:
+      package: btclib_mnemonics

@@ -76,6 +76,12 @@ built wheel and covered by the same attestation. Either distribution file
 can also be rebuilt from its tag and compared, the build being
 reproducible: RELEASING.md has that command.
 
+## What an error message may say
+
+What a refusal may print about a secret, and what it may not, is section 7's
+[*A refusal carries no secret*](https://github.com/btclib-org/.github#a-refusal-carries-no-secret)
+in the organization's standard.
+
 ## Limitations, not vulnerabilities
 
 These are known and inherent. They are worth stating because this
