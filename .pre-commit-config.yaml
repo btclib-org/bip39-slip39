@@ -24,7 +24,7 @@ ci:
   # uv-lock installs its own uv, and asks it for the interpreter
   # .python-version names: the pre-commit.ci image does not carry it and
   # has no network to download it. The lint workflow installs that
-  # interpreter and runs uv-lock (issue btclib-org/.github#1348)
+  # interpreter and runs uv-lock (issue btclib-org/.github#1348).
   # actionlint-shellcheck runs past pre-commit.ci's time limit.
   # What the skip costs is nothing that decides a merge -- lint.yml runs
   # this file whole, with the command a developer runs, on every commit
