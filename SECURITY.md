@@ -25,7 +25,10 @@ Everything this package does: turning entropy into a sentence and a
 sentence back into entropy, the seed or master secret a sentence
 stretches to, the SLIP-0039 splitting and recombination of a secret, the
 recognition of which scheme a sentence belongs to, the word lists it
-ships, and the distributions published to PyPI and their provenance.
+ships, and the distributions published to PyPI and their provenance. A
+refusal that prints a secret is a vulnerability to report here: section 7's
+[*A refusal carries no secret*](https://github.com/btclib-org/.github#a-refusal-carries-no-secret)
+says what a refusal may print.
 
 A master key derived from a seed is not here: `btclib-wallet` is where
 BIP32 is. Report a flaw wherever you found it, though: routing a report
@@ -75,12 +78,6 @@ A CycloneDX bill of materials is attached beside them, generated from the
 built wheel and covered by the same attestation. Either distribution file
 can also be rebuilt from its tag and compared, the build being
 reproducible: RELEASING.md has that command.
-
-## What an error message may say
-
-What a refusal may print about a secret, and what it may not, is section 7's
-[*A refusal carries no secret*](https://github.com/btclib-org/.github#a-refusal-carries-no-secret)
-in the organization's standard.
 
 ## Limitations, not vulnerabilities
 

@@ -146,7 +146,8 @@ to, and what counters each.
   Its helper, `assert_secret_free` in `tests/secret_free/__init__.py`, is
   called by no test of a refusal yet, only by its own `tests/secret_free_test.py`:
   `tests/refusals_test.py` holds the checks above in its own form, and
-  moving them onto the helper is owed.
+  moving them onto the helper is owed by
+  btclib-org/btclib-mnemonics#87.
 - **Type confusion (CWE-843).** mypy runs with `strict = true` over the
   package and the suite, as a hook of the lint gate.
 - **Code that is wrong and still passes.** Line and branch coverage is
