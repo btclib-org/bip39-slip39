@@ -116,20 +116,27 @@ def test_the_tests_package_imports_no_submodule() -> None:
 
 
 # the modules of one interpreter that were loaded from where an installer
-# puts a distribution, by name: `__file__` under the purelib or the platlib
-# directory. Keyed on the file and not on `sys.stdlib_module_names`, which
-# lists the standard library's public names: PyPy implements some of it in
-# modules of its own -- `_blake2`, `_cffi_ssl`, `_lzma_cffi` -- that the
-# list does not name and that live beside the standard library, not in
-# site-packages
+# puts a distribution, by name: `__file__` under a directory called
+# `site-packages` or `dist-packages`, or under the purelib or the platlib
+# directory. The directory name is what finds a package that `uv run --with`
+# layers over the environment: it sits in a site-packages directory that
+# `sysconfig` does not name. Keyed on the file and not on
+# `sys.stdlib_module_names`, which lists the standard library's public
+# names: PyPy implements some of it in modules of its own -- `_blake2`,
+# `_cffi_ssl`, `_lzma_cffi` -- that the list does not name and that live
+# beside the standard library, not in site-packages
 _INSTALLED = """
 import sys, sysconfig
 from pathlib import Path
 roots = {Path(sysconfig.get_paths()[key]).resolve() for key in ("purelib", "platlib")}
+sites = {"site-packages", "dist-packages"}
 def installed(module):
     file = getattr(module, "__file__", None)
-    return file is not None and any(
-        root in Path(file).resolve().parents for root in roots
+    if file is None:
+        return False
+    path = Path(file)
+    return bool(sites.intersection(path.parts)) or any(
+        root in path.resolve().parents for root in roots
     )
 print(sorted(name for name, module in list(sys.modules.items()) if installed(module)))
 """
