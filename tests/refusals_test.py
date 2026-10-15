@@ -18,7 +18,9 @@ btclib-org/btclib-wallet#137).
 
 from __future__ import annotations
 
+from base64 import b64encode
 from collections.abc import Callable
+from hashlib import sha256
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
@@ -31,8 +33,30 @@ from btclib_mnemonics.exceptions import (
     BTClibMnemonicsValueError,
 )
 from tests import load
+from tests.secret_free import assert_secret_free
 
 _ABOUT = "abandon " * 11 + "about"
+_ABOUT_WORDS = _ABOUT.split()
+# a fixed random entropy, as a bit string
+_ENTROPY_BITS = "11111101110000101001000101010110101101011100111001001001000100100100001100000100101100101101100001100001101001001010010100101111"
+
+
+def _spellings_of(secret: bytes) -> list[str | bytes]:
+    """Return what a refusal could print of a secret held as bytes."""
+    number = int.from_bytes(secret, "big")
+    return [
+        secret,
+        secret.hex(),
+        format(number, f"0{8 * len(secret)}b"),
+        str(number),
+        b64encode(secret).decode(),
+    ]
+
+
+_ENTROPY_SPELLINGS = _spellings_of(int(_ENTROPY_BITS, 2).to_bytes(16, "big"))
+# digits a wrong-type row feeds in a secret's place: an index list as a str,
+# a hex seed as an int
+_WRONGLY_TYPED = ["1", "12"]
 
 
 class _BytesPath:
@@ -91,7 +115,7 @@ _WRONG_TYPES: list[tuple[str, Callable[[], Any], str]] = [
     ),
     (
         "bip39.mnemonic_from_entropy(lang=int)",
-        lambda: bip39.mnemonic_from_entropy("0" * 128, 1),  # type: ignore[arg-type]
+        lambda: bip39.mnemonic_from_entropy(_ENTROPY_BITS, 1),  # type: ignore[arg-type]
         "invalid lang type: int",
     ),
     (
@@ -153,8 +177,11 @@ def test_a_wrong_type_is_the_packages_refusal(
     call: Callable[[], Any], err_msg: str
 ) -> None:
     """A `BTClibMnemonicsTypeError` naming the parameter, and no builtin."""
-    with pytest.raises(BTClibMnemonicsTypeError, match=f"^{err_msg}$"):
+    with pytest.raises(BTClibMnemonicsTypeError, match=f"^{err_msg}$") as excinfo:
         call()
+    assert_secret_free(
+        excinfo.value, [*_ABOUT_WORDS, *_ENTROPY_SPELLINGS, *_WRONGLY_TYPED]
+    )
 
 
 def test_the_type_checks_let_the_right_types_through() -> None:
@@ -184,9 +211,34 @@ def test_an_index_out_of_range_is_refused_by_its_position(index: int) -> None:
     pattern is the whole message, so it holds no number but the position
     and the bound.
     """
-    err_msg = r"^invalid index at position 2: not in \[0, 2048\)$"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
-        mnemonic.mnemonic_from_indexes([0, index], "en")
+    indexes = [1337, 1789]
+    words = mnemonic.mnemonic_from_indexes(indexes, "en").split()
+    err_msg = r"^invalid index at position 3: not in \[0, 2048\)$"
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+        mnemonic.mnemonic_from_indexes([*indexes, index], "en")
+    # 2048 is a bound the message states, so it is not listed; -1 is
+    secrets = [*map(str, indexes), *words, *(["-1"] if index < 0 else [])]
+    assert_secret_free(excinfo.value, secrets)
+
+
+@pytest.mark.parametrize("index", [-7391, 9137], ids=["negative", "past the end"])
+def test_an_index_out_of_range_is_not_quoted(index: int) -> None:
+    """Neither the index refused, nor the ones before it, nor their words."""
+    indexes = [1337, 1789]
+    words = mnemonic.mnemonic_from_indexes(indexes, "en").split()
+    err_msg = r"^invalid index at position 3: not in \[0, 2048\)$"
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+        mnemonic.mnemonic_from_indexes([*indexes, index], "en")
+    secrets = [
+        str(abs(index)),
+        format(abs(index), "x"),
+        *map(str, indexes),
+        *(format(i, "x") for i in indexes),
+        format(abs(index), "b"),
+        *(format(i, "b") for i in indexes),
+        *words,
+    ]
+    assert_secret_free(excinfo.value, secrets)
 
 
 def test_an_unknown_word_is_refused_by_its_position() -> None:
@@ -201,7 +253,7 @@ def test_an_unknown_word_is_refused_by_its_position() -> None:
     ):
         with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
             call()
-        assert "abaco" not in str(excinfo.value)
+        assert_secret_free(excinfo.value, [sentence, *sentence.split()])
         # the word-list's own refusal is not left chained behind it
         assert excinfo.value.__suppress_context__
 
@@ -210,16 +262,44 @@ def test_an_unknown_language_is_refused_as_itself() -> None:
     """Not as an unknown word, which the per-word loop would call it."""
     with pytest.raises(
         BTClibMnemonicsValueError, match="^Missing file for an unknown language$"
-    ):
+    ) as excinfo:
         mnemonic.indexes_from_mnemonic(_ABOUT, "xx")
+    assert_secret_free(excinfo.value, _ABOUT_WORDS)
 
 
 def test_a_bip39_checksum_refusal_quotes_no_checksum() -> None:
     """Both checksums are bits of the entropy or of its hash."""
-    sentence = "abandon " * 12 + "abandon"
-    sentence = " ".join(sentence.split()[:12])
-    with pytest.raises(BTClibMnemonicsValueError, match="^invalid checksum: 12 words$"):
-        bip39.entropy_from_mnemonic(sentence, "en")
+    entropy_hex = "1f5c8d2a9be0473c6a81d5f2e9047b3c"
+    entropy = bytes.fromhex(entropy_hex)
+    sentence = bip39.mnemonic_from_entropy(entropy, "en")
+    indexes = mnemonic.indexes_from_mnemonic(sentence, "en")
+    # the last index holds four bits of checksum: flip one of them
+    flipped = [*indexes[:-1], indexes[-1] ^ 1]
+    broken = mnemonic.mnemonic_from_indexes(flipped, "en")
+    with pytest.raises(
+        BTClibMnemonicsValueError, match="^invalid checksum: 12 words$"
+    ) as excinfo:
+        bip39.entropy_from_mnemonic(broken, "en")
+    digest = sha256(entropy).digest()
+    secrets: list[str | bytes] = [
+        *sentence.split(),
+        *broken.split(),
+        *_spellings_of(entropy),
+        *_spellings_of(digest),
+        format(digest[0] >> 4, "04b"),
+        format((digest[0] >> 4) ^ 1, "04b"),
+        *(str(i) for i in (indexes, flipped)),
+        *(" ".join(map(str, i)) for i in (indexes, flipped)),
+        *(",".join(map(str, i)) for i in (indexes, flipped)),
+        *map(str, indexes),
+        *map(str, flipped),
+    ]
+    assert_secret_free(excinfo.value, secrets)
+    # four bits are too few to tell from other text, so the refusal is
+    # pinned exactly
+    e = excinfo.value
+    message = ("invalid checksum: 12 words",)
+    assert (e.args, vars(e), e.__cause__, e.__context__) == (message, {}, None, None)
 
 
 def test_a_slip39_padding_refusal_quotes_no_bit() -> None:
@@ -228,18 +308,47 @@ def test_a_slip39_padding_refusal_quotes_no_bit() -> None:
     ((share,),) = [v[1] for v in vectors if "invalid padding (128 bits)" in v[0]]
     with pytest.raises(
         BTClibMnemonicsValueError, match="^invalid padding: must be all zeros$"
-    ):
+    ) as excinfo:
         slip39.share_from_mnemonic(share)
+    idx = slip39._indexes_from_mnemonic(share)
+    bits = "".join(format(i, "010b") for i in idx)
+    value_bits = bits[slip39._HEADER_BITS : len(bits) - slip39._CHECKSUM_BITS]
+    value = int(value_bits, 2)
+    padding = len(value_bits) % 16
+    secrets: list[str | bytes] = [
+        share,
+        *share.split(),
+        bits,
+        value_bits,
+        hex(value),
+        format(value, "x"),
+        value.to_bytes((len(value_bits) + 7) // 8, "big"),
+        str(int(value_bits[padding:], 2)),
+        str(idx),
+        " ".join(map(str, idx)),
+        ",".join(map(str, idx)),
+        *map(str, idx),
+    ]
+    assert_secret_free(excinfo.value, secrets)
+    # two bits are too few to tell from other text, so the refusal is
+    # pinned exactly
+    e = excinfo.value
+    message = ("invalid padding: must be all zeros",)
+    assert (e.args, vars(e), e.__cause__, e.__context__) == (message, {}, None, None)
 
 
 def test_an_unknown_electrum_version_quotes_no_hash_prefix() -> None:
     """For a sentence that is no electrum one, the prefix is a secret's hash."""
-    prefix = electrum._seed_version(_ABOUT)[:3]
+    version = electrum._seed_version(_ABOUT)
+    prefix = version[:3]
     with pytest.raises(
         BTClibMnemonicsValueError, match="^unknown electrum mnemonic version; "
     ) as excinfo:
         electrum.version_from_mnemonic(_ABOUT)
-    assert prefix not in str(excinfo.value)
+    assert_secret_free(
+        excinfo.value,
+        [*_spellings_of(bytes.fromhex(version)), version[:2], prefix, *_ABOUT_WORDS],
+    )
 
 
 # a secret in the position of a language or of a version: the entropy
@@ -250,7 +359,7 @@ _SECRET_IN_THE_WRONG_PLACE: list[tuple[str, Callable[[str], Any]]] = [
     ("bip39.entropy_from_mnemonic", lambda s: bip39.entropy_from_mnemonic("en", s)),
     (
         "bip39.mnemonic_from_entropy",
-        lambda s: bip39.mnemonic_from_entropy("0" * 128, s),
+        lambda s: bip39.mnemonic_from_entropy(_ENTROPY_BITS, s),
     ),
     (
         "mnemonic.indexes_from_mnemonic",
@@ -275,7 +384,8 @@ def test_a_secret_in_the_place_of_a_name_is_not_repeated(
     leaked = "zebra7f7f7f7f7f7f"
     with pytest.raises(BTClibMnemonicsValueError) as excinfo:
         call(leaked)
-    assert leaked not in str(excinfo.value), name
+    secrets = [leaked, leaked.encode(), leaked.encode().hex(), *_ENTROPY_SPELLINGS]
+    assert_secret_free(excinfo.value, secrets)
 
 
 def test_a_word_list_file_that_cannot_be_read_is_a_value_error(
@@ -317,12 +427,17 @@ def test_the_word_lists_constructor_validates_its_arguments() -> None:
 
 def test_the_wordlists_argument_is_validated() -> None:
     """Both functions taking one refuse what is no `WordLists`."""
-    with pytest.raises(BTClibMnemonicsTypeError, match="^invalid wordlists type: int$"):
+    with pytest.raises(
+        BTClibMnemonicsTypeError, match="^invalid wordlists type: int$"
+    ) as excinfo:
         mnemonic.indexes_from_mnemonic("abandon", "en", 5)  # type: ignore[arg-type]
+    assert_secret_free(excinfo.value, ["abandon"])
     with pytest.raises(
         BTClibMnemonicsTypeError, match="^invalid wordlists type: dict$"
-    ):
-        mnemonic.mnemonic_from_indexes([0], "en", {})  # type: ignore[arg-type]
+    ) as excinfo:
+        mnemonic.mnemonic_from_indexes([1337, 1789], "en", {})  # type: ignore[arg-type]
+    words = mnemonic.mnemonic_from_indexes([1337, 1789], "en").split()
+    assert_secret_free(excinfo.value, ["1337", "1789", *words])
 
 
 _LONE = "\udcff"
@@ -356,6 +471,14 @@ def test_a_lone_surrogate_is_refused_as_a_value_error(
     assert "udcff" not in shown
     assert "abandon" not in shown
     assert "pw" not in shown
+    secrets = [
+        *_ABOUT_WORDS,
+        *_ELECTRUM.split(),
+        "pw",
+        _LONE,
+        ascii(_LONE)[1:-1],
+    ]
+    assert_secret_free(excinfo.value, secrets)
 
 
 def test_dispatch_answers_a_lone_surrogate() -> None:
