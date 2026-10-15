@@ -618,6 +618,7 @@ them or passing them beside it on the same sha, which is the reliance
 | `lint`, `docs` | pull request, push | — |
 | `claude-review` | pull request, and `@claude` in a comment | — |
 | `api-break` | pull request | — |
+| `verified-signatures` | push to main | — |
 | `codeql` | pull request, push, and weekly | the languages |
 | `os-ubuntu` | weekly, a release | images × interpreters |
 | `os-macos` | weekly, a release | images × interpreters |
@@ -645,6 +646,8 @@ that gates a merge would make a model's judgement a branch rule. Why so
 little gates is the ceiling on concurrent jobs the plan puts on the whole
 organization, and `REPOSITORY.md`'s *Plan-gated settings* is where that
 lives.
+`verified-signatures.yml` reports after each push to `main` whether every
+commit pushed is `verified`; [the standard's *Signatures*][s-sigs] has the rule.
 
 ### The secrets baseline
 
