@@ -420,10 +420,10 @@ result.
    default, which concatenates the branch's commit messages.
 
    That the commit is composed by GitHub and signed with its web-flow
-   key rather than yours costs nothing. What `main-integrity` requires
-   is a signature, not a signer, and it enforces that with no bypass
-   actor at all: a verified signature, linear history, no force push and
-   no branch deletion, for administrators too.
+   key rather than yours costs nothing. The signature check on `main`
+   asks for a verified signature, not a signer. `main-integrity` holds
+   linear history, no force push and no branch deletion with no bypass
+   actor at all, for administrators too.
 
    ```shell
    pr=<the release pull request's number>
