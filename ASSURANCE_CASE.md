@@ -144,10 +144,9 @@ to, and what counters each.
   The rule is section 7's *A refusal carries no secret* in the
   [btclib-org standard](https://github.com/btclib-org/.github#a-refusal-carries-no-secret).
   Its helper, `assert_secret_free` in `tests/secret_free/__init__.py`, is
-  called by no test of a refusal yet, only by its own `tests/secret_free_test.py`:
-  `tests/refusals_test.py` holds the checks above in its own form, and
-  moving them onto the helper is owed by
-  btclib-org/btclib-mnemonics#87.
+  called by each test of `tests/refusals_test.py` that feeds a secret, with
+  the spellings its refusal could print. It reads each exception the
+  refusal chains.
 - **Type confusion (CWE-843).** mypy runs with `strict = true` over the
   package and the suite, as a hook of the lint gate.
 - **Code that is wrong and still passes.** Line and branch coverage is
