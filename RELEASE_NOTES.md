@@ -9,6 +9,13 @@ number says when a release was cut, and promises nothing about
 compatibility, so a breaking change is announced in this file — read it
 before upgrading, rather than a digit.
 
+## v2026.10.17
+
+- **Nothing to act on.** The code under `src/` is v2026.10.8's, and
+  griffe finds no break in the public API against that release. The tests,
+  the tooling, the workflows and the contributor documents moved;
+  [CHANGELOG.md](./CHANGELOG.md) lists them.
+
 ## v2026.10.8
 
 - **A mnemonic or passphrase holding a lone surrogate is no longer kept whole
