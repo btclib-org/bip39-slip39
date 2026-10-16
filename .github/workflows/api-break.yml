@@ -19,8 +19,9 @@ name: api-break
 on:
   pull_request:
     # closed so that the run for a pull request that has stopped taking
-    # changes enters the group below and cancels the run in flight; the
-    # callee's `if:` declines the closed run itself
+    # changes enters the group below: a close cancels the run in flight,
+    # a merge queues behind it. The callee's `if:` declines the closed run
+    # itself
     types: [opened, reopened, synchronize, ready_for_review, closed]
   workflow_dispatch:
 
@@ -30,10 +31,11 @@ permissions:
   contents: read
 
 # named literally rather than through github.workflow, as everywhere else
-# here. A push supersedes the run it overtakes
+# here. A push supersedes the run it overtakes. There is no push trigger,
+# so the walk in flight is the only reading a merged pull request gets
 concurrency:
   group: api-break-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ !(github.event.action == 'closed' && github.event.pull_request.merged) }}
 
 jobs:
   api-break:
