@@ -111,8 +111,8 @@ nothing.
 | `lint / Dependency review` | `lint.yml`, calling `reusable-lint.yml` |
 | `lint / Sign-off` | `lint.yml`, calling `reusable-lint.yml` |
 
-A merge through the maintainer's bypass waits for none of these checks,
-as `CONTRIBUTING.md`'s *Landing it* says.
+A merge waits for all of these checks, except an administrator's:
+`enforce_admins` is off (*Branch protection*).
 
 A job whose whole body is a call to a reusable workflow contributes no
 name of its own: the context joins the calling job's id to the called
@@ -210,21 +210,19 @@ gh api -X POST repos/btclib-org/btclib-mnemonics/rulesets --input - <<'JSON'
 JSON
 ```
 
-`main-self-merge` requires a pull request, with the maintainer as the
-only bypass actor and in **`pull_request` mode**, which excuses the
-approving review and nothing else: a direct push to `main` is refused for
-everyone. The ruleset sets no condition on the bypass.
+`main-self-merge` requires a pull request and has no bypass actor, so
+every merge needs an approval from somebody other than its author. A
+direct push to `main` is refused for everyone.
 btclib-org/.github's
 [`GOVERNANCE.md`](https://github.com/btclib-org/.github/blob/main/GOVERNANCE.md#how-a-decision-is-made),
-*How a decision is made*, says when the maintainer uses it, and
-`CONTRIBUTING.md`'s *Landing it* has the commands.
+*How a decision is made*, says when the maintainer adds the bypass back,
+and `CONTRIBUTING.md`'s *Landing it* has the commands.
 
 ```shell
 gh api -X POST repos/btclib-org/btclib-mnemonics/rulesets --input - <<'JSON'
 {"name": "main-self-merge", "target": "branch", "enforcement": "active",
  "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
- "bypass_actors": [{"actor_id": 3296421, "actor_type": "User",
-                    "bypass_mode": "pull_request"}],
+ "bypass_actors": [],
  "rules": [{"type": "pull_request", "parameters": {
    "allowed_merge_methods": ["squash"],
    "dismiss_stale_reviews_on_push": true,
@@ -235,8 +233,9 @@ gh api -X POST repos/btclib-org/btclib-mnemonics/rulesets --input - <<'JSON'
 JSON
 ```
 
-`3296421` is `fametrano`'s account id,
-`gh api users/fametrano --jq .id`.
+In an emergency the maintainer adds the bypass back, as actor `3296421`,
+`fametrano`'s account id (`gh api users/fametrano --jq .id`), in
+`pull_request` mode, and removes it after the merge.
 
 Classic protection's own copy of the signature rule is off:
 
@@ -285,7 +284,7 @@ done
 #  "methods":[],"name":"main-integrity",
 #  "rules":["required_linear_history","non_fast_forward","deletion"],
 #  "target":"branch"}
-# {"bypass":[[3296421,"pull_request"]],"enforcement":"active",
+# {"bypass":[],"enforcement":"active",
 #  "include":["refs/heads/main"],"methods":[["squash"]],
 #  "name":"main-self-merge","rules":["pull_request"],"target":"branch"}
 # {"bypass":[],"enforcement":"active","include":["refs/tags/v*"],
