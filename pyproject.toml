@@ -264,7 +264,10 @@ filterwarnings = ["error"]
 # checked, being prose about the data and not the data. fuzz/corpus/'s
 # seeds are the exact bytes a harness is handed, skipped for the reason
 # .pre-commit-config.yaml's trailing-whitespace hook gives
-skip = "*/_data/*.json,*/_data/*.txt,.secrets.baseline,uv.lock,fuzz/corpus/*"
+#
+# `_rolls_prompts.py` is skipped too, with typos below: both check English,
+# and that module holds the other languages of the word lists
+skip = "*/_data/*.json,*/_data/*.txt,*/_rolls_prompts.py,.secrets.baseline,uv.lock,fuzz/corpus/*"
 # not a misspelling: "te" is what electrum's own NFD spelling of
 # "término" tokenizes into at the combining accent, a passphrase
 # tests/electrum_test.py needs in exactly that spelling
@@ -290,6 +293,7 @@ ignore-regex = '`[^`]*`'
 extend-exclude = [
     "**/_data/*.json",
     "**/_data/*.txt",
+    "**/_rolls_prompts.py",
     ".secrets.baseline",
     "uv.lock",
     "fuzz/corpus/**",
@@ -489,6 +493,11 @@ ignore = [
 # collecting entropy from dice is a conversation: the module prompts with
 # input() and prints which rolls count, so its prints are the interface
 "src/btclib_mnemonics/entropy.py" = ["T201"]
+# the prompts are in each language of the word lists, Turkish's dotless i
+# and Chinese's fullwidth punctuation among them
+"src/btclib_mnemonics/_rolls_prompts.py" = [
+    "ambiguous-unicode-character-string",
+]
 # the D rules are not here: a public test function states what it
 # verifies under the same docstring gate as the library
 "tests/**" = [

@@ -28,6 +28,7 @@ import string
 from collections.abc import Iterable, Sequence
 from hashlib import sha512
 
+from btclib_mnemonics._rolls_prompts import ROLLS_PROMPTS
 from btclib_mnemonics._utils import Octets, assert_type, bytes_from_octets, is_integer
 from btclib_mnemonics.exceptions import (
     BTClibMnemonicsTypeError,
@@ -295,7 +296,7 @@ def _bin_str_entropy_from_str(str_entropy: str, bits: OneOrMoreInt) -> BinStr:
     return str_entropy
 
 
-def collect_rolls(bits: int) -> tuple[int, list[int]]:
+def collect_rolls(bits: int, lang: str = "en") -> tuple[int, list[int]]:
     """Prompt for dice rolls until they carry `bits` of entropy.
 
     Interactive on purpose, input() and print() being its interface:
@@ -304,17 +305,32 @@ def collect_rolls(bits: int) -> tuple[int, list[int]]:
     bits, and so is an answer that is not ASCII decimal digits once
     ASCII whitespace is stripped.
 
+    The prompts are in `lang`, a key of `mnemonic.BIP39_LANGUAGE_FILES`:
+    pass the language the mnemonic is to be written in, as
+    `bip39.mnemonic_from_entropy` takes it. Any other language is
+    refused. The terminal must be able to show that language's script.
+    Only the texts differ between languages: the answers accepted are
+    the same, including the ASCII letter "a" that automates the rolls.
+    The translations were made and checked with AI.
+
     The automated mode rolls with `secrets`, and must keep doing so: a
     reproducible source of rolls is what the entropy of a seed that does
     not exist yet must never be.
     """
+    assert_type(lang, str, "lang")
+    if lang not in ROLLS_PROMPTS:
+        raise BTClibMnemonicsValueError(
+            f"no prompts in language {lang!r}: one of {sorted(ROLLS_PROMPTS)}"
+        )
+    prompts = ROLLS_PROMPTS[lang]
+
     automate = False
     dice_sides = 0
     valid_dice_sides = (4, 6, 8, 12, 20, 24, 30, 48, 60, 120)
     while dice_sides not in valid_dice_sides:
-        msg = f"dice sides {f'{valid_dice_sides}'[:-1]}"
-        msg += "; prefix with 'a' to automate rolls, hit enter for 'a6'): "
-        dice_sides_str = input(msg)
+        dice_sides_str = input(
+            prompts.dice_sides.format(choices=", ".join(map(str, valid_dice_sides)))
+        )
         dice_sides_str = dice_sides_str.lower()
         if dice_sides_str in {"", "a"}:
             automate = True
@@ -333,7 +349,7 @@ def collect_rolls(bits: int) -> tuple[int, list[int]]:
     bits_per_roll = _bits_per_digit(dice_sides)
     base = 2**bits_per_roll
     if not automate:
-        print(f"rolls are used only if in 1..{base}")
+        print(prompts.usable.format(base=base))
 
     rolls: list[int] = []
     min_roll_number = math.ceil(bits / bits_per_roll)
@@ -343,11 +359,11 @@ def collect_rolls(bits: int) -> tuple[int, list[int]]:
             if automate:
                 roll_str = str(1 + secrets.randbelow(dice_sides))
             else:
-                roll_str = input(f"roll #{i + 1}/{min_roll_number}: ")
+                roll_str = input(prompts.roll.format(n=i + 1, total=min_roll_number))
                 roll_str = roll_str.strip(string.whitespace)
             roll = int(roll_str) if _is_ascii_digits(roll_str, string.digits) else 0
         rolls.append(roll)
-    print(f"collected {min_roll_number} usable D{dice_sides} rolls")
+    print(prompts.collected.format(total=min_roll_number, sides=dice_sides))
 
     return dice_sides, rolls
 

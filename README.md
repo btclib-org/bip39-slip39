@@ -71,7 +71,8 @@ but the standard library.
 - which of those schemes a sentence belongs to, where more than one
   claims it (`dispatch`)
 - the entropy the schemes are generated from, drawn from the operating
-  system's CSPRNG or from dice rolls (`entropy`)
+  system's CSPRNG or from dice rolls, prompted in the mnemonic's language
+  (`entropy`)
 - the word lists and the normalization every scheme reads a sentence
   through (`mnemonic`)
 

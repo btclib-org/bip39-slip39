@@ -11,7 +11,7 @@ module-path = [
 ]
 
 test-command = """python -m pytest -x -q -n0 -p no:randomly \
-  tests/bip39_test.py tests/entropy_test.py"""
+  tests/bip39_test.py tests/entropy_test.py tests/rolls_prompts_test.py"""
 
 timeout = 300
 
