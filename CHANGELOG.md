@@ -19,6 +19,70 @@ behind them.
 
 [std]: https://github.com/btclib-org/.github
 
+## v2026.10.17
+
+### The refusal tests check that no refusal prints the secret
+
+`tests/refusals_test.py` passes each refusal fed a secret to the shared
+`assert_secret_free`, with the secret's spellings (issue
+btclib-org/.github#1697, closes #87).
+
+### The runtime import check sees a package `uv run --with` layers
+
+`tests/imports_test.py` counts a file under a `site-packages` or
+`dist-packages` directory as installed (closes #78).
+
+### `api-break.yml` labels a pull request that breaks the public API
+
+It gates nothing, and a merged pull request's closed run queues behind the
+walk in flight instead of cancelling it (issue btclib-org/.github#1674,
+issue btclib-org/.github#1744).
+
+### `verified-signatures.yml` checks the signatures on `main`
+
+On each push to `main` it fails unless every new commit is verified on the
+forge. It stands in for the `required_signatures` rule, removed from `main`
+so that outside contributors need not sign (issue btclib-org/.github#1738).
+
+### The workflow linter is the actionlint fork
+
+The workflows are linted by the `actionlint-shellcheck` hook of kjanat's
+fork, and `claude-review.yml`'s review call sets `cache-mode: none` (issue
+btclib-org/.github#1698, closes #88).
+
+### The maintainer's bypass is everyday practice
+
+`CONTRIBUTING.md` and `REVIEWING.md` take btclib-org/.github's shared
+halves, and `REPOSITORY.md` records `strict` off on `main` (issue
+btclib-org/.github#1695, issue btclib-org/.github#1712).
+
+### `RELEASING.md` runs the dependents' suites and reads the tag back
+
+Each dependent's suite runs with the release pull request's head before the
+merge, and the tag's signature is read back from the API after the push
+(issue btclib-org/.github#1647, issue btclib-org/.github#1660).
+
+### `REPOSITORY.md` says what the tag-integrity ruleset does not check
+
+It accepts an unsigned or lightweight `v*` tag on a commit already on `main`
+(issue btclib-org/.github#1635).
+
+### An owner commits the uv export on a Dependabot `uv` pull request
+
+`CONTRIBUTING.md` says so, since Dependabot rewrites `uv.lock` alone and the
+`uv-export` hook then fails. `.clusterfuzzlite/requirements.txt` is
+regenerated with that hook (closes #79, closes #80).
+
+### The pinned versions move
+
+The development dependencies, the artifact actions, the fuzz base image and
+the hook revisions are bumped (#74, #75, #85, #91, #92, #93), and pydantic
+to 2.14.0 so that the pyroma hook builds nothing (issue btclib-org/btclib#2685).
+
+### Open 2026.11 after v2026.10.8
+
+The declared version is the month alone again between releases (#73).
+
 ## v2026.10.8
 
 ### The shared halves of `CONTRIBUTING.md` and `REVIEWING.md` are `.github`'s
