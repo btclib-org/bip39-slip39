@@ -330,12 +330,7 @@ def test_collect_rolls_prompt_names_the_roll_and_the_total(
 def test_collect_rolls_prompt_lists_the_dice_sides(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The dice-sides prompt names every side this module accepts.
-
-    `f'{valid_dice_sides}'[:-1]` drops the tuple's closing paren so the
-    line can add the automation note before it; `[:-0]` is `[:0]`, empty,
-    and nothing but this test reads what `input()` printed and threw away.
-    """
+    """The dice-sides prompt names every side this module accepts."""
     monkeypatch.setattr("sys.stdin", StringIO("4\n1\n"))
     collect_rolls(2)
     out = capsys.readouterr().out
