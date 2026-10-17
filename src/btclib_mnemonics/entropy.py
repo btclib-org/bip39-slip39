@@ -309,8 +309,8 @@ def collect_rolls(bits: int, lang: str = "en") -> tuple[int, list[int]]:
     pass the language the mnemonic is to be written in, as
     `bip39.mnemonic_from_entropy` takes it. Any other language is
     refused. The terminal must be able to show that language's script.
-    Only the texts differ between languages: the answers accepted are
-    the same, including the ASCII letter "a" that automates the rolls.
+    Only the texts differ between languages: `_rolls_prompts.py` says
+    what is accepted in all of them.
     The translations were made and checked with AI.
 
     The automated mode rolls with `secrets`, and must keep doing so: a
