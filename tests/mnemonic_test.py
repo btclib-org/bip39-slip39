@@ -5,6 +5,7 @@
 """Tests for the `btclib_mnemonics.mnemonic` module."""
 
 import threading
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, get_args
 from unicodedata import normalize
@@ -363,6 +364,39 @@ def test_load_lang_is_not_a_race() -> None:
         second.join(10)
 
     assert loaded == [2048, 2048]
+
+
+def test_loaded_language_is_read_without_the_lock() -> None:
+    """A loaded language is not behind the lock; a load or a filename is."""
+    word_lists = WordLists()
+    word_lists.load_lang("en")
+
+    def finishes(call: Callable[[], object], wait: float) -> bool:
+        # in a thread: a call that takes the lock held below would never
+        # return, and a test that hangs says less than one that fails
+        done = threading.Event()
+
+        def run() -> None:
+            call()
+            done.set()
+
+        threading.Thread(target=run, daemon=True).start()
+        return done.wait(wait)
+
+    def reload() -> None:
+        word_lists.load_lang("en", data_file("english.txt"))
+
+    word_lists._lock.acquire()
+    try:
+        assert finishes(lambda: word_lists.language_length("en"), 10)
+        assert finishes(lambda: word_lists.wordlist("en"), 10)
+        assert finishes(lambda: word_lists.index("abandon", "en"), 10)
+        # a language not loaded yet needs the lock, and so does a reload
+        # from a file
+        assert not finishes(lambda: word_lists.load_lang("it"), 0.3)
+        assert not finishes(reload, 0.3)
+    finally:
+        word_lists._lock.release()
 
 
 def test_load_lang_is_idempotent_and_reads_once() -> None:

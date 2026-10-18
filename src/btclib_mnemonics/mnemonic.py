@@ -154,7 +154,10 @@ class WordLists:
     *empty* word-list back: mnemonic_from_indexes would raise IndexError
     and indexes_from_mnemonic would report every word as unknown. The
     lock closes that, and load_lang also publishes the words before the
-    count, so that the count is never ahead of the words it counts.
+    count, so that the count is never ahead of the words it counts. That
+    order is what lets a call given no filename skip the lock once the
+    count is non-zero: it can only see a count whose words are in place.
+    A load, and any call given a filename, still takes the lock.
 
     The module-level WORDLISTS is a singleton, and load_lang mutating it
     affects every caller in the process: adding a language, or pointing an
@@ -202,6 +205,9 @@ class WordLists:
         language never seen and with no file, and refused as a missing file.
         """
         assert_type(lang, str, "lang")
+        # a non-zero count is a finished load: the class docstring says why
+        if filename is None and self._language_length.get(lang, 0) != 0:
+            return
         path = None if filename is None else _filename(filename)
         with self._lock:
             known = lang in self.languages
@@ -227,8 +233,7 @@ class WordLists:
             # the words first and the count second: the count is what
             # marks the language loaded, so publishing it before the
             # words it counts is what let a concurrent reader see an
-            # empty list. Belt and braces beside the lock, which is
-            # what actually closes it
+            # empty list.
             self._index[lang] = {word: i for i, word in enumerate(words)}
             self._wordlist[lang] = words
             self._language_length[lang] = len(words)
