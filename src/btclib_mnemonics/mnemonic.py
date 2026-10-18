@@ -304,6 +304,22 @@ class WordLists:
             raise BTClibMnemonicsValueError(f"unknown '{lang}' word")
         return found
 
+    def words_with_prefix(self, prefix: str, lang: str) -> list[str]:
+        """Return the words of the language that begin with a prefix.
+
+        In list order. An empty answer is a miss, one word is a completion,
+        and the letters that can follow the prefix are read off the answer.
+        An empty prefix answers every word, and a word is a prefix of
+        itself.
+
+        The prefix is normalized to NFKD as `index` normalizes a word, so
+        that a composed spelling finds the decomposed words of the list.
+        """
+        assert_type(prefix, str, "prefix")
+        words = self._record(lang).words
+        normalized = unicodedata.normalize("NFKD", prefix)
+        return [word for word in words if word.startswith(normalized)]
+
     def langs_of_words(self, words: Sequence[str]) -> list[str]:
         """Return the languages whose word-list holds every word.
 
