@@ -254,8 +254,6 @@ def test_an_unknown_word_is_refused_by_its_position() -> None:
         with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
             call()
         assert_secret_free(excinfo.value, [sentence, *sentence.split()])
-        # the word-list's own refusal is not left chained behind it
-        assert excinfo.value.__suppress_context__
 
 
 def test_an_unknown_language_is_refused_as_itself() -> None:

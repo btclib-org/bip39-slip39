@@ -314,31 +314,31 @@ def test_comments_are_not_words() -> None:
 def test_load_lang_is_not_a_race() -> None:
     """Guards against a concurrent reader getting an empty word-list.
 
-    load_lang treats a non-zero word count as "already loaded", so were
-    the count recorded before the words, a second thread arriving between
-    the two assignments would skip the load and get back the empty list
-    the constructor put there: 0 words instead of 2048. This test forces
-    that interleaving.
+    load_lang treats a non-empty record as "already loaded", so were
+    the record published before the words were in it, a second thread
+    arriving then would skip the load and get back the empty list the
+    constructor put there: 0 words instead of 2048. This test forces the
+    interleaving at the store that publishes the record.
     """
     word_lists = WordLists()
     paused = threading.Event()
     release = threading.Event()
 
-    class BlockingDict(dict[str, list[str]]):
+    class BlockingDict(dict[str, Any]):
         """Block inside the assignment the race needed to interleave."""
 
         @override
-        def __setitem__(self, key: str, value: list[str]) -> None:
+        def __setitem__(self, key: str, value: Any) -> None:
             # `no branch`: this test loads one language, so the guard is
             # never false here. It is what keeps the block to the
             # assignment the race needs, another language or the empty
             # value of a failed load being neither
-            if key == "en" and value:  # pragma: no branch -- one language is loaded
+            if key == "en" and value.words:  # pragma: no branch -- one language
                 paused.set()
                 release.wait(10)
             super().__setitem__(key, value)
 
-    word_lists._wordlist = BlockingDict(word_lists._wordlist)
+    word_lists._language = BlockingDict(word_lists._language)
 
     loaded: list[int] = []
 
