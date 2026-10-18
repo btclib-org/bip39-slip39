@@ -19,6 +19,16 @@ def test_version() -> None:
     assert version == importlib.metadata.version("btclib-mnemonics")
 
 
+def test_submodule_through_the_package_type_checks() -> None:
+    """A submodule reached from the bare package passes mypy.
+
+    The gate that fails is mypy's, not this assertion: `__getattr__`'s
+    return type is what it reads.
+    """
+    mnemonic = btclib_mnemonics.bip39.mnemonic_from_entropy(bytes(16))
+    assert mnemonic.split()[-1] == "about"
+
+
 def test_version_without_installed_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

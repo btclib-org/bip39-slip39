@@ -34,16 +34,15 @@ tests/imports_test.py exists to make impossible.
 
 What that costs is worth stating: mypy reads a module-level `__getattr__`
 as a promise that any attribute may exist, so `btclib_mnemonics.bip93` is
-`ModuleType | str` to it, that function's return type, and a misspelling
-on this package is a runtime `AttributeError` rather than a reported
-error. The spellings a caller actually writes -- `from btclib_mnemonics
-import bip39`, `import btclib_mnemonics.bip39`, `from btclib_mnemonics.bip39
-import seed_from_mnemonic` -- resolve against the real modules and stay
-checked.
+`Any` to it, that function's return type, and a misspelling on this
+package is a runtime `AttributeError` rather than a reported error. The
+spellings a caller actually writes -- `from btclib_mnemonics import bip39`,
+`import btclib_mnemonics.bip39`, `from btclib_mnemonics.bip39 import
+seed_from_mnemonic` -- resolve against the real modules and stay checked.
 """
 
 from importlib import import_module
-from types import ModuleType
+from typing import Any
 
 name = "btclib-mnemonics"
 # a bare annotation binds nothing, so `__getattr__` still answers; it tells
@@ -61,7 +60,7 @@ __all__ = [
 ]
 
 
-def __getattr__(published: str) -> ModuleType | str:
+def __getattr__(published: str) -> Any:
     """Import a published module, or read the version, on first ask.
 
     PEP 562: this runs only for a name the package does not already have,
@@ -79,6 +78,11 @@ def __getattr__(published: str) -> ModuleType | str:
     private modules included: `import btclib_mnemonics._utils` still reaches
     one. The message is the interpreter's own wording, so a typo reads as it
     does anywhere else.
+
+    The return type is `Any`. A union of a module and a `str` would make
+    `btclib_mnemonics.bip39.mnemonic_from_entropy(...)` a mypy error in a
+    strict caller that wrote only `import btclib_mnemonics`; the bare
+    `__version__: str` above is what types the version.
     """
     if published == "__version__":
         from importlib.metadata import (  # noqa: PLC0415 -- the point
