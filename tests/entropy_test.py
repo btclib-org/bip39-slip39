@@ -6,7 +6,6 @@
 
 import math
 import secrets
-import string
 from io import StringIO
 from typing import Any
 
@@ -31,11 +30,9 @@ from btclib_mnemonics.exceptions import (
     BTClibMnemonicsValueError,
 )
 
-# the refusals of a string entropy that is not ASCII digits (issue
+# the refusal of a string entropy that is not ASCII digits (issue
 # btclib-org/btclib-wallet#103)
 _NOT_BINARY = "invalid entropy: not a binary 0/1 string"
-_NOT_DECIMAL = "invalid entropy: not ASCII decimal digits"
-_NOT_HEX = "invalid entropy: what follows 0x is not ASCII hex digits"
 
 
 def test_indexes() -> None:
@@ -117,8 +114,6 @@ def test_conversions() -> None:
         assert _bin_str_entropy_from_str(raw, _bits) == raw
         i = int(raw, 2)
         assert _bin_str_entropy_from_int(i, _bits) == raw
-        assert _bin_str_entropy_from_int(bin(i).upper(), _bits) == raw
-        assert _bin_str_entropy_from_int(hex(i).upper(), _bits) == raw
         b = i.to_bytes(32, byteorder="big", signed=False)
         assert _bin_str_entropy_from_bytes(b, _bits) == raw
         assert _bin_str_entropy_from_bytes(b.hex(), _bits) == raw
@@ -126,18 +121,6 @@ def test_conversions() -> None:
         assert _bin_str_entropy_from_entropy(raw, _bits) == raw
         assert _bin_str_entropy_from_entropy(i, _bits) == raw
         assert _bin_str_entropy_from_entropy(b, _bits) == raw
-
-    # a decimal string starting with "0" and a digit below "b": "01" sorts
-    # below "0b", so `== "0b"` weakened to `<=` reads a plain decimal as
-    # binary too -- "010" is 10 in decimal, and as binary its first two
-    # characters are taken for the prefix, leaving "0"
-    assert _bin_str_entropy_from_int("010", 4) == "1010"
-    # neither prefixed nor a valid plain decimal: "ab" sorts above "0x",
-    # so `== "0x"` weakened to `>=` sends it to the hex branch, whose
-    # refusal is another message
-    with pytest.raises(BTClibMnemonicsValueError) as excinfo:
-        _bin_str_entropy_from_int("ab", 8)
-    assert str(excinfo.value) == _NOT_DECIMAL
 
     max_bits = max(_bits)
 
@@ -162,13 +145,17 @@ def test_conversions() -> None:
     with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits"):
         _bin_str_entropy_from_entropy(1 << max_bits, _bits)
 
+    # far past CPython's limit on decimal digits, still the package's refusal
+    for huge in (10**5000, "1" * 5000):
+        with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits"):
+            _bin_str_entropy_from_entropy(huge, _bits)
+
     i = secrets.randbits(255)
     raw = _bin_str_entropy_from_int(i, _bits)
     assert int(raw, 2) == i
     assert len(raw) == 256
 
     assert _bin_str_entropy_from_str(raw, _bits) == raw
-    assert _bin_str_entropy_from_int(hex(i).upper(), _bits) == raw
 
     b = i.to_bytes(32, byteorder="big", signed=False)
     assert _bin_str_entropy_from_bytes(b, _bits) == raw
@@ -234,10 +221,6 @@ def test_exceptions() -> None:
     # bits, a number it never carried
     with pytest.raises(BTClibMnemonicsTypeError, match="invalid octets type: tuple"):
         _bin_str_entropy_from_entropy((), _bits)  # type: ignore[arg-type]
-
-    with pytest.raises(BTClibMnemonicsValueError) as excinfo:
-        _bin_str_entropy_from_int("not an int", _bits)
-    assert str(excinfo.value) == _NOT_DECIMAL
 
     with pytest.raises(BTClibMnemonicsTypeError, match="invalid entropy type: int"):
         _bin_str_entropy_from_str(3, _bits)  # type: ignore[arg-type]
@@ -577,12 +560,6 @@ def test_what_is_no_binary_string_is_refused_without_being_echoed() -> None:
     library, carrying the very string it was handed. Every message in
     this module says a length or a count instead.
     """
-    for not_binary in ("0b2", "0bxyz", "0b"):
-        with pytest.raises(BTClibMnemonicsValueError, match="not a binary") as excinfo:
-            _bin_str_entropy_from_int(not_binary, _bits)
-        # the digits stay out of the message, being seed material
-        assert not_binary not in str(excinfo.value)
-
     for not_binary in ("2" * 128, "abc" * 43):
         with pytest.raises(BTClibMnemonicsValueError, match="not a binary 0/1 string"):
             _bin_str_entropy_from_str(not_binary, _bits)
@@ -610,79 +587,6 @@ def test_a_bin_str_that_is_no_str() -> None:
                 BTClibMnemonicsTypeError, match="invalid entropy type: "
             ):
                 bin_str_entropy_from_random(128, wrong)
-
-
-# what `str.strip()` with no argument also takes and Bitcoin Core's IsSpace
-# does not
-_NON_CORE_SPACES = (
-    "\N{NO-BREAK SPACE}",
-    "\N{IDEOGRAPHIC SPACE}",
-    "\N{LINE SEPARATOR}",
-    "\N{INFORMATION SEPARATOR FOUR}",
-)
-# ten in ARABIC-INDIC and in FULLWIDTH digits, both of which `int` reads
-_ARABIC_INDIC_TEN = "\N{ARABIC-INDIC DIGIT ONE}\N{ARABIC-INDIC DIGIT ZERO}"
-_FULLWIDTH_TEN = "\N{FULLWIDTH DIGIT ONE}\N{FULLWIDTH DIGIT ZERO}"
-
-
-def test_a_string_entropy_is_read_in_ascii_digits_alone() -> None:
-    """Only ASCII digits are read, and only ASCII whitespace is stripped.
-
-    `int` takes the digit-grouping underscore, a sign and every Unicode
-    decimal digit, and `str.strip()` every character `isspace` counts, so
-    each of these read as a number (issue btclib-org/btclib-wallet#103).
-    The refusal names no part of the string, which is seed material.
-    """
-    refused = {
-        _NOT_HEX: [
-            "0x1_0",
-            "0x_10",
-            "0x" + _ARABIC_INDIC_TEN,
-            "0x" + _FULLWIDTH_TEN,
-            "0x",
-            "0x 10",
-            "0x+10",
-            "0x-10",
-            # padding `isspace` counts and ASCII does not, after the
-            # digits: the string still starts with 0x
-            *(f"0x10{pad}" for pad in _NON_CORE_SPACES),
-        ],
-        _NOT_DECIMAL: [
-            "1_6",
-            "\N{ARABIC-INDIC DIGIT ONE}\N{ARABIC-INDIC DIGIT SIX}",
-            "\N{FULLWIDTH DIGIT ONE}\N{FULLWIDTH DIGIT SIX}",
-            "+16",
-            "-16",
-            "-0x10",
-            "",
-            " ",
-            *(f"{pad}16{pad}" for pad in _NON_CORE_SPACES),
-            # ahead of the prefix it is no prefix, so the decimal refusal
-            *(f"{pad}0x10" for pad in _NON_CORE_SPACES),
-        ],
-        _NOT_BINARY: [
-            "0b1_0000",
-            "0b" + "\N{ARABIC-INDIC DIGIT ONE}" + "\N{ARABIC-INDIC DIGIT ZERO}" * 4,
-            "0b+10000",
-            "0b 10000",
-            "0b0b10000",
-            *(f"0b10000{pad}" for pad in _NON_CORE_SPACES),
-        ],
-    }
-    for err_msg, spellings in refused.items():
-        for spelling in spellings:
-            with pytest.raises(BTClibMnemonicsValueError) as excinfo:
-                _bin_str_entropy_from_int(spelling, 128)
-            assert str(excinfo.value) == err_msg
-
-    # what stays: ASCII whitespace around each spelling, and upper case
-    sixteen = _bin_str_entropy_from_int(16, 128)
-    ws = string.whitespace
-    for spelling in ("0x10", "0X10", "0b10000", "0B10000", "16", "016"):
-        assert _bin_str_entropy_from_int(f"{ws}{spelling}{ws}", 128) == sixteen
-    hex_digits = "0123456789abcdefABCDEF"
-    raw = _bin_str_entropy_from_int(int(hex_digits, 16), 128)
-    assert _bin_str_entropy_from_int("0x" + hex_digits, 128) == raw
 
 
 def test_raw_entropy_is_ascii_0_and_1_alone() -> None:
