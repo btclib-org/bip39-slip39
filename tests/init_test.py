@@ -4,8 +4,9 @@
 
 """Tests for the `btclib_mnemonics` package metadata."""
 
-import importlib
 import importlib.metadata
+import subprocess
+import sys
 
 import pytest
 
@@ -14,39 +15,56 @@ import btclib_mnemonics
 
 def test_version() -> None:
     """Verify __version__ matches the installed metadata."""
-    assert btclib_mnemonics.__version__ == importlib.metadata.version(
-        "btclib-mnemonics"
-    )
+    version: str = btclib_mnemonics.__version__  # type-checks only as a str
+    assert version == importlib.metadata.version("btclib-mnemonics")
 
 
 def test_version_without_installed_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A source tree with no metadata beside it stays importable.
+    """A source tree with no metadata beside it reads the version as "unknown".
 
     The suite cannot exercise that situation as it is, the package being
-    installed in the environment running it, so the lookup is made to fail
-    and the module re-executed. It is the import that is under test, not
-    the string: guards against import raising PackageNotFoundError
+    installed in the environment running it, so the lookup is made to fail.
+    Reading the version must not raise PackageNotFoundError
     (issue btclib-org/btclib#150).
     """
 
     def raise_package_not_found(_: str) -> str:
         raise importlib.metadata.PackageNotFoundError
 
-    # patch the attribute of the module, not the name btclib_mnemonics imported:
-    # the `from importlib.metadata import version` line looks it up again on
-    # reload, which is what makes this reachable at all
+    # patch the attribute of the module: the `from importlib.metadata import
+    # version` inside `__getattr__` looks it up on every first access
     monkeypatch.setattr(importlib.metadata, "version", raise_package_not_found)
+    # forget a version an earlier access read and kept
+    vars(btclib_mnemonics).pop("__version__", None)
     try:
-        assert importlib.reload(btclib_mnemonics).__version__ == "unknown"
+        assert btclib_mnemonics.__version__ == "unknown"
     finally:
-        # reload once more with the lookup restored, so the module every
-        # other test sees carries the real version again. monkeypatch would
-        # undo the patch by itself, but not the module state it produced
+        # forget the kept "unknown", so the module every other test sees
+        # reads the real version again. monkeypatch would undo the patch by
+        # itself, but not the module state it produced
         monkeypatch.undo()
-        importlib.reload(btclib_mnemonics)
+        vars(btclib_mnemonics).pop("__version__", None)
 
     assert btclib_mnemonics.__version__ == importlib.metadata.version(
         "btclib-mnemonics"
     )
+
+
+def test_version_listed_before_it_is_read() -> None:
+    """`dir` lists `__version__` on a fresh namespace, before any access."""
+    vars(btclib_mnemonics).pop("__version__", None)
+    assert "__version__" in dir(btclib_mnemonics)
+
+
+def test_import_does_not_import_metadata() -> None:
+    """Importing a scheme leaves `importlib.metadata` unimported."""
+    code = (
+        "import sys, btclib_mnemonics.bip39;"
+        "sys.exit('importlib.metadata' in sys.modules)"
+    )
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code], check=False
+    )
+    assert result.returncode == 0

@@ -24,35 +24,31 @@ reads the version and `btclib_mnemonics.name` how it reads the name.
 
 Nothing is imported eagerly. A module is imported when it is first asked
 for, through the `__getattr__` at the bottom of this file, so `import
-btclib_mnemonics` is the metadata lookup below and nothing else, and the
-import graph keeps its shape: importing every module here would put the
-whole package in `sys.modules` before any single module of it could be
-imported first, which is the situation tests/imports_test.py exists to
-make impossible.
+btclib_mnemonics` imports nothing but the standard library's `types` and
+`importlib`. The same `__getattr__` reads the version: `importlib.metadata`
+is imported when `__version__` is first asked for, and not by every program
+that only wants a seed. The import graph also keeps its shape: importing
+every module here would put the whole package in `sys.modules` before any
+single module of it could be imported first, which is the situation
+tests/imports_test.py exists to make impossible.
 
 What that costs is worth stating: mypy reads a module-level `__getattr__`
 as a promise that any attribute may exist, so `btclib_mnemonics.bip93` is
-`Any` to it and a misspelling on this package is a runtime
-`AttributeError` rather than a reported error. The spellings a caller
-actually writes -- `from btclib_mnemonics import bip39`, `import
-btclib_mnemonics.bip39`, `from btclib_mnemonics.bip39 import
-seed_from_mnemonic` -- resolve against the real modules and stay checked.
+`ModuleType | str` to it, that function's return type, and a misspelling
+on this package is a runtime `AttributeError` rather than a reported
+error. The spellings a caller actually writes -- `from btclib_mnemonics
+import bip39`, `import btclib_mnemonics.bip39`, `from btclib_mnemonics.bip39
+import seed_from_mnemonic` -- resolve against the real modules and stay
+checked.
 """
 
 from importlib import import_module
-from importlib.metadata import PackageNotFoundError, version
 from types import ModuleType
 
 name = "btclib-mnemonics"
-try:
-    __version__ = version("btclib-mnemonics")
-except PackageNotFoundError:
-    # a source tree with no metadata beside it: git clone and import, or
-    # read the docs, which builds without installing this package. Any
-    # number here would be a guess, and reading pyproject.toml back is not
-    # the way to stop guessing: the file is not in the wheel. Importing has
-    # to keep working, so the version says it does not know
-    __version__ = "unknown"
+# a bare annotation binds nothing, so `__getattr__` still answers; it tells
+# type checkers the attribute is a str rather than `__getattr__`'s return type
+__version__: str
 
 __all__ = [
     "bip39",
@@ -65,8 +61,8 @@ __all__ = [
 ]
 
 
-def __getattr__(published: str) -> ModuleType:
-    """Import a published module the first time it is asked for.
+def __getattr__(published: str) -> ModuleType | str:
+    """Import a published module, or read the version, on first ask.
 
     PEP 562: this runs only for a name the package does not already have,
     so it answers `btclib_mnemonics.bip39` once and the import machinery's
@@ -77,11 +73,31 @@ def __getattr__(published: str) -> ModuleType:
     a walker reading `__all__` descends, and `from btclib_mnemonics import
     *`, which asks for each name in the list.
 
-    Anything not in `__all__` raises `AttributeError`, private modules
-    included: `import btclib_mnemonics._utils` still reaches one. The message
-    is the interpreter's own wording, so a typo reads as it does anywhere
-    else.
+    `__version__` is read from the installed metadata here, so the import of
+    `importlib.metadata` is paid by the first caller that asks, and kept
+    after that. Anything else not in `__all__` raises `AttributeError`,
+    private modules included: `import btclib_mnemonics._utils` still reaches
+    one. The message is the interpreter's own wording, so a typo reads as it
+    does anywhere else.
     """
+    if published == "__version__":
+        from importlib.metadata import (  # noqa: PLC0415 -- the point
+            PackageNotFoundError,
+            version,
+        )
+
+        try:
+            found = version("btclib-mnemonics")
+        except PackageNotFoundError:
+            # a source tree with no metadata beside it: git clone and import,
+            # or read the docs, which builds without installing this package.
+            # Any number here would be a guess, and reading pyproject.toml
+            # back is not the way to stop guessing: the file is not in the
+            # wheel. Importing has to keep working, so the version says it
+            # does not know
+            found = "unknown"
+        globals()["__version__"] = found
+        return found
     if published in __all__:
         return import_module(f"{__name__}.{published}")
     raise AttributeError(f"module {__name__!r} has no attribute {published!r}")
@@ -93,6 +109,6 @@ def __dir__() -> list[str]:
     `dir(btclib_mnemonics)` consults this rather than the namespace, so
     without it a module not yet imported is missing from the completion a
     caller gets at an interactive prompt -- the same names `__getattr__`
-    above will answer for.
+    above will answer for, `__version__` among them.
     """
-    return sorted({*__all__, *globals()})
+    return sorted({*__all__, "__version__", *globals()})
