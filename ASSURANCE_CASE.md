@@ -65,10 +65,9 @@ vulnerabilities*:
 - side channels: nothing here is constant-time
 - memory disclosure: secret material in a Python object is not zeroized
 - whatever the terminal keeps of `entropy.collect_rolls`' dice
-- the cost a SLIP-0039 share's own header asks for: its iteration
-  exponent, up to 15, sets the PBKDF2 work of recombination, as the
-  specification defines it; a share longer than a 512-bit secret needs is
-  refused, so its length adds no work
+- the PBKDF2 work a SLIP-0039 share's iteration exponent asks for, up to
+  the `max_iteration_exponent` a caller passes; a share longer than a
+  512-bit secret needs is refused, so its length adds no work
 - the operating system and the interpreter
 
 ## Trust boundaries
@@ -98,8 +97,8 @@ Saltzer and Schroeder's principles, over the layering `CLAUDE.md`'s
 *Architecture* describes.
 
 - **Economy of mechanism.** Three schemes over one word-list machinery
-  (`mnemonic`) and one entropy module (`entropy`), and none of the three
-  imports another.
+  (`mnemonic`), BIP39 and Electrum also over one entropy module
+  (`entropy`), and none of the three imports another.
 - **Fail-safe defaults.** `bip39.seed_from_mnemonic` checks the checksum
   unless told not to, and a flag whose wrong value would compute another
   answer refuses a non-bool (`tests/bool_parameter_test.py`).

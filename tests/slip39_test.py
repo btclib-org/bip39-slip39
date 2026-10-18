@@ -10,6 +10,7 @@ secret is where this package stops, so it is what is asserted and the
 key is left unread.
 """
 
+import inspect
 from collections.abc import Callable
 
 import pytest
@@ -21,6 +22,7 @@ from btclib_mnemonics.exceptions import (
 )
 from btclib_mnemonics.mnemonic import WORDLISTS
 from tests import load, vector_id
+from tests.secret_free import assert_secret_free
 
 # the passphrase SLIP-0039 uses for every valid set of mnemonics in its
 # own vectors, and the one value that makes those 15 answers
@@ -608,3 +610,96 @@ def test_a_share_of_a_length_slip39_has_no_share_for_is_refused_undecoded(
     err_msg = f"invalid mnemonic length: {n_words} words"
     with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
         slip39.share_from_mnemonic(" ".join(["academic"] * n_words))
+
+
+# a fixed random share value: a run such as all zeros would have pieces
+# in common with a clean refusal
+_VALUE = bytes.fromhex("5f0c9e41d2a7b8836e14f9c02b7d5a68")
+
+
+def _one_of_one(iteration_exponent: int) -> str:
+    """Return a 1-of-1 share at an iteration exponent, made with no PBKDF2."""
+    share = slip39.Share(1, True, iteration_exponent, 0, 1, 1, 0, 1, _VALUE)
+    return slip39.mnemonic_from_share(share)
+
+
+def test_shares_above_the_maximum_exponent_are_refused_before_pbkdf2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Refuse an exponent above the caller's maximum without running PBKDF2."""
+    ran = lambda *_: pytest.fail("PBKDF2 ran")  # noqa: E731
+    monkeypatch.setattr("btclib_mnemonics.slip39.pbkdf2_hmac", ran)
+    mnemonic = _one_of_one(6)
+    err_msg = "iteration exponent 6 above the maximum 5"
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+        slip39.master_secret_from_mnemonics([mnemonic], max_iteration_exponent=5)
+    assert_secret_free(excinfo.value, [_VALUE, *mnemonic.split()])
+
+
+def test_shares_at_the_maximum_exponent_are_combined() -> None:
+    """The maximum is inclusive, and by default it is the largest exponent."""
+    mnemonics = [_one_of_one(1)]
+    secret = slip39.master_secret_from_mnemonics(mnemonics)
+    assert (
+        slip39.master_secret_from_mnemonics(mnemonics, max_iteration_exponent=1)
+        == secret
+    )
+    sig = inspect.signature(slip39.master_secret_from_mnemonics)
+    assert sig.parameters["max_iteration_exponent"].default == 15
+
+
+@pytest.mark.parametrize("bound", [-1, 16])
+def test_a_maximum_exponent_the_format_cannot_hold_is_refused(bound: int) -> None:
+    """Refuse a maximum outside 0..15, before reading the shares."""
+    err_msg = f"invalid max iteration exponent: {bound}, not in \\[0-15\\]"
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+        slip39.master_secret_from_mnemonics(["not read"], max_iteration_exponent=bound)
+
+
+@pytest.mark.parametrize("bound", ["5", 5.0, None])
+def test_a_maximum_exponent_of_another_type_is_refused(bound: object) -> None:
+    """Refuse a maximum of a type the signature does not declare."""
+    err_msg = f"invalid max iteration exponent type: {type(bound).__name__}"
+    with pytest.raises(BTClibMnemonicsTypeError, match=err_msg):
+        slip39.master_secret_from_mnemonics(
+            [_one_of_one(0)],
+            max_iteration_exponent=bound,  # type: ignore[arg-type]
+        )
+
+
+def test_interpolate_refuses_a_repeated_index() -> None:
+    """Two points at one index would divide by zero; refuse them instead."""
+    values = [_VALUE, _VALUE[::-1], bytes(b ^ 0xA5 for b in _VALUE)]
+    points = list(zip([1, 2, 1], values, strict=True))
+    with pytest.raises(BTClibMnemonicsValueError, match="repeated index") as excinfo:
+        slip39._interpolate(points, 255)
+    assert_secret_free(excinfo.value, values)
+
+
+def test_rs1024_table_is_the_bit_by_bit_definition() -> None:
+    """Each entry is the XOR of the generator terms its bits select."""
+    for top in range(1024):
+        terms = 0
+        for i in range(10):
+            terms ^= slip39._RS1024_GEN[i] if (top >> i) & 1 else 0
+        assert slip39._RS1024_TABLE[top] == terms
+
+
+def test_mul_tables_are_the_bit_by_bit_product() -> None:
+    """Each entry is the GF(256) product, shifted and reduced bit by bit."""
+
+    def product(a: int, b: int) -> int:
+        result = 0
+        while b:
+            if b & 1:
+                result ^= a
+            a <<= 1
+            if a & 0x100:
+                a ^= 0x11B
+            b >>= 1
+        return result
+
+    assert len(slip39._MUL_TABLES) == 255
+    for k, table in enumerate(slip39._MUL_TABLES):
+        constant = slip39._EXP[k]
+        assert table == bytes(product(a, constant) for a in range(256))

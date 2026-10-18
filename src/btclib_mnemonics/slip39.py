@@ -56,10 +56,6 @@ from dataclasses import dataclass, field
 from hashlib import pbkdf2_hmac, sha256
 
 from btclib_mnemonics._utils import Octets, assert_type, bytes_from_octets, is_integer
-from btclib_mnemonics.entropy import (
-    _bin_str_entropy_from_wordlist_indexes,
-    _wordlist_indexes_from_bin_str_entropy,
-)
 from btclib_mnemonics.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
@@ -90,6 +86,7 @@ _RADIX_BITS = 10
 _ID_BITS = 15
 _EXT_BITS = 1
 _E_BITS = 4
+_MAX_EXPONENT = (1 << _E_BITS) - 1
 # each of the group index, group threshold, group count, member index
 # and member threshold; four bits is what caps G and N at 16
 _FIELD_BITS = 4
@@ -150,13 +147,21 @@ def _gf256_tables() -> tuple[list[int], list[int]]:
 _EXP, _LOG = _gf256_tables()
 
 
-def _mul(a: int, b: int) -> int:
-    return 0 if a == 0 or b == 0 else _EXP[(_LOG[a] + _LOG[b]) % 255]
+def _mul_tables() -> tuple[bytes, ...]:
+    """Return the byte substitutions multiplying by each power of 3.
+
+    The k-th maps every byte to its product with ``_EXP[k]``, so
+    ``bytes.translate`` multiplies a whole vector by one non-zero
+    constant at once. Each is the one before it multiplied by 3.
+    """
+    times_3 = b"\x00" + bytes(_EXP[(_LOG[a] + 1) % 255] for a in range(1, 256))
+    tables = [bytes(range(256))]
+    for _ in range(254):
+        tables.append(tables[-1].translate(times_3))
+    return tuple(tables)
 
 
-def _div(a: int, b: int) -> int:
-    """Return a/b in GF(256); both operands are non-zero."""
-    return _EXP[(_LOG[a] - _LOG[b]) % 255]
+_MUL_TABLES = _mul_tables()
 
 
 def _interpolate(points: Sequence[tuple[int, bytes]], x: int) -> bytes:
@@ -164,23 +169,26 @@ def _interpolate(points: Sequence[tuple[int, bytes]], x: int) -> bytes:
 
     Shamir's scheme runs once per byte, so a point is an index and a
     whole vector of values. The Lagrange basis depends on the indexes
-    alone, hence is computed once per point and reused across the
-    bytes.
+    alone, hence is computed once per point, as a logarithm, and the
+    whole vector is multiplied by it with one table lookup.
 
-    x is never one of the indexes: it is 254 or 255, which four bits
-    cannot hold, or -- when generating -- an index above every one of
-    the base points. So no basis denominator vanishes, and the division
-    needs no guard.
+    A repeated index is refused: it would divide by zero. x is never one
+    of the indexes: it is 254 or 255, which four bits cannot hold, or --
+    when generating -- an index above every one of the base points. So no
+    factor of a basis is zero, and each has a logarithm.
     """
-    result = bytearray(len(points[0][1]))
+    indexes = [x_i for x_i, _ in points]
+    if len(set(indexes)) != len(indexes):
+        err_msg = f"invalid points: repeated index in {sorted(indexes)}"
+        raise BTClibMnemonicsValueError(err_msg)
+    result = 0
     for x_i, y_i in points:
-        basis = 1
-        for x_j, _ in points:
-            if x_j != x_i:
-                basis = _mul(basis, _div(x ^ x_j, x_i ^ x_j))
-        for k, y in enumerate(y_i):
-            result[k] ^= _mul(y, basis)
-    return bytes(result)
+        log_basis = sum(
+            _LOG[x ^ x_j] - _LOG[x_i ^ x_j] for x_j in indexes if x_j != x_i
+        )
+        product = y_i.translate(_MUL_TABLES[log_basis % 255])
+        result ^= int.from_bytes(product, byteorder="big")
+    return result.to_bytes(len(points[0][1]), byteorder="big")
 
 
 def _digest(random_part: bytes, shared_secret: bytes) -> bytes:
@@ -209,13 +217,26 @@ _RS1024_GEN = (
 )
 
 
+def _rs1024_table() -> tuple[int, ...]:
+    """Return the XOR of the generator terms selected by each 10-bit value.
+
+    Bit i of the value selects the i-th term, so the entries from 2**i
+    to 2**(i+1) are the ones before them with that term added.
+    """
+    table = [0]
+    for term in _RS1024_GEN:
+        table += [terms ^ term for terms in table]
+    return tuple(table)
+
+
+# the top ten bits of the checksum are all that select the terms
+_RS1024_TABLE = _rs1024_table()
+
+
 def _rs1024_polymod(values: Sequence[int]) -> int:
     chk = 1
     for v in values:
-        b = chk >> 20
-        chk = (chk & 0xFFFFF) << 10 ^ v
-        for i in range(10):
-            chk ^= _RS1024_GEN[i] if ((b >> i) & 1) else 0
+        chk = ((chk & 0xFFFFF) << _RADIX_BITS ^ v) ^ _RS1024_TABLE[chk >> 20]
     return chk
 
 
@@ -286,7 +307,7 @@ class Share:
         top = _MAX_SHARE_COUNT - 1
         for name, value, lower, upper in (
             ("identifier", self.identifier, 0, (1 << _ID_BITS) - 1),
-            ("iteration exponent", self.iteration_exponent, 0, (1 << _E_BITS) - 1),
+            ("iteration exponent", self.iteration_exponent, 0, _MAX_EXPONENT),
             ("group index", self.group_index, 0, top),
             ("group threshold", self.group_threshold, 1, _MAX_SHARE_COUNT),
             ("group count", self.group_count, 1, _MAX_SHARE_COUNT),
@@ -341,17 +362,20 @@ def share_from_mnemonic(mnemonic: Mnemonic) -> Share:
         raise BTClibMnemonicsValueError(err_msg)
     indexes = _indexes_from_mnemonic(mnemonic)
 
-    bits = _bin_str_entropy_from_wordlist_indexes(indexes, 1 << _RADIX_BITS)
+    n_bits = _RADIX_BITS * n_words
+    bits = 0
+    for index in indexes:
+        bits = bits << _RADIX_BITS | index
     # the flag is read before the checksum is verified, being what says
     # which of the two customization strings the checksum used
-    extendable = bits[_ID_BITS] == "1"
+    extendable = bool(bits >> (n_bits - _ID_BITS - _EXT_BITS) & 1)
     if not _rs1024_verify(indexes, extendable):
         # never the share itself: it is the (encrypted) master secret, one
         # typo away from being recoverable, and an exception message ends
         # up in logs and crash reports
         raise BTClibMnemonicsValueError(f"invalid checksum: {n_words} words")
 
-    padded_bits = len(bits) - _HEADER_BITS - _CHECKSUM_BITS
+    padded_bits = n_bits - _HEADER_BITS - _CHECKSUM_BITS
     # the padded value is a whole number of words, so its length is a
     # multiple of 10 and the padding is what that leaves over 16; more
     # than a byte of it means the word count belongs to no share
@@ -359,23 +383,28 @@ def share_from_mnemonic(mnemonic: Mnemonic) -> Share:
     if padding > 8:
         err_msg = f"invalid mnemonic length: {n_words} words"
         raise BTClibMnemonicsValueError(err_msg)
-    value_bits = bits[_HEADER_BITS : len(bits) - _CHECKSUM_BITS]
-    if value_bits[:padding] != "0" * padding:
+    value_bits = padded_bits - padding
+    value = bits >> _CHECKSUM_BITS & ((1 << padded_bits) - 1)
+    if value >> value_bits:
         # the bits themselves are not quoted, being bits of the share
         raise BTClibMnemonicsValueError("invalid padding: must be all zeros")
 
-    value = int(value_bits[padding:], 2)
-    field = _ID_BITS + _EXT_BITS + _E_BITS
+    # the five four-bit fields after the identifier, the flag and the
+    # exponent, last first
+    header = bits >> (n_bits - _HEADER_BITS)
+    mask = (1 << _FIELD_BITS) - 1
+    fields = [header >> (_FIELD_BITS * i) & mask for i in range(5)]
+    member_threshold, member_index, group_count, group_threshold, group_index = fields
     return Share(
-        identifier=int(bits[:_ID_BITS], 2),
+        identifier=header >> (_HEADER_BITS - _ID_BITS),
         extendable=extendable,
-        iteration_exponent=int(bits[_ID_BITS + _EXT_BITS : field], 2),
-        group_index=int(bits[field : field + 4], 2),
-        group_threshold=int(bits[field + 4 : field + 8], 2) + 1,
-        group_count=int(bits[field + 8 : field + 12], 2) + 1,
-        member_index=int(bits[field + 12 : field + 16], 2),
-        member_threshold=int(bits[field + 16 : field + 20], 2) + 1,
-        value=value.to_bytes((len(value_bits) - padding) // 8, byteorder="big"),
+        iteration_exponent=header >> (5 * _FIELD_BITS) & _MAX_EXPONENT,
+        group_index=group_index,
+        group_threshold=group_threshold + 1,
+        group_count=group_count + 1,
+        member_index=member_index,
+        member_threshold=member_threshold + 1,
+        value=value.to_bytes(value_bits // 8, byteorder="big"),
     )
 
 
@@ -383,20 +412,23 @@ def mnemonic_from_share(share: Share) -> Mnemonic:
     """Return the SLIP-0039 mnemonic encoding the share."""
     assert_type(share, Share, "share")
     share.assert_valid()
-    header = f"{share.identifier:015b}"
-    header += "1" if share.extendable else "0"
-    header += f"{share.iteration_exponent:04b}"
-    header += f"{share.group_index:04b}"
-    header += f"{share.group_threshold - 1:04b}"
-    header += f"{share.group_count - 1:04b}"
-    header += f"{share.member_index:04b}"
-    header += f"{share.member_threshold - 1:04b}"
-    value_bits = 8 * len(share.value)
-    # left-padded with zeros up to the next multiple of ten, ten bits
-    # being one word
-    padded = f"{int.from_bytes(share.value, byteorder='big'):b}"
-    padded = padded.zfill(-(-value_bits // _RADIX_BITS) * _RADIX_BITS)
-    indexes = _wordlist_indexes_from_bin_str_entropy(header + padded, 1 << _RADIX_BITS)
+    bits = share.identifier << _EXT_BITS | share.extendable
+    bits = bits << _E_BITS | share.iteration_exponent
+    for field_value in (
+        share.group_index,
+        share.group_threshold - 1,
+        share.group_count - 1,
+        share.member_index,
+        share.member_threshold - 1,
+    ):
+        bits = bits << _FIELD_BITS | field_value
+    # the value left-padded with zeros up to the next multiple of ten,
+    # ten bits being one word
+    padded_bits = -(-8 * len(share.value) // _RADIX_BITS) * _RADIX_BITS
+    bits = bits << padded_bits | int.from_bytes(share.value, byteorder="big")
+    n_words = (_HEADER_BITS + padded_bits) // _RADIX_BITS
+    mask = (1 << _RADIX_BITS) - 1
+    indexes = [bits >> (_RADIX_BITS * i) & mask for i in reversed(range(n_words))]
     indexes += _rs1024_checksum(indexes, share.extendable)
     return mnemonic_from_indexes(indexes, _LANG)
 
@@ -633,7 +665,10 @@ def _assert_integers(*named: tuple[str, object]) -> None:
 
 
 def master_secret_from_mnemonics(
-    mnemonics: Sequence[Mnemonic], passphrase: str = ""
+    mnemonics: Sequence[Mnemonic],
+    passphrase: str = "",
+    *,
+    max_iteration_exponent: int = _MAX_EXPONENT,
 ) -> bytes:
     """Return the master secret the SLIP-0039 mnemonics reconstruct.
 
@@ -641,14 +676,28 @@ def master_secret_from_mnemonics(
     holding exactly its own member threshold of shares. A wrong
     passphrase is not an error: SLIP-0039 has no way to tell one from a
     right one, which is what lets a decoy wallet exist.
+
+    The shares carry the iteration exponent, and each step of it doubles
+    the PBKDF2 iterations combining runs. Shares above
+    max_iteration_exponent are refused before PBKDF2 runs. The default,
+    15, is the largest exponent the format holds, so it refuses no share.
     """
     _assert_valid_passphrase(passphrase)
+    _assert_integers(("max iteration exponent", max_iteration_exponent))
+    if not 0 <= max_iteration_exponent <= _MAX_EXPONENT:
+        err_msg = f"invalid max iteration exponent: {max_iteration_exponent}, "
+        err_msg += f"not in [0-{_MAX_EXPONENT}]"
+        raise BTClibMnemonicsValueError(err_msg)
     _assert_mnemonic_sequence(mnemonics)
     if not mnemonics:
         raise BTClibMnemonicsValueError("no mnemonic")
 
     shares = [share_from_mnemonic(mnemonic) for mnemonic in mnemonics]
     first = _common_field(shares)
+    if first.iteration_exponent > max_iteration_exponent:
+        err_msg = f"iteration exponent {first.iteration_exponent} "
+        err_msg += f"above the maximum {max_iteration_exponent}"
+        raise BTClibMnemonicsValueError(err_msg)
     group_shares = _grouped(shares)
     if len(group_shares) != first.group_threshold:
         err_msg = f"{len(group_shares)} groups, "
@@ -704,9 +753,9 @@ def mnemonics_from_master_secret(
     _assert_valid_passphrase(passphrase)
     secret = bytes_from_octets(master_secret)
     _assert_valid_length(len(secret), "master secret")
-    if not 0 <= iteration_exponent < (1 << _E_BITS):
+    if not 0 <= iteration_exponent <= _MAX_EXPONENT:
         err_msg = f"invalid iteration exponent: {iteration_exponent}, "
-        err_msg += f"not in [0-{(1 << _E_BITS) - 1}]"
+        err_msg += f"not in [0-{_MAX_EXPONENT}]"
         raise BTClibMnemonicsValueError(err_msg)
     for member_threshold, member_count in groups:
         # a 1-of-N group is N shares differing in an index and a
