@@ -24,8 +24,8 @@ reads the version and `btclib_mnemonics.name` how it reads the name.
 
 Nothing is imported eagerly. A module is imported when it is first asked
 for, through the `__getattr__` at the bottom of this file, so `import
-btclib_mnemonics` imports nothing but the standard library's `types` and
-`importlib`. The same `__getattr__` reads the version: `importlib.metadata`
+btclib_mnemonics` imports nothing but the standard library's `importlib` and
+`typing`. The same `__getattr__` reads the version: `importlib.metadata`
 is imported when `__version__` is first asked for, and not by every program
 that only wants a seed. The import graph also keeps its shape: importing
 every module here would put the whole package in `sys.modules` before any
@@ -79,10 +79,9 @@ def __getattr__(published: str) -> Any:
     one. The message is the interpreter's own wording, so a typo reads as it
     does anywhere else.
 
-    The return type is `Any`. A union of a module and a `str` would make
+    The return type is `Any`: a union with `str` would make
     `btclib_mnemonics.bip39.mnemonic_from_entropy(...)` a mypy error in a
-    strict caller that wrote only `import btclib_mnemonics`; the bare
-    `__version__: str` above is what types the version.
+    strict caller that wrote only `import btclib_mnemonics`.
     """
     if published == "__version__":
         from importlib.metadata import (  # noqa: PLC0415 -- the point
