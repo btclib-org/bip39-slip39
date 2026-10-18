@@ -18,7 +18,10 @@ from unicodedata import normalize
 import pytest
 
 from btclib_mnemonics import bip39
-from btclib_mnemonics.exceptions import BTClibMnemonicsValueError
+from btclib_mnemonics.exceptions import (
+    BTClibMnemonicsTypeError,
+    BTClibMnemonicsValueError,
+)
 from btclib_mnemonics.mnemonic import WORDLISTS, WordLists, normalize_mnemonic
 from tests import load, vector_id
 from tests.mnemonic_test import fullwidth
@@ -143,6 +146,8 @@ def test_vectors(lang: str, entr: str, mnemonic: str, seed: str) -> None:
     # simplified chinese shares are the exception -- same words, same
     # indexes, same entropy, and no way to tell the two apart
     assert bip39.entropy_from_mnemonic(mnemonic) == raw_entr
+    assert bip39.is_valid_mnemonic(mnemonic, lang)
+    assert bip39.is_valid_mnemonic(mnemonic)
 
 
 JP_VECTORS = [
@@ -396,6 +401,78 @@ def test_nfkd_fullwidth_latin() -> None:
     assert normalize_mnemonic(wide) == mnemonic
     assert bip39.entropy_from_mnemonic(wide) == bip39.entropy_from_mnemonic(mnemonic)
     assert bip39.seed_from_mnemonic(wide, "") == bip39.seed_from_mnemonic(mnemonic, "")
+
+
+def test_is_valid_mnemonic() -> None:
+    """True on a valid sentence, False on each way of not being one.
+
+    The vectors are in `test_vectors`; this is the other side, and the
+    answer is a bool for every one of them, never an exception.
+    """
+    about = " ".join(["abandon"] * 11 + ["about"])
+    assert bip39.is_valid_mnemonic(about) is True
+    assert bip39.is_valid_mnemonic(about, "en") is True
+    # the sentence as read here: respaced, and in fullwidth latin
+    assert bip39.is_valid_mnemonic(f"  {about.replace(' ', '  ')}\n")
+    assert bip39.is_valid_mnemonic(" ".join(fullwidth(w) for w in about.split()))
+    # an empty lang is no language, as for entropy_from_mnemonic
+    assert bip39.is_valid_mnemonic(about, "")
+
+    bad_checksum = " ".join(["abandon"] * 12)
+    unknown_word = " ".join(["abandon"] * 11 + ["notaword"])
+    wrong_count = f"{about} abandon"
+    for sentence in (bad_checksum, unknown_word, wrong_count, "", " ", "abandon"):
+        for lang in (None, "en"):
+            assert bip39.is_valid_mnemonic(sentence, lang) is False
+    # a valid sentence asked in another language is not valid there
+    assert bip39.is_valid_mnemonic(about, "fr") is False
+
+
+def test_is_valid_mnemonic_with_an_unknown_language_is_false() -> None:
+    """A lang that names no BIP39 word-list answers False, and loads nothing.
+
+    The sentence is valid; the language is the caller's mistake, and the
+    contract of an `is_*` is to answer it. `entropy_from_mnemonic` is
+    where it is refused.
+    """
+    about = " ".join(["abandon"] * 11 + ["about"])
+    for lang in ("xx", "EN", "english", "slip39"):
+        assert bip39.is_valid_mnemonic(about, lang) is False
+        with pytest.raises(BTClibMnemonicsValueError):
+            bip39.entropy_from_mnemonic(about, lang)
+    assert "xx" not in WORDLISTS.languages
+
+
+def test_is_valid_mnemonic_in_an_ambiguous_language() -> None:
+    """Valid in two languages with a different entropy in each: valid.
+
+    `lang_from_mnemonic` refuses to choose one; the question here is not
+    which language but whether there is one.
+    """
+    ambiguous = (
+        "nature distance angle abandon simple palace opinion fatigue "
+        "noble volume simple wagon"
+    )
+    with pytest.raises(BTClibMnemonicsValueError, match="ambiguous language"):
+        bip39.entropy_from_mnemonic(ambiguous)
+    assert bip39.is_valid_mnemonic(ambiguous) is True
+    assert bip39.is_valid_mnemonic(ambiguous, "en") is True
+    assert bip39.is_valid_mnemonic(ambiguous, "fr") is True
+
+    # a sentence of slip39 words is no BIP39 mnemonic in any language
+    slip39_words = " ".join(WORDLISTS.wordlist("slip39")[:12])
+    assert bip39.is_valid_mnemonic(slip39_words) is False
+
+
+@pytest.mark.parametrize(
+    "mnemonic, lang", [(1, None), (None, None), ("a", 1), ("a", b"en")]
+)
+def test_is_valid_mnemonic_refuses_a_value_of_another_type(
+    mnemonic: object, lang: object
+) -> None:
+    """The caller's mistake is a type error, not a False."""
+    with pytest.raises(BTClibMnemonicsTypeError):
+        bip39.is_valid_mnemonic(mnemonic, lang)  # type: ignore[arg-type]
 
 
 def test_the_wordlist_has_to_be_bip39_sized() -> None:

@@ -161,6 +161,8 @@ _DRIVEN = sorted(_DRIVABLE)
 # what answers every wrong value of _WRONG_VALUE instead of refusing it,
 # by dotted name, with the reason that is its contract
 _ANSWERS_A_WRONG_VALUE = {
+    # an `is_*` is total over the declared types: False is its answer
+    "btclib_mnemonics.bip39.is_valid_mnemonic",
     # a sentence no scheme claims: the empty list, and "", are the answers
     # the two docstrings give for it
     "btclib_mnemonics.dispatch.all_seed_types_from_mnemonic",

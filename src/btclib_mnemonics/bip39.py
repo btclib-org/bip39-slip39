@@ -76,6 +76,7 @@ from btclib_mnemonics.mnemonic import (
 
 __all__ = [
     "entropy_from_mnemonic",
+    "is_valid_mnemonic",
     "lang_from_mnemonic",
     "mnemonic_from_entropy",
     "seed_from_mnemonic",
@@ -180,6 +181,19 @@ def mnemonic_from_entropy(entropy: Entropy | None = None, lang: str = "en") -> M
     return mnemonic_from_indexes(indexes, lang, separator=_SEPARATORS.get(lang, " "))
 
 
+def _candidate_langs(mnemonic: Mnemonic) -> list[str]:
+    """Return the BIP39 word-lists that hold every word of the sentence."""
+    # the registry is shared with slip39, so the candidates are filtered by
+    # _BIP39_WORDLIST_LENGTH: slip39's list is 1024 words, and a sentence
+    # written from it is not a BIP39 mnemonic in a language nobody named --
+    # it is not a BIP39 mnemonic at all
+    return [
+        lang
+        for lang in WORDLISTS.langs_of_words(mnemonic.split())
+        if WORDLISTS.language_length(lang) == _BIP39_WORDLIST_LENGTH
+    ]
+
+
 def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
     """Return the language of the BIP39 mnemonic sentence.
 
@@ -207,15 +221,7 @@ def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
     not a word anywhere else in this module either.
     """
     assert_type(mnemonic, str, "mnemonic")
-    # the registry is shared with slip39, so the candidates are filtered by
-    # _BIP39_WORDLIST_LENGTH: slip39's list is 1024 words, and a sentence
-    # written from it is not a BIP39 mnemonic in a language nobody named --
-    # it is not a BIP39 mnemonic at all
-    candidates = [
-        lang
-        for lang in WORDLISTS.langs_of_words(mnemonic.split())
-        if WORDLISTS.language_length(lang) == _BIP39_WORDLIST_LENGTH
-    ]
+    candidates = _candidate_langs(mnemonic)
     if not candidates:
         # never the sentence itself: a mnemonic one typo away from being
         # valid is one typo away from being recovered, and an exception
@@ -227,7 +233,7 @@ def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
     if len(candidates) == 1:
         return candidates[0]
 
-    valid = [lang for lang in candidates if _is_valid_mnemonic(mnemonic, lang)]
+    valid = [lang for lang in candidates if is_valid_mnemonic(mnemonic, lang)]
     if len(valid) != 1:
         entropies = {entropy_from_mnemonic(mnemonic, lang) for lang in valid}
         if len(entropies) > 1:
@@ -237,13 +243,48 @@ def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
     return valid[0]
 
 
-def _is_valid_mnemonic(mnemonic: Mnemonic, lang: str) -> bool:
-    """Return True if the sentence is a valid mnemonic in that language."""
-    try:
-        entropy_from_mnemonic(mnemonic, lang)
-    except BTClibMnemonicsValueError:
+def is_valid_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> bool:
+    """Return whether the sentence is a valid BIP39 mnemonic.
+
+    Valid is what `entropy_from_mnemonic` accepts: a word count BIP39
+    has a mnemonic for, every word in the word-list, and the checksum.
+    Any string is answered, with `False` for one that is not valid, so
+    there is no exception to catch; a `mnemonic` or `lang` of another
+    type is the caller's mistake and leaves as a
+    `BTClibMnemonicsTypeError`, as everywhere in this package.
+
+    The language is read off the words if it is not provided, and the
+    sentence is valid if it is in *any* word-list that holds its words.
+    That is where this differs from `entropy_from_mnemonic`, which
+    refuses a sentence valid in two languages with a different entropy
+    in each as ambiguous: such a sentence is a valid mnemonic, and the
+    ambiguity is only about which entropy it spells. For such a sentence
+    `seed_from_mnemonic` with `verify_checksum=True` still raises
+    "ambiguous language", as it takes no `lang`; `verify_checksum=False`
+    avoids it.
+
+    A `lang` that names no BIP39 word-list -- a typo, a language that
+    was never registered, or `"slip39"`, whose list is not 2048 words --
+    answers `False`: no sentence is a mnemonic of a language that does
+    not exist, and CONTRIBUTING.md's *The public surface* makes an
+    `is_*` total over the declared types, `lang` being a `str`. The
+    cost is that a misspelled `lang` reads as an invalid sentence;
+    `entropy_from_mnemonic` and `lang_from_mnemonic` are the functions
+    that refuse it.
+    """
+    assert_type(lang, (str, type(None)), "lang")
+    mnemonic = normalize_mnemonic(mnemonic)
+    if len(mnemonic.split()) not in _WORD_COUNTS:
         return False
-    return True
+    # an empty lang is no language, as entropy_from_mnemonic reads it
+    langs = [lang] if lang else _candidate_langs(mnemonic)
+    for candidate in langs:
+        try:
+            entropy_from_mnemonic(mnemonic, candidate)
+        except BTClibMnemonicsValueError:
+            continue
+        return True
+    return False
 
 
 def entropy_from_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> BinStr:

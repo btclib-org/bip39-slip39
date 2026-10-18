@@ -66,6 +66,8 @@ def fuzz_target(data: bytes) -> None:
         return
     with contextlib.suppress(BTClibMnemonicsException):
         bip39.entropy_from_mnemonic(text)
+    # total over every string, so nothing is suppressed
+    bip39.is_valid_mnemonic(text)
     with contextlib.suppress(BTClibMnemonicsException):
         electrum.version_from_mnemonic(text)
     with contextlib.suppress(BTClibMnemonicsException):
