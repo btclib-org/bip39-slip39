@@ -87,6 +87,8 @@ def fuzz_target(data: bytes) -> None:
     with contextlib.suppress(BTClibMnemonicsException):
         slip39.master_secret_from_mnemonics(text.split("\n"))
     with contextlib.suppress(BTClibMnemonicsException):
+        slip39.encrypted_master_secret_from_mnemonics(text.split("\n"))
+    with contextlib.suppress(BTClibMnemonicsException):
         share = slip39.share_from_mnemonic(text)
         if slip39.mnemonic_from_share(share) != normalize_mnemonic(text):
             msg = "a decoded share encodes to another sentence"

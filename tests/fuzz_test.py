@@ -25,7 +25,9 @@ from __future__ import annotations
 
 import contextlib
 import random
+import re
 from collections.abc import Callable
+from functools import partial
 from typing import Any, NamedTuple
 
 import pytest
@@ -60,6 +62,9 @@ DECODERS: dict[str, Callable[[str], Any]] = {
     # one share per line
     "slip39.master_secret_from_mnemonics": (
         lambda s: slip39.master_secret_from_mnemonics(s.split("\n"))
+    ),
+    "slip39.encrypted_master_secret_from_mnemonics": (
+        lambda s: slip39.encrypted_master_secret_from_mnemonics(s.split("\n"))
     ),
 }
 
@@ -236,3 +241,62 @@ def test_recombination_of_valid_shares_stays_within_the_contract(
     chosen = data.draw(st.lists(st.sampled_from(pool), max_size=12))
     with contextlib.suppress(*CONTRACT):
         slip39.master_secret_from_mnemonics(chosen)
+
+
+def _answer(call: Callable[[], bytes]) -> bytes | str:
+    """Return what the call answers, or the message of its refusal."""
+    try:
+        return call()
+    except CONTRACT as e:
+        return str(e)
+
+
+# the whole set's refusal of a set short of shares or of groups: the
+# count found, then the threshold
+_TOO_FEW = re.compile(
+    r"^(\d+) (?:shares in group \d+, member|groups, group) threshold is (\d+)$"
+)
+
+
+def _short(refusal: bytes | str) -> bool:
+    """Whether the whole set was refused only for holding too few shares.
+
+    Never asked of an empty set: the recovery takes every first share.
+    """
+    found = _TOO_FEW.match(refusal) if isinstance(refusal, str) else None
+    return found is not None and int(found[1]) < int(found[2])
+
+
+@given(first=_splits(), second=_splits(), data=st.data())
+def test_a_recovery_agrees_with_the_whole_set(
+    first: _Split, second: _Split, data: st.DataObject
+) -> None:
+    """Valid shares of two splits, added one at a time, as the whole set.
+
+    After every add, accepted or refused, `master_secret_from_mnemonics`
+    is asked about the shares the recovery holds. Where the recovery is
+    complete, the two answers are equal: the same secret, or the same
+    refusal. Where it is not, the two differ in the message only: the
+    recovery refuses as incomplete, and the whole set is refused for too
+    few shares or groups, never for anything a further share cannot fix.
+    A refused share makes the whole set refused once added to the shares
+    held.
+    """
+    pool = [m for split in (first, second) for group in split.mnemonics for m in group]
+    recovery = slip39.Recovery()
+    for mnemonic in data.draw(st.lists(st.sampled_from(pool), max_size=12)):
+        try:
+            recovery.add_mnemonic(mnemonic)
+        except CONTRACT:
+            held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
+            whole = [*held, mnemonic]
+            refusal = _answer(partial(slip39.master_secret_from_mnemonics, whole))
+            assert isinstance(refusal, str)
+        held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
+        expected = _answer(partial(slip39.master_secret_from_mnemonics, held))
+        answer = _answer(recovery.master_secret)
+        if recovery.is_complete:
+            assert answer == expected
+        else:
+            assert answer == "incomplete set of shares"
+            assert _short(expected), expected
