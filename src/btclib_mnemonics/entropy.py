@@ -168,7 +168,7 @@ def _bin_str_entropy_from_entropy(entr: Entropy, bits: OneOrMoreInt) -> BinStr:
     - raw (i.e. binary 0/1 string) entropy
     - bytes (no hex-string, as they would conflict with
       raw entropy representation)
-    - integer (int, no string starting with "0b"/"0x")
+    - integer (int)
 
     In the case of raw entropy and bytes,
     entropy is never padded to satisfy the bit-size requirement;
@@ -223,35 +223,13 @@ def _bytes_entropy_from_str(bin_str_entropy: BinStr) -> bytes:
     return int_entropy.to_bytes(nbytes, byteorder="big", signed=False)
 
 
-def _bin_str_entropy_from_int(int_entropy: int | str, bits: OneOrMoreInt) -> BinStr:
+def _bin_str_entropy_from_int(int_entropy: int, bits: OneOrMoreInt) -> BinStr:
     """Return raw entropy from the input integer entropy.
 
-    Input entropy can be expressed as int or as a string of ASCII
-    digits: binary after "0b", hex after "0x", and decimal otherwise,
-    with only ASCII whitespace stripped around it. It is front-padded
-    with zeros digits as much as necessary to satisfy the bit-size
-    requirement. More bits than the largest allowed are refused.
+    It is front-padded with zeros digits as much as necessary to
+    satisfy the bit-size requirement. More bits than the largest
+    allowed are refused.
     """
-    if isinstance(int_entropy, str):
-        # `string.whitespace` is Bitcoin Core's IsSpace, where a bare
-        # `strip()` also takes U+00A0, U+3000 and U+001C. No refusal
-        # below quotes the string, which is seed material
-        text = int_entropy.strip(string.whitespace).lower()
-        if text[:2] == "0b":
-            int_entropy = _int_from_bin_str(text[2:])
-        elif text[:2] == "0x":
-            hex_digits = text[2:]
-            if not _is_ascii_digits(hex_digits, string.hexdigits):
-                err_msg = "invalid entropy: what follows 0x is not ASCII hex digits"
-                raise BTClibMnemonicsValueError(err_msg)
-            int_entropy = int(hex_digits, 16)
-        else:
-            if not _is_ascii_digits(text, string.digits):
-                raise BTClibMnemonicsValueError(
-                    "invalid entropy: not ASCII decimal digits"
-                )
-            int_entropy = int(text, 10)
-
     if int_entropy < 0:
         raise BTClibMnemonicsValueError("negative entropy")
 
