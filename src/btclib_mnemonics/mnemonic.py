@@ -320,9 +320,6 @@ class WordLists:
         normalized = [unicodedata.normalize("NFKD", word) for word in words]
         langs = []
         for lang in self.languages:
-            # the membership test below is on the dictionary load_lang
-            # fills, so the load is a statement of its own rather than
-            # something to hide inside the comprehension
             record = self._record(lang)
             if length is not None and len(record.words) != length:
                 continue
