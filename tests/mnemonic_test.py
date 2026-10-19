@@ -370,6 +370,7 @@ def test_loaded_language_is_read_without_the_lock() -> None:
     """A loaded language is not behind the lock; a load or a filename is."""
     word_lists = WordLists()
     word_lists.load_lang("en")
+    threads: list[threading.Thread] = []
 
     def finishes(call: Callable[[], object], wait: float) -> bool:
         # in a thread: a call that takes the lock held below would never
@@ -380,7 +381,9 @@ def test_loaded_language_is_read_without_the_lock() -> None:
             call()
             done.set()
 
-        threading.Thread(target=run, daemon=True).start()
+        thread = threading.Thread(target=run, daemon=True)
+        threads.append(thread)
+        thread.start()
         return done.wait(wait)
 
     def reload() -> None:
@@ -397,6 +400,11 @@ def test_loaded_language_is_read_without_the_lock() -> None:
         assert not finishes(reload, 0.3)
     finally:
         word_lists._lock.release()
+        # a thread blocked on the lock goes on once it is released; none may
+        # outlive the test and read a file during the next one
+        for thread in threads:
+            thread.join(10)
+            assert not thread.is_alive(), "a call did not return once the lock was free"
 
 
 def test_load_lang_is_idempotent_and_reads_once() -> None:
