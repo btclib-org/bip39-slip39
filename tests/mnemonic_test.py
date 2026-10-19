@@ -312,13 +312,13 @@ def test_comments_are_not_words() -> None:
 
 
 def test_load_lang_is_not_a_race() -> None:
-    """Guards against a concurrent reader getting an empty word-list.
+    """Guards against a reader that does not wait for a load in progress.
 
-    load_lang treats a non-empty record as "already loaded", so were
-    the record published before the words were in it, a second thread
-    arriving then would skip the load and get back the empty list the
-    constructor put there: 0 words instead of 2048. This test forces the
-    interleaving at the store that publishes the record.
+    load_lang treats a non-empty record as "already loaded", so a reader
+    that finds the record still empty must wait for the load rather than
+    return it: 0 words instead of 2048. This test blocks the load at the
+    store that publishes the record and has a second reader arrive then:
+    a fast path or a missing lock that let it through would fail here.
     """
     word_lists = WordLists()
     paused = threading.Event()
