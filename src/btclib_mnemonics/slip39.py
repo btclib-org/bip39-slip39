@@ -971,8 +971,7 @@ class Recovery:
     def is_complete(self) -> bool:
         """Whether the set has the shape a master secret is recovered from.
 
-        The digest is not checked here: ``master_secret`` checks it, and
-        refuses shares that do not belong together.
+        The digest is not checked here: ``master_secret`` checks it.
         """
         groups = self.groups.values()
         if not self._shares or len(groups) < self._shares[0].group_threshold:
