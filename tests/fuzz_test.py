@@ -258,6 +258,9 @@ _TOO_FEW = re.compile(
 )
 
 
+_DIGEST = "invalid digest: the shares do not belong together"
+
+
 def _short(refusal: bytes | str) -> bool:
     """Whether the whole set was refused only for holding too few shares.
 
@@ -267,36 +270,68 @@ def _short(refusal: bytes | str) -> bool:
     return found is not None and int(found[1]) < int(found[2])
 
 
+def _add_and_compare(recovery: slip39.Recovery, mnemonic: str) -> None:
+    """Add the mnemonic, then ask the whole set about the shares held.
+
+    Where the recovery is complete, the two answers are equal: the same
+    secret, or the same refusal. Where it is not, the two differ in the
+    message only: the recovery refuses as incomplete, and the whole set
+    is refused for too few shares or groups, or on the digest of a
+    complete group holding shares of two splits that share an
+    identifier, never for anything else. A refused share makes the
+    whole set refused once added to the shares held.
+    """
+    try:
+        recovery.add_mnemonic(mnemonic)
+    except CONTRACT:
+        held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
+        whole = [*held, mnemonic]
+        refusal = _answer(partial(slip39.master_secret_from_mnemonics, whole))
+        assert isinstance(refusal, str)
+    held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
+    expected = _answer(partial(slip39.master_secret_from_mnemonics, held))
+    answer = _answer(recovery.master_secret)
+    if recovery.is_complete:
+        assert answer == expected
+    else:
+        assert answer == "incomplete set of shares"
+        assert _short(expected) or expected == _DIGEST, expected
+
+
 @given(first=_splits(), second=_splits(), data=st.data())
 def test_a_recovery_agrees_with_the_whole_set(
     first: _Split, second: _Split, data: st.DataObject
 ) -> None:
     """Valid shares of two splits, added one at a time, as the whole set.
 
-    After every add, accepted or refused, `master_secret_from_mnemonics`
-    is asked about the shares the recovery holds. Where the recovery is
-    complete, the two answers are equal: the same secret, or the same
-    refusal. Where it is not, the two differ in the message only: the
-    recovery refuses as incomplete, and the whole set is refused for too
-    few shares or groups, never for anything a further share cannot fix.
-    A refused share makes the whole set refused once added to the shares
-    held.
+    `_add_and_compare` says what agreeing means.
     """
     pool = [m for split in (first, second) for group in split.mnemonics for m in group]
     recovery = slip39.Recovery()
     for mnemonic in data.draw(st.lists(st.sampled_from(pool), max_size=12)):
-        try:
-            recovery.add_mnemonic(mnemonic)
-        except CONTRACT:
-            held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
-            whole = [*held, mnemonic]
-            refusal = _answer(partial(slip39.master_secret_from_mnemonics, whole))
-            assert isinstance(refusal, str)
-        held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
-        expected = _answer(partial(slip39.master_secret_from_mnemonics, held))
-        answer = _answer(recovery.master_secret)
-        if recovery.is_complete:
-            assert answer == expected
-        else:
-            assert answer == "incomplete set of shares"
-            assert _short(expected), expected
+        _add_and_compare(recovery, mnemonic)
+
+
+def test_a_partial_recovery_of_two_splits_is_refused_on_the_digest() -> None:
+    """A group completed from two splits, another group still partial.
+
+    One seed gives both splits one identifier, so every share is taken;
+    the whole set is refused on the first group's digest before it
+    counts the second group's shares.
+    """
+    first, second = (
+        slip39.mnemonics_from_master_secret(
+            secret,
+            [(2, 2), (2, 2)],
+            2,
+            iteration_exponent=0,
+            entropy_source=random.Random(0).randbytes,
+        )
+        for secret in (bytes(16), bytes(range(16)))
+    )
+    recovery = slip39.Recovery()
+    for mnemonic in (first[0][0], second[0][1], first[1][0]):
+        _add_and_compare(recovery, mnemonic)
+    assert recovery.groups == {0: (2, 2), 1: (1, 2)}
+    held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
+    assert _answer(partial(slip39.master_secret_from_mnemonics, held)) == _DIGEST
