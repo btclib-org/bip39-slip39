@@ -403,7 +403,8 @@ def test_loaded_language_is_read_without_the_lock() -> None:
         # a thread blocked on the lock goes on once it is released; none may
         # outlive the test and read a file during the next one
         for thread in threads:
-            thread.join()
+            thread.join(10)
+            assert not thread.is_alive(), "a call did not return once the lock was free"
 
 
 def test_load_lang_is_idempotent_and_reads_once() -> None:
