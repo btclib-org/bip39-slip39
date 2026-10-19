@@ -312,13 +312,14 @@ def test_comments_are_not_words() -> None:
 
 
 def test_load_lang_is_not_a_race() -> None:
-    """Guards against a reader that does not wait for a load in progress.
+    """Guards against a reader that returns a record a load has not filled.
 
     load_lang treats a non-empty record as "already loaded", so a reader
-    that finds the record still empty must wait for the load rather than
-    return it: 0 words instead of 2048. This test blocks the load at the
+    that finds the record still empty must not return it: 0 words instead
+    of 2048. This test blocks the load at the
     store that publishes the record and has a second reader arrive then:
-    a fast path or a missing lock that let it through would fail here.
+    a fast path that let it through would fail here. Without the lock,
+    test_loaded_language_is_read_without_the_lock fails instead.
     """
     word_lists = WordLists()
     paused = threading.Event()
@@ -349,9 +350,8 @@ def test_load_lang_is_not_a_race() -> None:
     thread.start()
     try:
         assert paused.wait(10), "the blocking assignment was never reached"
-        # the other thread is mid-load; a second caller must not see the
-        # empty list it has not filled in yet. Without the lock this
-        # returns immediately with 0 words
+        # the other thread is mid-load and the record is still empty: a
+        # second caller must not return it, so it waits or loads for itself
         second = threading.Thread(target=load_in_thread)
         second.start()
         second.join(0.5)
