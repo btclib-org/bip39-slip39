@@ -303,18 +303,20 @@ class WordLists:
             raise BTClibMnemonicsValueError(f"unknown '{lang}' word")
         return found
 
-    def langs_of_words(
-        self, words: Sequence[str], length: int | None = None
-    ) -> list[str]:
+    def langs_of_words(self, words: Sequence[str]) -> list[str]:
         """Return the languages whose word-list holds every word.
 
         Every language is read from disk, the question being about all of
         them; a caller that knows the language names it instead of asking.
-
-        Given a length, only the languages of that many words are kept,
-        the length and the words being those of one read of the language.
         """
         _assert_words(words)
+        return self._langs_of(words, None)
+
+    def _langs_of(self, words: Sequence[str], length: int | None) -> list[str]:
+        """Return the languages holding every word, of that length if given.
+
+        The length and the words are those of one read of the language.
+        """
         normalized = [unicodedata.normalize("NFKD", word) for word in words]
         langs = []
         for lang in self.languages:

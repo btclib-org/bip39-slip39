@@ -191,7 +191,7 @@ def _candidate_langs(mnemonic: Mnemonic) -> list[str]:
     # _BIP39_WORDLIST_LENGTH: slip39's list is 1024 words, and a sentence
     # written from it is not a BIP39 mnemonic in a language nobody named --
     # it is not a BIP39 mnemonic at all
-    return WORDLISTS.langs_of_words(mnemonic.split(), _BIP39_WORDLIST_LENGTH)
+    return WORDLISTS._langs_of(mnemonic.split(), _BIP39_WORDLIST_LENGTH)
 
 
 def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
