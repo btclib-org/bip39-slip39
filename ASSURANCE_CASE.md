@@ -36,8 +36,8 @@ page points at it instead of repeating it.
 ## Threat model
 
 btclib-mnemonics is a library in its caller's process, and the command
-`python -m btclib_mnemonics` in its own. The command reads and writes
-its terminal. It opens no socket, runs no subprocess and writes no file;
+`python -m btclib_mnemonics` runs in its own and reads and writes its
+terminal. Neither opens a socket, runs a subprocess or writes a file;
 the one read of a path a caller chose is *Files* below.
 `tests/imports_test.py` holds every module to the standard library,
 both as imported and as written.
