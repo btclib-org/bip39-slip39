@@ -97,6 +97,32 @@ def test_a_share_is_read_within_the_contract(sentence: str) -> None:
     _read(slip39.share_from_mnemonic, sentence)
 
 
+# None, every registered language, and a few that name no word-list. The
+# empty string is no language, as for entropy_from_mnemonic
+_LANGS = st.sampled_from([None, *WORDLISTS.languages, "", "xx", "EN", "english"])
+
+_SENTENCES = st.one_of(
+    st.text(max_size=256),
+    _sentences("en", 0, 25),
+    # valid ones, which arbitrary words almost never are
+    st.tuples(st.binary(min_size=16, max_size=32), st.sampled_from(["en", "fr"])).map(
+        lambda t: bip39.mnemonic_from_entropy(t[0][: len(t[0]) // 4 * 4], t[1])
+    ),
+)
+
+
+@given(text=_SENTENCES, lang=_LANGS)
+def test_is_valid_mnemonic_answers_every_str(text: str, lang: str | None) -> None:
+    """An `is_*` is total: a bool for any str, with nothing suppressed.
+
+    A True is a sentence `entropy_from_mnemonic` accepts as well.
+    """
+    valid = bip39.is_valid_mnemonic(text, lang)
+    assert isinstance(valid, bool)
+    if valid and lang:
+        bip39.entropy_from_mnemonic(text, lang)
+
+
 _FIELD = st.integers(min_value=0, max_value=15)
 _COUNT = st.integers(min_value=1, max_value=16)
 _GROUPS = st.integers(min_value=1, max_value=3)
