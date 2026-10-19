@@ -52,10 +52,6 @@ from typing import Any
 import pytest
 
 from btclib_mnemonics import bip39, slip39
-from btclib_mnemonics.entropy import (
-    bin_str_entropy_from_random,
-    bin_str_entropy_from_rolls,
-)
 from btclib_mnemonics.exceptions import BTClibMnemonicsTypeError
 from btclib_mnemonics.mnemonic import WordLists
 
@@ -81,18 +77,6 @@ class _Case:
 
 
 _KINDS = (
-    _Case(
-        "btclib_mnemonics.entropy.bin_str_entropy_from_rolls",
-        "shuffle",
-        bin_str_entropy_from_rolls,
-        {"bits": 8, "dice_sides": 6, "rolls": [1, 2, 3, 4, 5, 6, 1, 2]},
-    ),
-    _Case(
-        "btclib_mnemonics.entropy.bin_str_entropy_from_random",
-        "to_be_hashed",
-        bin_str_entropy_from_random,
-        {"bits": 128},
-    ),
     _Case(
         "btclib_mnemonics.slip39.mnemonics_from_master_secret",
         "extendable",

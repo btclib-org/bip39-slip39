@@ -26,7 +26,6 @@ import math
 import secrets
 import string
 from collections.abc import Iterable, Sequence
-from hashlib import sha512
 
 from btclib_mnemonics._rolls_prompts import ROLLS_PROMPTS
 from btclib_mnemonics._utils import Octets, assert_type, bytes_from_octets, is_integer
@@ -81,6 +80,18 @@ def _is_ascii_digits(text: str, digits: str) -> bool:
     text is checked here before `int` reads it.
     """
     return bool(text) and all(c in digits for c in text)
+
+
+def _small_int(text: str, max_digits: int) -> int:
+    """Return the number up to `max_digits` ASCII decimal digits spell, else 0.
+
+    Bounded before `int` reads it: `int` refuses a decimal string over
+    4300 digits with a ValueError, which would end an interactive prompt
+    instead of asking again. Every caller refuses 0.
+    """
+    if len(text) > max_digits or not _is_ascii_digits(text, string.digits):
+        return 0
+    return int(text)
 
 
 def _int_from_bin_str(entropy: BinStr) -> int:
@@ -280,8 +291,8 @@ def collect_rolls(bits: int, lang: str = "en") -> tuple[int, list[int]]:
     Interactive on purpose, input() and print() being its interface:
     the caller gets (dice sides, the rolls that count). Rolls beyond
     a power of two are discarded and asked again, carrying no whole
-    bits, and so is an answer that is not ASCII decimal digits once
-    ASCII whitespace is stripped.
+    bits, and so is an answer that is not one to three ASCII decimal
+    digits once ASCII whitespace is stripped.
 
     The prompts are in `lang`, a key of `mnemonic.BIP39_LANGUAGE_FILES`:
     pass the language the mnemonic is to be written in, as
@@ -291,9 +302,10 @@ def collect_rolls(bits: int, lang: str = "en") -> tuple[int, list[int]]:
     what is accepted in all of them.
     The translations were made and checked with AI.
 
-    The automated mode rolls with `secrets`, and must keep doing so: a
-    reproducible source of rolls is what the entropy of a seed that does
-    not exist yet must never be.
+    Enter alone asks for a D6 rolled by hand, so that the default
+    collects entropy from dice. Automated rolls, asked for with 'a', come
+    from `secrets`, and must: a reproducible source of rolls is what the
+    entropy of a seed that does not exist yet must never be.
     """
     assert_type(lang, str, "lang")
     if lang not in ROLLS_PROMPTS:
@@ -311,18 +323,12 @@ def collect_rolls(bits: int, lang: str = "en") -> tuple[int, list[int]]:
         )
         dice_sides_str = dice_sides_str.lower()
         if dice_sides_str in {"", "a"}:
-            automate = True
-            dice_sides = 6
-        else:
-            automate = False
-            if dice_sides_str.startswith("a"):
-                automate = True
-                dice_sides_str = dice_sides_str[1:]
-            dice_sides_str = dice_sides_str.strip(string.whitespace)
-            if _is_ascii_digits(dice_sides_str, string.digits):
-                dice_sides = int(dice_sides_str)
-            else:
-                dice_sides = 0
+            dice_sides_str += "6"
+        automate = dice_sides_str.startswith("a")
+        if automate:
+            dice_sides_str = dice_sides_str[1:]
+        dice_sides_str = dice_sides_str.strip(string.whitespace)
+        dice_sides = _small_int(dice_sides_str, 3)
 
     bits_per_roll = _bits_per_digit(dice_sides)
     base = 2**bits_per_roll
@@ -339,7 +345,7 @@ def collect_rolls(bits: int, lang: str = "en") -> tuple[int, list[int]]:
             else:
                 roll_str = input(prompts.roll.format(n=i + 1, total=min_roll_number))
                 roll_str = roll_str.strip(string.whitespace)
-            roll = int(roll_str) if _is_ascii_digits(roll_str, string.digits) else 0
+            roll = _small_int(roll_str, 3)
         rolls.append(roll)
     print(prompts.collected.format(total=min_roll_number, sides=dice_sides))
 
@@ -360,20 +366,20 @@ def _assert_rolls(rolls: object) -> None:
 
 
 def bin_str_entropy_from_rolls(
-    bits: int, dice_sides: int, rolls: Sequence[int], shuffle: bool = True
+    bits: int, dice_sides: int, rolls: Sequence[int]
 ) -> BinStr:
     """Return raw entropy from the input dice rolls.
 
     Dice rolls are represented by integers in the [1-dice_sides] range;
     there must be enough rolls to satisfy the bit-size requirement. The
-    rolls are a sequence, a list or a tuple, and the caller's own is left
-    in the order it was rolled: the shuffle reorders a copy.
+    rolls are a sequence, a list or a tuple, read in the order rolled, so
+    the same rolls always give the same entropy.
 
     Only rolls having value in the [1-base] range are used, with base
     being the highest power of 2 that is lower than the dice_sides (e.g.
     for a traditional D6 dice, only rolls having value in [1-4] are
     used; for a D20 dice, only rolls having value in [1-16] are used;
-    etc.). Rolls can also be shuffled.
+    etc.). Each used roll is the digit roll - 1 in that base.
 
     If more bits than required are provided, the leftmost ones of the
     rolls' own width, leading zeros included, are retained.
@@ -387,7 +393,6 @@ def bin_str_entropy_from_rolls(
         err_msg = f"invalid dice base type: {type(dice_sides).__name__}"
         raise BTClibMnemonicsTypeError(err_msg)
     _assert_rolls(rolls)
-    assert_type(shuffle, bool, "shuffle")
     if dice_sides < 2:
         raise BTClibMnemonicsValueError(
             f"invalid dice base: {dice_sides}, must be >= 2"
@@ -395,10 +400,6 @@ def bin_str_entropy_from_rolls(
     bits_per_roll = _bits_per_digit(dice_sides)
     # used base
     base = 2**bits_per_roll
-
-    if shuffle:
-        rolls = list(rolls)
-        secrets.SystemRandom().shuffle(rolls)
 
     min_roll_number = math.ceil(bits / bits_per_roll)
     n_used = 0
@@ -426,50 +427,11 @@ def bin_str_entropy_from_rolls(
     return f"{i:0{n_used * bits_per_roll}b}"[:bits]
 
 
-def bin_str_entropy_from_random(
-    bits: int, entropy: BinStr | None = None, to_be_hashed: bool = True
-) -> BinStr:
-    """Return CSPRNG raw entropy XOR-ed with input raw entropy.
-
-    The input raw entropy is used as initialization value;
-    if not provided, then entropy is generated with the system
-    cryptographically strong pseudo-random number generator (CSPRNG).
-
-    Then, this entropy is:
-
-    - XOR-ed with CSPRNG system entropy
-    - possibly hashed (if requested)
-
-    If more bits than required are provided, the leftmost ones are
-    retained, of the entropy and of the digest alike, zeros included.
-    """
+def bin_str_entropy_from_random(bits: int) -> BinStr:
+    """Return `bits` of raw entropy drawn from the system CSPRNG, `secrets`."""
     if not is_integer(bits):
         raise BTClibMnemonicsTypeError(f"invalid bits type: {type(bits).__name__}")
-    assert_type(to_be_hashed, bool, "to_be_hashed")
-    if entropy is not None:
-        assert_type(entropy, str, "entropy")
-
-    if not entropy:
-        i = secrets.randbits(bits)
-    else:
-        if len(entropy) > bits:
-            # only the leftmost bits are retained
-            entropy = entropy[:bits]
-        i = _int_from_bin_str(entropy)
-
-    # XOR the current entropy with CSPRNG system entropy
-    i ^= secrets.randbits(bits)
-
-    # hash the current entropy
-    max_bits = sha512().digest_size * 8
-    if to_be_hashed:
-        if bits > max_bits:
-            err_msg = f"too many bits required: {bits}, max is {max_bits}"
-            raise BTClibMnemonicsValueError(err_msg)
-        n_bytes = math.ceil(i.bit_length() / 8)
-        h512 = sha512(i.to_bytes(n_bytes, byteorder="big", signed=False)).digest()
-        i = int.from_bytes(h512, byteorder="big", signed=False)
-
-    # the leftmost bits of the digest or of the random draw at their own
-    # width, not of the number they spell, which has no leading zeros
-    return f"{i:0{max_bits if to_be_hashed else bits}b}"[:bits]
+    if bits < 1:
+        raise BTClibMnemonicsValueError(f"invalid number of bits: {bits}, must be >= 1")
+    # at its own width: the number drawn has no leading zeros
+    return f"{secrets.randbits(bits):0{bits}b}"

@@ -259,6 +259,24 @@ def test_collect_rolls(monkeypatch: pytest.MonkeyPatch) -> None:
             assert len(set(dice_rolls)) > 1
 
 
+def test_collect_rolls_enter_asks_for_a_d6_rolled_by_hand(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Enter alone is a D6 rolled by hand, so the default collects dice."""
+    monkeypatch.setattr("sys.stdin", StringIO("\n3\n4\n"))
+    assert collect_rolls(4) == (6, [3, 4])
+    assert "rolls are used only if in 1..4" in capsys.readouterr().out
+
+
+def test_collect_rolls_asks_again_after_a_number_too_long_for_int(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Over 4300 digits `int` raises; at either prompt it is asked again."""
+    too_long = "9" * 5000
+    monkeypatch.setattr("sys.stdin", StringIO(f"{too_long}\n4\n{too_long}\n3\n"))
+    assert collect_rolls(2) == (4, [3])
+
+
 def test_collect_rolls_refuses_a_negative_or_a_short_roll(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -360,10 +378,6 @@ def test_bin_str_entropy_from_rolls() -> None:
     bin_str = bin_str_entropy_from_rolls(bits + 1, dice_base, rolls)
     assert len(bin_str) == bits + 1
 
-    rolls = [base for _ in range(roll_number + 1)]
-    bin_str_rolls = bin_str_entropy_from_rolls(bits, dice_base, rolls)
-    bin_str = bin_str_entropy_from_random(bits, bin_str_rolls)
-
     rolls = [secrets.randbelow(base) + 1 for _ in range(roll_number - 2)]
     err_msg = "too few rolls in the usable "  # [1-16] range, missing 2 rolls
     with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
@@ -389,7 +403,7 @@ def test_bin_str_entropy_from_rolls() -> None:
 
     # the boundary itself, not 1: `< 2` weakened to `<= 2` still refuses
     # 1 and would also refuse 2, the smallest base the function accepts
-    assert bin_str_entropy_from_rolls(4, 2, [1, 2, 1, 2], shuffle=False) == "0101"
+    assert bin_str_entropy_from_rolls(4, 2, [1, 2, 1, 2]) == "0101"
 
 
 @pytest.mark.parametrize("base", [2, 3, 6, 20, 1024, 1626, 2048, 2**48, 2**49])
@@ -422,7 +436,7 @@ def test_a_die_of_2_49_minus_one_faces_does_not_gain_a_bit() -> None:
         bin_str_entropy_from_rolls(128, sides, rolls)
 
     usable = [base] * math.ceil(128 / 48)
-    assert len(bin_str_entropy_from_rolls(128, sides, usable, shuffle=False)) == 128
+    assert len(bin_str_entropy_from_rolls(128, sides, usable)) == 128
 
 
 def test_a_dice_base_that_is_not_an_integer() -> None:
@@ -443,16 +457,16 @@ def test_a_dice_base_that_is_not_an_integer() -> None:
         bin_str_entropy_from_rolls(4, True, [1, 2, 1, 2])
 
 
-def test_the_shuffle_leaves_the_callers_rolls_alone() -> None:
-    """The caller's record of the dice keeps the order they were rolled in.
+def test_the_rolls_are_read_in_the_order_rolled() -> None:
+    """The same rolls give the same entropy, and their order is part of it.
 
-    A tuple, which cannot be shuffled in place, is read the same way.
+    A tuple is read as a list is.
     """
     rolls = list(range(1, 5)) * 32
-    before = list(rolls)
-    assert len(bin_str_entropy_from_rolls(256, 4, rolls)) == 256
-    assert rolls == before
-    assert len(bin_str_entropy_from_rolls(256, 4, tuple(rolls))) == 256
+    entropy = bin_str_entropy_from_rolls(256, 4, rolls)
+    assert entropy == "00011011" * 32
+    assert bin_str_entropy_from_rolls(256, 4, tuple(rolls)) == entropy
+    assert bin_str_entropy_from_rolls(256, 4, rolls[::-1]) == "11100100" * 32
 
 
 @pytest.mark.parametrize(
@@ -469,13 +483,10 @@ def test_the_shuffle_leaves_the_callers_rolls_alone() -> None:
         (4, [True, 2, 1, 2], "invalid roll type: bool"),
     ],
 )
-@pytest.mark.parametrize("shuffle", [True, False])
-def test_rolls_of_another_type(
-    bits: Any, rolls: Any, err_msg: str, *, shuffle: bool
-) -> None:
+def test_rolls_of_another_type(bits: Any, rolls: Any, err_msg: str) -> None:
     """Refuse what is no number of bits, no sequence, or no integer roll."""
     with pytest.raises(BTClibMnemonicsTypeError, match=err_msg):
-        bin_str_entropy_from_rolls(bits, 2, rolls, shuffle=shuffle)
+        bin_str_entropy_from_rolls(bits, 2, rolls)
 
 
 def test_rolls_keep_the_leftmost_bits_of_what_was_rolled() -> None:
@@ -487,69 +498,32 @@ def test_rolls_keep_the_leftmost_bits_of_what_was_rolled() -> None:
     """
     rolls = [1] + [8] * 42
     expected = ("000" + "111" * 42)[:128]
-    assert bin_str_entropy_from_rolls(128, 8, rolls, shuffle=False) == expected
+    assert bin_str_entropy_from_rolls(128, 8, rolls) == expected
 
 
-class _Digest:
-    """Stand in for a sha512 whose digest starts with zeros."""
-
-    digest_size = 64
-
-    def __init__(self, _data: bytes = b"") -> None:
-        pass
-
-    def digest(self) -> bytes:
-        return bytes(8) + bytes([255]) * 56
-
-
-def test_random_keeps_the_leftmost_bits_of_the_digest(
+def test_random_keeps_the_leading_zeros_of_the_draw(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Truncate the digest at its 512 bits: its leading zeros are entropy."""
-    monkeypatch.setattr("btclib_mnemonics.entropy.sha512", _Digest)
-    assert bin_str_entropy_from_random(128) == "0" * 64 + "1" * 64
-    assert bin_str_entropy_from_random(511) == "0" * 64 + "1" * 447
-    assert bin_str_entropy_from_random(512) == "0" * 64 + "1" * 448
+    """The draw is written at its own width: its leading zeros are entropy."""
+    monkeypatch.setattr("btclib_mnemonics.entropy.secrets.randbits", lambda _: 1)
+    assert bin_str_entropy_from_random(128) == "0" * 127 + "1"
 
 
-def test_bin_str_entropy_from_random() -> None:
-    """Check the random entropy source, its mixing and its bit cap."""
-    for to_be_hashed in (True, False):
-        bits = 256
-        bin_str = bin_str_entropy_from_random(bits, to_be_hashed=to_be_hashed)
-        assert len(bin_str) == bits
-        bin_str2 = bin_str_entropy_from_random(bits, "", to_be_hashed=to_be_hashed)
-        assert len(bin_str2) == bits
-        assert bin_str != bin_str2
-        bin_str2 = bin_str_entropy_from_random(bits, to_be_hashed=to_be_hashed)
-        assert len(bin_str2) == bits
-        assert bin_str != bin_str2
-        bin_str2 = bin_str_entropy_from_random(bits, "", to_be_hashed=to_be_hashed)
-        assert len(bin_str2) == bits
-        assert bin_str != bin_str2
+@pytest.mark.parametrize("bits", [1, 128, 256, 512, 1024])
+def test_bin_str_entropy_from_random(bits: int) -> None:
+    """Draw `bits` from the CSPRNG; two draws differ."""
+    bin_str = bin_str_entropy_from_random(bits)
+    assert len(bin_str) == bits
+    assert set(bin_str) <= {"0", "1"}
+    if bits >= 128:
+        assert bin_str_entropy_from_random(bits) != bin_str
 
-        bits = 512
-        bin_str = bin_str_entropy_from_random(bits, to_be_hashed=to_be_hashed)
-        assert len(bin_str) == bits
-        bin_str2 = bin_str_entropy_from_random(bits, bin_str, to_be_hashed=to_be_hashed)
-        assert len(bin_str2) == bits
-        assert bin_str != bin_str2
 
-        bin_str2 = bin_str_entropy_from_random(256, bin_str, to_be_hashed=to_be_hashed)
-        assert len(bin_str2) == 256
-
-    bin_str = bin_str_entropy_from_random(1024, to_be_hashed=False)
-    assert len(bin_str) == 1024
-    err_msg = "too many bits required: "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
-        bin_str_entropy_from_random(1024)
-
-    # the cap itself: sha512's 512-bit digest, one bit over is refused and
-    # the bit at it is not -- 1024 above is well past either side of a
-    # cap computed one digest_size wider than it should be
-    assert len(bin_str_entropy_from_random(512)) == 512
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
-        bin_str_entropy_from_random(513)
+@pytest.mark.parametrize("bits", [0, -1])
+def test_random_refuses_no_bits(bits: int) -> None:
+    """A draw of no bits, or fewer, is refused."""
+    with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits: "):
+        bin_str_entropy_from_random(bits)
 
 
 def test_what_is_no_binary_string_is_refused_without_being_echoed() -> None:
@@ -581,12 +555,6 @@ def test_a_bin_str_that_is_no_str() -> None:
             _wordlist_indexes_from_bin_str_entropy(wrong, 2048)
         with pytest.raises(BTClibMnemonicsTypeError, match="invalid entropy type: "):
             _bin_str_entropy_from_str(wrong, _bits)
-        # None is this one's default, asking for CSPRNG entropy alone
-        if wrong is not None:
-            with pytest.raises(
-                BTClibMnemonicsTypeError, match="invalid entropy type: "
-            ):
-                bin_str_entropy_from_random(128, wrong)
 
 
 def test_raw_entropy_is_ascii_0_and_1_alone() -> None:
@@ -612,7 +580,6 @@ def test_raw_entropy_is_ascii_0_and_1_alone() -> None:
             lambda x: _bin_str_entropy_from_entropy(x, _bits),
             _bytes_entropy_from_str,
             lambda x: _wordlist_indexes_from_bin_str_entropy(x, 2048),
-            lambda x: bin_str_entropy_from_random(128, x),
         ):
             with pytest.raises(BTClibMnemonicsValueError) as excinfo:
                 read(not_raw)

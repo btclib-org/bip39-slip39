@@ -41,7 +41,7 @@ ROLLS_PROMPTS = {
     "cs": RollsPrompts(
         dice_sides=(
             "počet stěn kostky ({choices}; předpona 'a' zapne automatické hody, "
-            "Enter znamená 'a6'): "
+            "Enter znamená '6'): "
         ),
         usable="hody se použijí, jen pokud jsou v rozsahu 1..{base}",
         roll="hod #{n}/{total}: ",
@@ -50,7 +50,7 @@ ROLLS_PROMPTS = {
     "en": RollsPrompts(
         dice_sides=(
             "dice sides ({choices}; prefix with 'a' to automate rolls, "
-            "hit enter for 'a6'): "
+            "hit enter for '6'): "
         ),
         usable="rolls are used only if in 1..{base}",
         roll="roll #{n}/{total}: ",
@@ -59,7 +59,7 @@ ROLLS_PROMPTS = {
     "es": RollsPrompts(
         dice_sides=(
             "caras del dado ({choices}; antepón 'a' para automatizar las "
-            "tiradas, pulsa Intro para 'a6'): "
+            "tiradas, pulsa Intro para '6'): "
         ),
         usable="las tiradas solo se usan si están en 1..{base}",
         roll="tirada #{n}/{total}: ",
@@ -68,7 +68,7 @@ ROLLS_PROMPTS = {
     "fr": RollsPrompts(
         dice_sides=(
             "faces du dé ({choices} ; préfixez par 'a' pour automatiser les "
-            "lancers, appuyez sur Entrée pour 'a6') : "
+            "lancers, appuyez sur Entrée pour '6') : "
         ),
         usable="les lancers ne sont utilisés que s'ils sont dans 1..{base}",
         roll="lancer #{n}/{total} : ",
@@ -77,7 +77,7 @@ ROLLS_PROMPTS = {
     "it": RollsPrompts(
         dice_sides=(
             "facce del dado ({choices}; anteponi 'a' per automatizzare i "
-            "lanci, premi Invio per 'a6'): "
+            "lanci, premi Invio per '6'): "
         ),
         usable="i lanci sono usati solo se compresi in 1..{base}",
         roll="lancio #{n}/{total}: ",
@@ -86,7 +86,7 @@ ROLLS_PROMPTS = {
     "ja": RollsPrompts(
         dice_sides=(
             "サイコロの面の数 ({choices}; 先頭に 'a' を付けると自動で振ります。"
-            "Enter で 'a6'): "
+            "Enter で '6'): "
         ),
         usable="出目は 1..{base} の範囲内のときだけ使われます",
         roll="{n}/{total} 回目の出目: ",
@@ -95,7 +95,7 @@ ROLLS_PROMPTS = {
     "ko": RollsPrompts(
         dice_sides=(
             "주사위 면의 수 ({choices}; 자동으로 굴리려면 앞에 'a'를 붙이고, "
-            "Enter를 누르면 'a6'): "
+            "Enter를 누르면 '6'): "
         ),
         usable="굴림은 1..{base} 범위 안일 때만 사용됩니다",
         roll="굴림 #{n}/{total}: ",
@@ -104,7 +104,7 @@ ROLLS_PROMPTS = {
     "pt": RollsPrompts(
         dice_sides=(
             "faces do dado ({choices}; prefixe com 'a' para automatizar as "
-            "jogadas, tecle Enter para 'a6'): "
+            "jogadas, tecle Enter para '6'): "
         ),
         usable="as jogadas só são usadas se estiverem em 1..{base}",
         roll="jogada #{n}/{total}: ",
@@ -113,7 +113,7 @@ ROLLS_PROMPTS = {
     "ru": RollsPrompts(
         dice_sides=(
             "число граней кубика ({choices}; добавьте в начале 'a', чтобы "
-            "бросать автоматически, Enter означает 'a6'): "
+            "бросать автоматически, Enter означает '6'): "
         ),
         usable="броски используются, только если они в диапазоне 1..{base}",
         roll="бросок #{n}/{total}: ",
@@ -122,7 +122,7 @@ ROLLS_PROMPTS = {
     "tr": RollsPrompts(
         dice_sides=(
             "zarın yüz sayısı ({choices}; atışları otomatikleştirmek için "
-            "başına 'a' ekleyin, 'a6' için Enter'a basın): "
+            "başına 'a' ekleyin, '6' için Enter'a basın): "
         ),
         usable="atışlar yalnızca 1..{base} aralığındaysa kullanılır",
         roll="atış #{n}/{total}: ",
@@ -130,7 +130,7 @@ ROLLS_PROMPTS = {
     ),
     "zh": RollsPrompts(
         dice_sides=(
-            "骰子面数 ({choices}；在前面加 'a' 可自动掷骰，直接按 Enter 表示 'a6'): "
+            "骰子面数 ({choices}；在前面加 'a' 可自动掷骰，直接按 Enter 表示 '6'): "
         ),
         usable="只有在 1..{base} 范围内的掷骰结果才会被使用",
         roll="第 {n}/{total} 次掷骰: ",
@@ -138,7 +138,7 @@ ROLLS_PROMPTS = {
     ),
     "zh_tw": RollsPrompts(
         dice_sides=(
-            "骰子面數 ({choices}；在前面加 'a' 可自動擲骰，直接按 Enter 表示 'a6'): "
+            "骰子面數 ({choices}；在前面加 'a' 可自動擲骰，直接按 Enter 表示 '6'): "
         ),
         usable="只有在 1..{base} 範圍內的擲骰結果才會被使用",
         roll="第 {n}/{total} 次擲骰: ",

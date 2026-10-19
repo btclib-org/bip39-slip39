@@ -48,10 +48,10 @@ def test_placeholders_match_english(lang: str, name: str) -> None:
 
 @pytest.mark.parametrize("lang", _LANGS)
 def test_dice_sides_text_names_the_answers_it_accepts(lang: str) -> None:
-    """The ASCII "a" and "a6" the checks read are in the text, quoted."""
+    """The ASCII "a", and the "6" Enter stands for, are in the text, quoted."""
     text = ROLLS_PROMPTS[lang].dice_sides
     assert "'a'" in text
-    assert "'a6'" in text
+    assert "'6'" in text
 
 
 @pytest.mark.parametrize("lang", _LANGS)
@@ -110,7 +110,7 @@ def test_english_is_the_default_and_its_text_is_unchanged(
     assert collect_rolls(4) == (4, [1, 1])
     assert capsys.readouterr().out == (
         "dice sides (4, 6, 8, 12, 20, 24, 30, 48, 60, 120; "
-        "prefix with 'a' to automate rolls, hit enter for 'a6'): "
+        "prefix with 'a' to automate rolls, hit enter for '6'): "
         "rolls are used only if in 1..4\n"
         "roll #1/2: roll #2/2: "
         "collected 2 usable D4 rolls\n"

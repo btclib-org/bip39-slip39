@@ -151,7 +151,7 @@ def test_the_integers_a_bool_refusal_must_not_take_with_it() -> None:
     refuses everything.
     """
     assert _bin_str_entropy_from_wordlist_indexes([1], 2048) == "00000000001"
-    assert bin_str_entropy_from_rolls(4, 2, [1, 2, 1, 2], shuffle=False) == "0101"
+    assert bin_str_entropy_from_rolls(4, 2, [1, 2, 1, 2]) == "0101"
     one_of_one = mnemonics_from_master_secret(
         bytes(16), [(1, 1)], group_threshold=1, iteration_exponent=0
     )

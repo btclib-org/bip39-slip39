@@ -35,10 +35,12 @@ page points at it instead of repeating it.
 
 ## Threat model
 
-btclib-mnemonics is a library in its caller's process. It opens no
-socket, runs no subprocess and writes no file; the one read of a path a
-caller chose is *Files* below. `tests/imports_test.py` holds every module
-to the standard library, both as imported and as written.
+btclib-mnemonics is a library in its caller's process, and the command
+`python -m btclib_mnemonics` in its own. The command reads and writes
+its terminal. It opens no socket, runs no subprocess and writes no file;
+the one read of a path a caller chose is *Files* below.
+`tests/imports_test.py` holds every module to the standard library,
+both as imported and as written.
 
 **What is defended.**
 
@@ -64,7 +66,8 @@ vulnerabilities*:
 
 - side channels: nothing here is constant-time
 - memory disclosure: secret material in a Python object is not zeroized
-- whatever the terminal keeps of `entropy.collect_rolls`' dice
+- whatever the terminal keeps of the interactive `entropy.collect_rolls`
+  and `python -m btclib_mnemonics`
 - the PBKDF2 work a SLIP-0039 share's iteration exponent asks for, up to
   the `max_iteration_exponent` a caller passes; a share longer than a
   512-bit secret needs is refused, so its length adds no work

@@ -104,6 +104,8 @@ package is used to teach and to prototype as much as to build:
     iterations**; `slip39.master_secret_from_mnemonics`,
     `slip39.EncryptedMasterSecret.master_secret` and `slip39.Recovery`
     refuse an exponent above the `max_iteration_exponent` a caller passes.
-- **`entropy.collect_rolls` is interactive**, reading dice rolls with
-    `input()` and reporting with `print()`: whatever the terminal keeps,
-    it keeps.
+- **`entropy.collect_rolls` and `python -m btclib_mnemonics` are
+    interactive**: whatever the terminal keeps, they keep.
+    `collect_rolls` reads dice rolls with `input()`. The command prints R
+    and the mnemonic or shares, and reads rolls with `getpass`, which
+    without a terminal warns that it may echo them.
