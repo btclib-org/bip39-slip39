@@ -269,8 +269,7 @@ def is_valid_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> bool:
     not exist, and CONTRIBUTING.md's *The public surface* makes an
     `is_*` total over the declared types, `lang` being a `str`. The
     cost is that a misspelled `lang` reads as an invalid sentence;
-    `entropy_from_mnemonic` and `lang_from_mnemonic` are the functions
-    that refuse it.
+    `entropy_from_mnemonic` is the function that refuses it.
     """
     assert_type(lang, (str, type(None)), "lang")
     mnemonic = normalize_mnemonic(mnemonic)
