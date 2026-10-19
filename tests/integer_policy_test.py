@@ -26,7 +26,12 @@ from btclib_mnemonics.entropy import (
     bin_str_entropy_from_rolls,
 )
 from btclib_mnemonics.exceptions import BTClibMnemonicsTypeError
-from btclib_mnemonics.slip39 import Share, mnemonics_from_master_secret
+from btclib_mnemonics.slip39 import (
+    Share,
+    master_secret_from_mnemonics,
+    mnemonic_from_share,
+    mnemonics_from_master_secret,
+)
 
 
 def _share(**field: Any) -> Share:
@@ -84,6 +89,12 @@ _CASES: list[tuple[str, Callable[[Any], object]]] = [
         "slip39 member count",
         lambda v: mnemonics_from_master_secret(bytes(16), groups=[(1, v)]),
     ),
+    (
+        "slip39 max iteration exponent",
+        lambda v: master_secret_from_mnemonics(
+            [mnemonic_from_share(_share())], max_iteration_exponent=v
+        ),
+    ),
     # partial and not a lambda, which would close over the loop variable
     *((f"slip39 share {name}", partial(_share_with, name)) for name in _SHARE_FIELDS),
 ]
@@ -118,6 +129,8 @@ def test_the_integers_a_bool_refusal_must_not_take_with_it() -> None:
         bytes(16), [(1, 1)], group_threshold=1, iteration_exponent=0
     )
     assert [len(group) for group in one_of_one] == [1]
+    combined = master_secret_from_mnemonics(one_of_one[0], max_iteration_exponent=1)
+    assert combined == bytes(16)
     assert all(getattr(_share_with(n, 1), n) == 1 for n in _SHARE_FIELDS)
 
 

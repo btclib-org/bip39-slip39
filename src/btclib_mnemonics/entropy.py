@@ -15,9 +15,9 @@ Output entropy is always raw.
 
 The public surface is the entropy sources -- dice rolls, read
 interactively or given, and the CSPRNG -- and the types they are written
-in. The conversions between the representations are private: the
-schemes call them, and a caller holding entropy hands it to a scheme's
-`mnemonic_from_entropy` rather than converting it first.
+in. The conversions between the representations are private: BIP39
+and Electrum call them, and a caller holding entropy hands it to a
+scheme's `mnemonic_from_entropy` rather than converting it first.
 """
 
 from __future__ import annotations

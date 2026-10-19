@@ -14,11 +14,9 @@ btclib-org/btclib#980). The property is mechanical, one
 `KEYWORD_ONLY` is that walk, run once against the current tree and
 frozen here rather than recomputed by the test: recomputing it from the
 same code the test is meant to guard would make the assertion read
-whatever a mutation had just done to it and call that the answer. It is
-empty, no public signature of this package taking a keyword-only
-parameter, and that is itself the recorded answer: a keyword-only
-parameter added to the public surface is a site this table does not
-hold, and the test below fails until it does.
+whatever a mutation had just done to it and call that the answer. A
+keyword-only parameter added to the public surface is a site this table
+does not hold, and the test below fails until it does.
 
 A function under a module's `__all__` is named directly; a class is
 named once per public method of its own -- `__init__`, and every other
@@ -40,7 +38,9 @@ if TYPE_CHECKING:
 # Walked from `btclib_mnemonics`, on the commit this file is part of: every
 # public callable that takes at least one keyword-only parameter, and the
 # names of those parameters in declaration order
-KEYWORD_ONLY: dict[str, list[str]] = {}
+KEYWORD_ONLY: dict[str, list[str]] = {
+    "btclib_mnemonics.slip39:master_secret_from_mnemonics": ["max_iteration_exponent"],
+}
 
 
 def _kwonly_names(signature: inspect.Signature) -> list[str]:
@@ -97,8 +97,9 @@ def test_the_recorded_surface_is_the_whole_of_it() -> None:
 def test_the_walk_reaches_what_it_claims() -> None:
     """A function, a constructor and a method, and a class's private names out.
 
-    The table being empty, a walk that found nothing would pass the test
-    above: this is what keeps that from being how it passes.
+    A walk that missed a class or a method would pass the test above
+    wherever the table holds no site of that shape: this is what keeps
+    that from being how it passes.
     """
     labels = {label for label, _ in _callables()}
     assert "btclib_mnemonics.slip39:share_from_mnemonic" in labels

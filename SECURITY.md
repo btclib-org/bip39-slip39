@@ -98,6 +98,10 @@ package is used to teach and to prototype as much as to build:
     `os.urandom`, and nothing here seeds a generator of its own.
     `slip39.mnemonics_from_master_secret` takes an `entropy_source`, and
     a weak one a caller passes in is the caller's.
+- **Combining SLIP-0039 shares at the largest iteration exponent, 15,
+    runs `4 * 2500 * 2**15` PBKDF2-HMAC-SHA256 iterations**;
+    `slip39.master_secret_from_mnemonics` refuses shares above the
+    `max_iteration_exponent` a caller passes.
 - **`entropy.collect_rolls` is interactive**, reading dice rolls with
     `input()` and reporting with `print()`: whatever the terminal keeps,
     it keeps.

@@ -24,8 +24,9 @@ ones.
 Layers, bottom-up: `exceptions` and the private `_utils`, then `entropy`
 (binary-string entropy from integers, bytes, dice and the system CSPRNG)
 and `mnemonic` (the word lists under `_data/` and the index conversions),
-then the three schemes `bip39`, `electrum` and `slip39`, each of which
-imports `entropy` and `mnemonic` and none of which imports another. The
+then the three schemes `bip39`, `electrum` and `slip39`. `bip39` and
+`electrum` import `entropy` and `mnemonic`, `slip39` imports `mnemonic`
+only, and none of the three imports another. The
 one module above them is `dispatch`, which asks each scheme whether a
 sentence is its own.
 
