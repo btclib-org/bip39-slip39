@@ -61,6 +61,7 @@ import math
 import secrets
 import string
 import unicodedata
+from bisect import bisect_right
 from functools import cache
 from hashlib import pbkdf2_hmac, sha256, sha512
 from pathlib import Path
@@ -173,8 +174,18 @@ ELECTRUM_WORDLISTS = WordLists(
 )
 
 
+# the intervals above in order of their start, which they do not come in,
+# and disjoint, which tests/electrum_test.py holds: that is what lets the
+# one interval that could hold a code point be found by bisection
+_CJK_STARTS = tuple(sorted(imin for imin, _ in _CJK_INTERVALS))
+_CJK_ENDS = tuple(imax for _, imax in sorted(_CJK_INTERVALS))
+
+
 def _is_cjk(char: str) -> bool:
-    return any(imin <= ord(char) <= imax for imin, imax in _CJK_INTERVALS)
+    code_point = ord(char)
+    # the last interval starting at or before the code point, if any
+    i = bisect_right(_CJK_STARTS, code_point) - 1
+    return i >= 0 and code_point <= _CJK_ENDS[i]
 
 
 def _normalize(text: str) -> str:
@@ -194,8 +205,12 @@ def _normalize(text: str) -> str:
     """
     text = unicodedata.normalize("NFKD", text)
     text = text.lower()
-    text = "".join(char for char in text if not unicodedata.combining(char))
+    # ASCII has no combining character, and no CJK one either
+    if not text.isascii():
+        text = "".join(char for char in text if not unicodedata.combining(char))
     text = " ".join(text.split())
+    if text.isascii():
+        return text
     # the collapse above leaves no leading or trailing whitespace, so the
     # neighbour lookups cannot run off either end: at i == 0 and at
     # i == len - 1 the character is not whitespace, and the "and" stops
@@ -405,13 +420,38 @@ def _decodable(mnemonic: Mnemonic) -> Mnemonic:
     return unicodedata.normalize("NFKD", mnemonic).lower()
 
 
+def _max_words(lang: str) -> int:
+    """Return the words of the longest sentence mnemonic_from_entropy writes.
+
+    The largest entropy it takes is 512 bits. The search steps past it by
+    far less than one more word needs, so the count is the digits of
+    2**512 in the word-list's base: 47 words for a 2048-word list, 48 for
+    Electrum's Portuguese.
+    """
+    base = ELECTRUM_WORDLISTS.language_length(lang)
+    n_words = 0
+    largest = 1 << max(_bits)
+    while largest:
+        largest //= base
+        n_words += 1
+    return n_words
+
+
 def _bin_str_entropy_from_mnemonic(mnemonic: Mnemonic, lang: str) -> BinStr:
     """Return the entropy of a mnemonic whose first word is least significant.
 
     Electrum's mnemonic_decode, which pops from the tail. The index list
     is reversed before entropy.py's helper sees it, that helper being
     written for BIP39's order.
+
+    A longer sentence than mnemonic_from_entropy can write is refused
+    before a word is looked up, the decode being quadratic in the words.
     """
+    n_words = len(mnemonic.split())
+    max_words = _max_words(lang)
+    if n_words > max_words:
+        err_msg = f"invalid number of words: {n_words} instead of at most {max_words}"
+        raise BTClibMnemonicsValueError(err_msg)
     indexes = indexes_from_mnemonic(_decodable(mnemonic), lang, ELECTRUM_WORDLISTS)
     base = ELECTRUM_WORDLISTS.language_length(lang)
     return _bin_str_entropy_from_wordlist_indexes(indexes[::-1], base)
