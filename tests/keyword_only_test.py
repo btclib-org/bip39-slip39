@@ -40,6 +40,10 @@ if TYPE_CHECKING:
 # names of those parameters in declaration order
 KEYWORD_ONLY: dict[str, list[str]] = {
     "btclib_mnemonics.slip39:master_secret_from_mnemonics": ["max_iteration_exponent"],
+    "btclib_mnemonics.slip39:EncryptedMasterSecret.master_secret": [
+        "max_iteration_exponent"
+    ],
+    "btclib_mnemonics.slip39:Recovery.__init__": ["max_iteration_exponent"],
 }
 
 

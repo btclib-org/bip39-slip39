@@ -45,6 +45,12 @@ Both recovery and generation are here. Recovery alone is what a wallet
 needs and what several implementations stop at; a library is asked the
 other question too -- and generation is also what lets the round trip
 be tested against something other than itself.
+
+Each direction has a step in the middle, the ``EncryptedMasterSecret``:
+``encrypted_master_secret_from_mnemonics`` recombines shares into it and
+``mnemonics_from_encrypted_master_secret`` splits it into new ones, so a
+backup is regrouped without the passphrase and without PBKDF2.
+``Recovery`` collects shares one mnemonic at a time, as a user types them.
 """
 
 from __future__ import annotations
@@ -68,9 +74,13 @@ from btclib_mnemonics.mnemonic import (
 )
 
 __all__ = [
+    "EncryptedMasterSecret",
+    "Recovery",
     "Share",
+    "encrypted_master_secret_from_mnemonics",
     "master_secret_from_mnemonics",
     "mnemonic_from_share",
+    "mnemonics_from_encrypted_master_secret",
     "mnemonics_from_master_secret",
     "share_from_mnemonic",
 ]
@@ -268,6 +278,15 @@ def _assert_valid_length(n_bytes: int, what: str) -> None:
         raise BTClibMnemonicsValueError(err_msg)
 
 
+def _assert_in_ranges(*fields: tuple[str, int, int, int]) -> None:
+    """Refuse each named value that is no integer from lower to upper."""
+    for name, value, lower, upper in fields:
+        _assert_integers((name, value))
+        if not lower <= value <= upper:
+            err_msg = f"invalid {name}: {value}, not in [{lower}-{upper}]"
+            raise BTClibMnemonicsValueError(err_msg)
+
+
 @dataclass(frozen=True)
 class Share:
     """A single SLIP-0039 share, i.e. one decoded mnemonic.
@@ -305,7 +324,7 @@ class Share:
         assert_type(self.extendable, bool, "extendable")
         assert_type(self.value, bytes, "share value")
         top = _MAX_SHARE_COUNT - 1
-        for name, value, lower, upper in (
+        _assert_in_ranges(
             ("identifier", self.identifier, 0, (1 << _ID_BITS) - 1),
             ("iteration exponent", self.iteration_exponent, 0, _MAX_EXPONENT),
             ("group index", self.group_index, 0, top),
@@ -313,11 +332,7 @@ class Share:
             ("group count", self.group_count, 1, _MAX_SHARE_COUNT),
             ("member index", self.member_index, 0, top),
             ("member threshold", self.member_threshold, 1, _MAX_SHARE_COUNT),
-        ):
-            _assert_integers((name, value))
-            if not lower <= value <= upper:
-                err_msg = f"invalid {name}: {value}, not in [{lower}-{upper}]"
-                raise BTClibMnemonicsValueError(err_msg)
+        )
         # a group cannot need more shares than it has, and both numbers
         # are in every share, so this is a property of one share and
         # checked here rather than when a set of them is combined
@@ -488,6 +503,78 @@ def _feistel(
     return right + left
 
 
+def _assert_valid_max_exponent(max_iteration_exponent: int) -> None:
+    _assert_integers(("max iteration exponent", max_iteration_exponent))
+    if not 0 <= max_iteration_exponent <= _MAX_EXPONENT:
+        err_msg = f"invalid max iteration exponent: {max_iteration_exponent}, "
+        err_msg += f"not in [0-{_MAX_EXPONENT}]"
+        raise BTClibMnemonicsValueError(err_msg)
+
+
+def _assert_not_above(iteration_exponent: int, max_iteration_exponent: int) -> None:
+    if iteration_exponent > max_iteration_exponent:
+        err_msg = f"iteration exponent {iteration_exponent} "
+        err_msg += f"above the maximum {max_iteration_exponent}"
+        raise BTClibMnemonicsValueError(err_msg)
+
+
+@dataclass(frozen=True)
+class EncryptedMasterSecret:
+    """A SLIP-0039 master secret encrypted under its passphrase.
+
+    It is what a set of shares recombines to and what a new set is split
+    from, so a backup is regrouped with it alone. The extendable backup
+    flag decides whether the identifier salts the encryption, and the
+    iteration exponent is its cost, which is why the three travel with it.
+    """
+
+    identifier: int
+    extendable: bool
+    iteration_exponent: int
+    # never in repr, as Share's value is not: a repr ends up in logs,
+    # debuggers and tracebacks
+    value: bytes = field(repr=False)
+
+    def __post_init__(self) -> None:
+        self.assert_valid()
+
+    def assert_valid(self) -> None:
+        """Raise if a field is outside what the share format can hold."""
+        assert_type(self.extendable, bool, "extendable")
+        assert_type(self.value, bytes, "encrypted master secret value")
+        _assert_in_ranges(
+            ("identifier", self.identifier, 0, (1 << _ID_BITS) - 1),
+            ("iteration exponent", self.iteration_exponent, 0, _MAX_EXPONENT),
+        )
+        _assert_valid_length(len(self.value), "encrypted master secret value")
+
+    def master_secret(
+        self, passphrase: str = "", *, max_iteration_exponent: int = _MAX_EXPONENT
+    ) -> bytes:
+        """Return the master secret, decrypted under the passphrase.
+
+        A wrong passphrase is not an error: SLIP-0039 has no way to tell
+        one from a right one, which is what lets a decoy wallet exist.
+
+        Each step of the iteration exponent doubles the PBKDF2 iterations
+        decrypting runs. A record above max_iteration_exponent is refused
+        before PBKDF2 runs. The default, 15, is the largest exponent the
+        format holds, so it refuses no record.
+        """
+        self.assert_valid()
+        _assert_valid_passphrase(passphrase)
+        _assert_valid_max_exponent(max_iteration_exponent)
+        _assert_not_above(self.iteration_exponent, max_iteration_exponent)
+        return _feistel(
+            self.value,
+            passphrase,
+            self.iteration_exponent,
+            self.identifier,
+            self.extendable,
+            decrypt=True,
+        )
+
+
 def _recover_secret(threshold: int, shares: Sequence[tuple[int, bytes]]) -> bytes:
     """Return the secret the shares interpolate to, digest checked."""
     if threshold == 1:
@@ -542,10 +629,6 @@ def _split_secret(
     The shares are returned in index order, the index being the x
     coordinate: the caller does not get to choose them.
     """
-    if not 0 < threshold <= share_count <= _MAX_SHARE_COUNT:
-        err_msg = f"invalid threshold {threshold} of {share_count}; "
-        err_msg += f"0 < threshold <= count <= {_MAX_SHARE_COUNT} required"
-        raise BTClibMnemonicsValueError(err_msg)
     if threshold == 1:
         # nothing to interpolate, and nothing to hide either: every
         # share is the secret
@@ -639,7 +722,7 @@ def _assert_groups(groups: object) -> None:
     a str or bytes of two items is no pair, however it unpacks. How many
     items a pair holds is a value, run time being unable to tell
     tuple[int] from tuple[int, int]; the bounds on each integer are
-    `_split_secret`'s.
+    `_assert_valid_split`'s.
     """
     if not isinstance(groups, Sequence):
         raise BTClibMnemonicsTypeError(f"invalid groups type: {type(groups).__name__}")
@@ -664,6 +747,37 @@ def _assert_integers(*named: tuple[str, object]) -> None:
             )
 
 
+def _ems_from_shares(shares: Sequence[Share]) -> EncryptedMasterSecret:
+    """Return the encrypted master secret a non-empty set of shares holds."""
+    first = _common_field(shares)
+    group_shares = _grouped(shares)
+    if len(group_shares) != first.group_threshold:
+        err_msg = f"{len(group_shares)} groups, "
+        err_msg += f"group threshold is {first.group_threshold}"
+        raise BTClibMnemonicsValueError(err_msg)
+    return EncryptedMasterSecret(
+        identifier=first.identifier,
+        extendable=first.extendable,
+        iteration_exponent=first.iteration_exponent,
+        value=_recover_secret(first.group_threshold, group_shares),
+    )
+
+
+def encrypted_master_secret_from_mnemonics(
+    mnemonics: Sequence[Mnemonic],
+) -> EncryptedMasterSecret:
+    """Return the encrypted master secret the SLIP-0039 mnemonics recombine to.
+
+    The mnemonics must be exactly a threshold number of groups, each
+    holding exactly its own member threshold of shares. No passphrase is
+    needed and no PBKDF2 runs.
+    """
+    _assert_mnemonic_sequence(mnemonics)
+    if not mnemonics:
+        raise BTClibMnemonicsValueError("no mnemonic")
+    return _ems_from_shares([share_from_mnemonic(mnemonic) for mnemonic in mnemonics])
+
+
 def master_secret_from_mnemonics(
     mnemonics: Sequence[Mnemonic],
     passphrase: str = "",
@@ -672,47 +786,91 @@ def master_secret_from_mnemonics(
 ) -> bytes:
     """Return the master secret the SLIP-0039 mnemonics reconstruct.
 
-    The mnemonics must be exactly a threshold number of groups, each
-    holding exactly its own member threshold of shares. A wrong
-    passphrase is not an error: SLIP-0039 has no way to tell one from a
-    right one, which is what lets a decoy wallet exist.
-
-    The shares carry the iteration exponent, and each step of it doubles
-    the PBKDF2 iterations combining runs. Shares above
-    max_iteration_exponent are refused before PBKDF2 runs. The default,
-    15, is the largest exponent the format holds, so it refuses no share.
+    It is ``encrypted_master_secret_from_mnemonics`` and then
+    ``EncryptedMasterSecret.master_secret``, whose docstrings say what
+    each refuses.
     """
     _assert_valid_passphrase(passphrase)
-    _assert_integers(("max iteration exponent", max_iteration_exponent))
-    if not 0 <= max_iteration_exponent <= _MAX_EXPONENT:
-        err_msg = f"invalid max iteration exponent: {max_iteration_exponent}, "
-        err_msg += f"not in [0-{_MAX_EXPONENT}]"
-        raise BTClibMnemonicsValueError(err_msg)
-    _assert_mnemonic_sequence(mnemonics)
-    if not mnemonics:
-        raise BTClibMnemonicsValueError("no mnemonic")
+    _assert_valid_max_exponent(max_iteration_exponent)
+    ems = encrypted_master_secret_from_mnemonics(mnemonics)
+    return ems.master_secret(passphrase, max_iteration_exponent=max_iteration_exponent)
 
-    shares = [share_from_mnemonic(mnemonic) for mnemonic in mnemonics]
-    first = _common_field(shares)
-    if first.iteration_exponent > max_iteration_exponent:
-        err_msg = f"iteration exponent {first.iteration_exponent} "
-        err_msg += f"above the maximum {max_iteration_exponent}"
-        raise BTClibMnemonicsValueError(err_msg)
-    group_shares = _grouped(shares)
-    if len(group_shares) != first.group_threshold:
-        err_msg = f"{len(group_shares)} groups, "
-        err_msg += f"group threshold is {first.group_threshold}"
-        raise BTClibMnemonicsValueError(err_msg)
 
-    ems = _recover_secret(first.group_threshold, group_shares)
-    return _feistel(
-        ems,
-        passphrase,
-        first.iteration_exponent,
-        first.identifier,
-        first.extendable,
-        decrypt=True,
+def _assert_valid_split(
+    groups: Sequence[tuple[int, int]], group_threshold: int, entropy_source: object
+) -> None:
+    """Refuse groups, a group threshold or a source no split can use."""
+    _assert_groups(groups)
+    _assert_integers(("group threshold", group_threshold))
+    if not callable(entropy_source):
+        err_msg = f"invalid entropy source type: {type(entropy_source).__name__}"
+        raise BTClibMnemonicsTypeError(err_msg)
+    for member_threshold, member_count in groups:
+        # a 1-of-N group is N shares differing in an index and a
+        # checksum, i.e. N copies of the same secret: SLIP-0039 forbids
+        # it because someone asking for it has misunderstood the scheme
+        if member_threshold == 1 and member_count > 1:
+            err_msg = f"invalid 1-of-{member_count} group; "
+            err_msg += "a group with threshold 1 must have a single member"
+            raise BTClibMnemonicsValueError(err_msg)
+    for threshold, count in ((group_threshold, len(groups)), *groups):
+        if not 0 < threshold <= count <= _MAX_SHARE_COUNT:
+            err_msg = f"invalid threshold {threshold} of {count}; "
+            err_msg += f"0 < threshold <= count <= {_MAX_SHARE_COUNT} required"
+            raise BTClibMnemonicsValueError(err_msg)
+
+
+def mnemonics_from_encrypted_master_secret(
+    encrypted_master_secret: EncryptedMasterSecret,
+    groups: Sequence[tuple[int, int]] = ((1, 1),),
+    group_threshold: int = 1,
+    entropy_source: Callable[[int], bytes] = os.urandom,
+) -> list[list[Mnemonic]]:
+    """Return the SLIP-0039 shares of an encrypted master secret, grouped.
+
+    The shares carry the record's identifier, extendable backup flag and
+    iteration exponent, so they recover the same master secret under the
+    same passphrase. groups, group_threshold and entropy_source are as in
+    ``mnemonics_from_master_secret``, which this function's refusals
+    match.
+    """
+    assert_type(
+        encrypted_master_secret, EncryptedMasterSecret, "encrypted master secret"
     )
+    encrypted_master_secret.assert_valid()
+    _assert_valid_split(groups, group_threshold, entropy_source)
+
+    ems = encrypted_master_secret
+    group_values = _split_secret(
+        group_threshold, len(groups), ems.value, entropy_source
+    )
+    mnemonics = []
+    for group_index, (group_value, group) in enumerate(
+        zip(group_values, groups, strict=True)
+    ):
+        member_threshold, member_count = group
+        values = _split_secret(
+            member_threshold, member_count, group_value, entropy_source
+        )
+        mnemonics.append(
+            [
+                mnemonic_from_share(
+                    Share(
+                        identifier=ems.identifier,
+                        extendable=ems.extendable,
+                        iteration_exponent=ems.iteration_exponent,
+                        group_index=group_index,
+                        group_threshold=group_threshold,
+                        group_count=len(groups),
+                        member_index=member_index,
+                        member_threshold=member_threshold,
+                        value=value,
+                    )
+                )
+                for member_index, value in enumerate(values)
+            ]
+        )
+    return mnemonics
 
 
 def mnemonics_from_master_secret(
@@ -740,16 +898,13 @@ def mnemonics_from_master_secret(
     is os.urandom, the CSPRNG SLIP-0039 requires (secrets.token_bytes
     is the same bytes through another name); anything weaker substituted
     here is a secret an attacker can reproduce.
+
+    The master secret is encrypted into an ``EncryptedMasterSecret``,
+    which ``mnemonics_from_encrypted_master_secret`` splits.
     """
-    _assert_groups(groups)
-    _assert_integers(
-        ("group threshold", group_threshold),
-        ("iteration exponent", iteration_exponent),
-    )
+    _assert_valid_split(groups, group_threshold, entropy_source)
+    _assert_integers(("iteration exponent", iteration_exponent))
     assert_type(extendable, bool, "extendable")
-    if not callable(entropy_source):
-        err_msg = f"invalid entropy source type: {type(entropy_source).__name__}"  # type: ignore[unreachable]
-        raise BTClibMnemonicsTypeError(err_msg)
     _assert_valid_passphrase(passphrase)
     secret = bytes_from_octets(master_secret)
     _assert_valid_length(len(secret), "master secret")
@@ -757,49 +912,133 @@ def mnemonics_from_master_secret(
         err_msg = f"invalid iteration exponent: {iteration_exponent}, "
         err_msg += f"not in [0-{_MAX_EXPONENT}]"
         raise BTClibMnemonicsValueError(err_msg)
-    for member_threshold, member_count in groups:
-        # a 1-of-N group is N shares differing in an index and a
-        # checksum, i.e. N copies of the same secret: SLIP-0039 forbids
-        # it because someone asking for it has misunderstood the scheme
-        if member_threshold == 1 and member_count > 1:
-            err_msg = f"invalid 1-of-{member_count} group; "
-            err_msg += "a group with threshold 1 must have a single member"
-            raise BTClibMnemonicsValueError(err_msg)
 
     # the low fifteen bits of the first two bytes drawn, rather than the
     # high fifteen: both are uniform, and this way a two-byte source
     # spells the identifier it produces
     identifier = int.from_bytes(_drawn(entropy_source, 2), byteorder="big")
     identifier &= (1 << _ID_BITS) - 1
-    ems = _feistel(
-        secret, passphrase, iteration_exponent, identifier, extendable, decrypt=False
+    ems = EncryptedMasterSecret(
+        identifier=identifier,
+        extendable=extendable,
+        iteration_exponent=iteration_exponent,
+        value=_feistel(
+            secret,
+            passphrase,
+            iteration_exponent,
+            identifier,
+            extendable,
+            decrypt=False,
+        ),
     )
-    group_values = _split_secret(group_threshold, len(groups), ems, entropy_source)
+    return mnemonics_from_encrypted_master_secret(
+        ems, groups, group_threshold, entropy_source
+    )
 
-    mnemonics = []
-    for group_index, (group_value, group) in enumerate(
-        zip(group_values, groups, strict=True)
-    ):
-        member_threshold, member_count = group
-        values = _split_secret(
-            member_threshold, member_count, group_value, entropy_source
+
+class Recovery:
+    """A set of SLIP-0039 shares collected one mnemonic at a time.
+
+    A complete set has the shape ``master_secret_from_mnemonics`` takes,
+    so it refuses a share that shape could not hold: one whose common
+    parameters differ from the first share's or whose member threshold
+    differs from its group's, one already in, one for a group already
+    complete, and one starting a group beyond the group threshold. A share
+    above max_iteration_exponent is refused too, so that a set nobody can
+    afford to decrypt is refused at its first share.
+    """
+
+    def __init__(self, *, max_iteration_exponent: int = _MAX_EXPONENT) -> None:
+        _assert_valid_max_exponent(max_iteration_exponent)
+        self._max_iteration_exponent = max_iteration_exponent
+        self._shares: list[Share] = []
+
+    @property
+    def shares(self) -> tuple[Share, ...]:
+        """The shares added so far, in the order they were added."""
+        return tuple(self._shares)
+
+    @property
+    def groups(self) -> dict[int, tuple[int, int]]:
+        """Map each group with a share in to (shares in, member threshold)."""
+        status: dict[int, tuple[int, int]] = {}
+        for share in self._shares:
+            count, _ = status.get(share.group_index, (0, 0))
+            status[share.group_index] = (count + 1, share.member_threshold)
+        return status
+
+    @property
+    def is_complete(self) -> bool:
+        """Whether the set has the shape a master secret is recovered from.
+
+        The digest is not checked here: ``master_secret`` checks it.
+        """
+        groups = self.groups.values()
+        if not self._shares or len(groups) < self._shares[0].group_threshold:
+            return False
+        return all(count == threshold for count, threshold in groups)
+
+    def add_mnemonic(self, mnemonic: Mnemonic) -> Share:
+        """Add the share the SLIP-0039 mnemonic encodes, and return it."""
+        share = share_from_mnemonic(mnemonic)
+        self._assert_fits(share)
+        self._shares.append(share)
+        return share
+
+    def _assert_fits(self, share: Share) -> None:
+        """Refuse a share the set cannot hold, quoting none of its words."""
+        if not self._shares:
+            _assert_not_above(share.iteration_exponent, self._max_iteration_exponent)
+        else:
+            first = self._shares[0]
+            for name, theirs, ours in (
+                ("identifier", share.identifier, first.identifier),
+                ("extendable backup flag", share.extendable, first.extendable),
+                (
+                    "iteration exponent",
+                    share.iteration_exponent,
+                    first.iteration_exponent,
+                ),
+                ("group threshold", share.group_threshold, first.group_threshold),
+                ("group count", share.group_count, first.group_count),
+                ("share value length", len(share.value), len(first.value)),
+            ):
+                if theirs != ours:
+                    err_msg = f"not a share of this set: mismatching {name}"
+                    raise BTClibMnemonicsValueError(err_msg)
+
+        group_index = share.group_index
+        members = [s for s in self._shares if s.group_index == group_index]
+        if not members:
+            started = len({s.group_index for s in self._shares})
+            if started == share.group_threshold:
+                err_msg = f"group {group_index} is beyond the group threshold: "
+                err_msg += f"{started} groups already started"
+                raise BTClibMnemonicsValueError(err_msg)
+            return
+        if share.member_threshold != members[0].member_threshold:
+            err_msg = "not a share of this set: "
+            err_msg += f"mismatching member threshold in group {group_index}"
+            raise BTClibMnemonicsValueError(err_msg)
+        if any(s.member_index == share.member_index for s in members):
+            err_msg = f"member {share.member_index} of group {group_index} already in"
+            raise BTClibMnemonicsValueError(err_msg)
+        if len(members) == share.member_threshold:
+            err_msg = f"group {group_index} already complete"
+            raise BTClibMnemonicsValueError(err_msg)
+
+    def master_secret(self, passphrase: str = "") -> bytes:
+        """Return the master secret, once the set is complete.
+
+        Shares that do not belong together are refused on their digest.
+
+        The shares are recombined into an ``EncryptedMasterSecret``, which
+        is decrypted under the passphrase and the maximum iteration
+        exponent this recovery was made with.
+        """
+        _assert_valid_passphrase(passphrase)
+        if not self.is_complete:
+            raise BTClibMnemonicsValueError("incomplete set of shares")
+        return _ems_from_shares(self._shares).master_secret(
+            passphrase, max_iteration_exponent=self._max_iteration_exponent
         )
-        mnemonics.append(
-            [
-                mnemonic_from_share(
-                    Share(
-                        identifier=identifier,
-                        extendable=extendable,
-                        iteration_exponent=iteration_exponent,
-                        group_index=group_index,
-                        group_threshold=group_threshold,
-                        group_count=len(groups),
-                        member_index=member_index,
-                        member_threshold=member_threshold,
-                        value=value,
-                    )
-                )
-                for member_index, value in enumerate(values)
-            ]
-        )
-    return mnemonics

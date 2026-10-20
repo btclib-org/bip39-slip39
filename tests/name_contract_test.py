@@ -234,11 +234,16 @@ def test_an_argument_less_member_is_read_not_called(dotted: str) -> None:
 def test_the_walk_reaches_every_shape_of_member() -> None:
     """What the walk finds, and what it reads the decorators as.
 
-    `Share.assert_valid` is the one argument-less member of a public
-    class, and it is not a read; the decorators that make one a read are
-    asked of `_is_a_read` directly, no class here having one yet.
+    A refusal that is not a read, and a property that is; the decorators
+    no class here uses are asked of `_is_a_read` directly.
     """
-    assert _CLASS_MEMBERS == {"btclib_mnemonics.slip39.Share.assert_valid": False}
+    assert _CLASS_MEMBERS == {
+        "btclib_mnemonics.slip39.Share.assert_valid": False,
+        "btclib_mnemonics.slip39.EncryptedMasterSecret.assert_valid": False,
+        "btclib_mnemonics.slip39.Recovery.shares": True,
+        "btclib_mnemonics.slip39.Recovery.groups": True,
+        "btclib_mnemonics.slip39.Recovery.is_complete": True,
+    }
     assert _is_a_read({"property"})
     assert _is_a_read({"functools.cached_property"})
     assert not _is_a_read({"staticmethod"})
