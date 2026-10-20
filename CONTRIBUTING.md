@@ -318,11 +318,12 @@ either checks the checksum or skips it, and the seed is the same either
 way.
 
 **A truth's `True` has to be its conservative value**
-(btclib-org/btclib#884). Every wrong value is true, so the misreading is
-never "the flag was off": it is always the one the flag's `True` stands
-for. So a flag whose `True` is the permissive value is a kind however
-little it computes, because the misreading waives the very refusal it
-was written to make.
+(btclib-org/btclib#884). Most wrong values are true, and for those the
+misreading is the one the flag's `True` stands for. So a flag whose
+`True` is the permissive value is a kind however little it computes,
+because the misreading waives the very refusal it was written to make.
+`0`, `None` and `""` are wrong values that read as `False`, so on a truth
+they fall on the permissive side, and the rule gives them no protection.
 
 **Which of the two a flag is, is written down for every one of them.**
 `tests/bool_parameter_test.py` is the census: two tables, a kind driven

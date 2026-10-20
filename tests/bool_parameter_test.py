@@ -22,12 +22,8 @@ refusal is for.
 
 ## The polarity a truth has to have
 
-`"no"` is true, and so is every other wrong value, so the misreading is
-never "the flag was off": it is always the one the flag's `True` stands
-for. That is what makes a truth safe rather than the fact that it changes
-no answer: the wrong value falls on the side that refuses more. So a
-truth's `True` has to be its conservative value, and a flag whose `True`
-is the permissive one is a kind however little it computes (issue
+`CONTRIBUTING.md`'s *A truth's `True` has to be its conservative value*
+is the rule, with the wrong values it does not cover (issue
 btclib-org/btclib#884).
 
 The two tests below are that line, one each:
