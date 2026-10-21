@@ -74,7 +74,7 @@ from bip39_slip39.entropy import (
     _bin_str_entropy_from_wordlist_indexes,
     _bits,
 )
-from bip39_slip39.exceptions import BTClibMnemonicsValueError
+from bip39_slip39.exceptions import Bip39Slip39ValueError
 from bip39_slip39.mnemonic import (
     BIP39_LANGUAGE_FILES,
     Mnemonic,
@@ -324,7 +324,7 @@ def _is_bip39_mnemonic(mnemonic: Mnemonic, record: _Language, lang: str) -> bool
         return False
     try:
         indexes = _indexes_in(record, mnemonic, lang)
-    except BTClibMnemonicsValueError:
+    except Bip39Slip39ValueError:
         return False
 
     base = len(record.words)
@@ -386,7 +386,7 @@ def version_from_mnemonic(mnemonic: Mnemonic) -> tuple[str, str]:
         # that is no electrum one it is twelve bits of a hash of a secret
         err_msg = "unknown electrum mnemonic version; "
         err_msg += f"not in {list(_MNEMONIC_VERSIONS.keys())}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     return mnemonic_type, _normalize(mnemonic)
 
 
@@ -454,7 +454,7 @@ def _bin_str_entropy_from_mnemonic(
     max_words = _max_words(base)
     if n_words > max_words:
         err_msg = f"invalid number of words: {n_words} instead of at most {max_words}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     indexes = _indexes_in(record, _decodable(mnemonic), lang)
     return _bin_str_entropy_from_wordlist_indexes(indexes[::-1], base)
 
@@ -501,7 +501,7 @@ def _search_mnemonic(
             # logs and crash reports
             n_words = len(mnemonic.split())
             err_msg = f"cannot extract the same entropy from mnemonic: {n_words} words"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         # a pre-2.0 seed and a valid BIP39 mnemonic are both skipped, not
         # returned: electrum would read back what it had just written as
         # an old seed, or as a BIP39 one, and derive other keys from it
@@ -531,7 +531,7 @@ def mnemonic_from_entropy(
     if mnemonic_type not in _MNEMONIC_VERSIONS:
         err_msg = "unknown electrum mnemonic version; "
         err_msg += f"not in {list(_MNEMONIC_VERSIONS.keys())}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
     # read once: every step of the search takes its base and its words from
     # this record, were the language replaced meanwhile
@@ -554,7 +554,7 @@ def mnemonic_from_entropy(
     found = _mnemonic_type(mnemonic)
     if found != mnemonic_type:
         err_msg = f"electrum mnemonic version: '{found}'; expected: '{mnemonic_type}'"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     return mnemonic
 
 
@@ -577,12 +577,10 @@ def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
         # valid is one typo away from being recovered, and an exception
         # message ends up in logs and crash reports
         n_words = len(_decodable(mnemonic).split())
-        raise BTClibMnemonicsValueError(
-            f"unknown language for mnemonic: {n_words} words"
-        )
+        raise Bip39Slip39ValueError(f"unknown language for mnemonic: {n_words} words")
     if len(candidates) > 1:
         err_msg = f"ambiguous language for mnemonic: {candidates}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     return candidates[0]
 
 
@@ -602,7 +600,7 @@ def entropy_from_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> BinStr
     if mnemonic_type == "old":
         err_msg = "pre-2.0 electrum mnemonic: entropy is not a base conversion; "
         err_msg += "use hex_seed_from_old_mnemonic"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     lang = lang or lang_from_mnemonic(mnemonic)
     # the sentence handed in, and not the normalized one version_from_mnemonic
     # returns beside the version: _decodable says why
@@ -634,7 +632,7 @@ def seed_from_mnemonic(mnemonic: Mnemonic, passphrase: str) -> bytes:
     if version == "old":
         err_msg = "pre-2.0 electrum mnemonic has no seed; "
         err_msg += "use old_master_prv_key_from_mnemonic"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
     hf_name = "sha512"
     password = utf8_bytes(mnemonic, "mnemonic")
@@ -659,11 +657,11 @@ def old_mnemonic_from_hex_seed(hex_seed: str) -> Mnemonic:
     """
     assert_type(hex_seed, str, "hex_seed")
     if not _is_hex_str(hex_seed):
-        raise BTClibMnemonicsValueError("pre-2.0 electrum seed is not a hex string")
+        raise Bip39Slip39ValueError("pre-2.0 electrum seed is not a hex string")
     if len(hex_seed) % 8:
         err_msg = f"invalid pre-2.0 electrum seed: {len(hex_seed)} hex "
         err_msg += "characters, not a multiple of eight"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
     wordlist = _old_wordlist()
     base = len(wordlist)
@@ -700,7 +698,7 @@ def hex_seed_from_old_mnemonic(mnemonic: Mnemonic) -> str:
     """
     assert_type(mnemonic, str, "mnemonic")
     if not _is_old_mnemonic(mnemonic):
-        raise BTClibMnemonicsValueError("not a pre-2.0 electrum mnemonic")
+        raise Bip39Slip39ValueError("not a pre-2.0 electrum mnemonic")
 
     mnemonic = _normalize(mnemonic)
     try:
@@ -747,7 +745,7 @@ def old_master_prv_key_from_mnemonic(
     and the empty string are "no passphrase" there and here.
     """
     if passphrase:
-        raise BTClibMnemonicsValueError(
+        raise Bip39Slip39ValueError(
             "pre-2.0 electrum mnemonic cannot have a passphrase"
         )
 
@@ -760,7 +758,7 @@ def old_master_prv_key_from_mnemonic(
         # what agreeing with electrum means
         err_msg = f"pre-2.0 electrum mnemonic decodes to {len(hex_seed)} hex "
         err_msg += "characters, which are not octets"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
     encoded = hex_seed.encode("ascii")
     digest = encoded

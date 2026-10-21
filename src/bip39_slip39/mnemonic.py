@@ -15,8 +15,8 @@ from typing import Literal, NamedTuple
 
 from bip39_slip39._utils import assert_type, is_integer
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 
 __all__ = [
@@ -55,7 +55,7 @@ def _filename(filename: object) -> str:
     """
     name = os.fspath(filename) if isinstance(filename, os.PathLike) else filename
     if not isinstance(name, str):
-        raise BTClibMnemonicsTypeError(f"invalid filename type: {type(name).__name__}")
+        raise Bip39Slip39TypeError(f"invalid filename type: {type(name).__name__}")
     return name
 
 
@@ -225,7 +225,7 @@ class WordLists:
             elif path is None:
                 # the language is not quoted: a caller who passed a secret
                 # in the wrong position would have it repeated
-                raise BTClibMnemonicsValueError("Missing file for an unknown language")
+                raise Bip39Slip39ValueError("Missing file for an unknown language")
 
             words = self._read_wordlist(path)
 
@@ -253,10 +253,10 @@ class WordLists:
         except UnicodeDecodeError:
             # from None: the exception carries the bytes it could not read
             err_msg = "invalid wordlist file: not UTF-8"
-            raise BTClibMnemonicsValueError(err_msg) from None
+            raise Bip39Slip39ValueError(err_msg) from None
         except (OSError, ValueError) as error:
             err_msg = f"cannot read wordlist file: {type(error).__name__}"
-            raise BTClibMnemonicsValueError(err_msg) from None
+            raise Bip39Slip39ValueError(err_msg) from None
         stripped = (line.split("#")[0].strip() for line in lines)
         words = [unicodedata.normalize("NFKD", word) for word in stripped if word]
 
@@ -264,7 +264,7 @@ class WordLists:
         # http://www.graphics.stanford.edu/~seander/bithacks.html
         if self.power_of_two and nwords & (nwords - 1) != 0:
             err_msg = f"invalid wordlist length: {nwords}, not a power of two"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         return words
 
     def _record(self, lang: str) -> _Language:
@@ -301,7 +301,7 @@ class WordLists:
         normalized = unicodedata.normalize("NFKD", word)
         found = record.positions.get(normalized)
         if found is None:
-            raise BTClibMnemonicsValueError(f"unknown '{lang}' word")
+            raise Bip39Slip39ValueError(f"unknown '{lang}' word")
         return found
 
     def langs_of_words(self, words: Sequence[str]) -> list[str]:
@@ -338,7 +338,7 @@ def _assert_words(words: object) -> None:
     `_assert_mnemonic_sequence` refuses a lone mnemonic for that reason.
     """
     if isinstance(words, str) or not isinstance(words, Sequence):
-        raise BTClibMnemonicsTypeError(f"invalid words type: {type(words).__name__}")
+        raise Bip39Slip39TypeError(f"invalid words type: {type(words).__name__}")
     for word in words:
         assert_type(word, str, "word")
 
@@ -350,14 +350,10 @@ def _assert_indexes(indexes: object) -> None:
     str case unreachable: it is reachable from any caller mypy never saw.
     """
     if isinstance(indexes, str) or not isinstance(indexes, Sequence):
-        raise BTClibMnemonicsTypeError(
-            f"invalid indexes type: {type(indexes).__name__}"
-        )
+        raise Bip39Slip39TypeError(f"invalid indexes type: {type(indexes).__name__}")
     for index in indexes:
         if not is_integer(index):
-            raise BTClibMnemonicsTypeError(
-                f"invalid index type: {type(index).__name__}"
-            )
+            raise Bip39Slip39TypeError(f"invalid index type: {type(index).__name__}")
 
 
 # singleton
@@ -437,7 +433,7 @@ def _mnemonic_in(record: _Language, indexes: Sequence[int], separator: str) -> M
         if not 0 <= index < len(wordlist):
             err_msg = f"invalid index at position {position}: "
             err_msg += f"not in [0, {len(wordlist)})"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
     return separator.join(wordlist[index] for index in indexes)
 
 
@@ -464,6 +460,6 @@ def _indexes_in(record: _Language, mnemonic: Mnemonic, lang: str) -> list[int]:
         found = record.positions.get(unicodedata.normalize("NFKD", word))
         if found is None:
             err_msg = f"unknown '{lang}' word at position {position}"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         indexes.append(found)
     return indexes

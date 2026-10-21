@@ -25,7 +25,7 @@ from bip39_slip39.entropy import (
     _bin_str_entropy_from_wordlist_indexes,
     bin_str_entropy_from_rolls,
 )
-from bip39_slip39.exceptions import BTClibMnemonicsTypeError
+from bip39_slip39.exceptions import Bip39Slip39TypeError
 from bip39_slip39.slip39 import (
     EncryptedMasterSecret,
     Recovery,
@@ -140,7 +140,7 @@ def test_a_bool_is_not_an_integer_field(
     `isinstance(True, int)` is what would let each of these through as one
     or zero.
     """
-    with pytest.raises(BTClibMnemonicsTypeError):
+    with pytest.raises(Bip39Slip39TypeError):
         call(value)
 
 

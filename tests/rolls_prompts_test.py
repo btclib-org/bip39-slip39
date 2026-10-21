@@ -17,8 +17,8 @@ import pytest
 from bip39_slip39._rolls_prompts import ROLLS_PROMPTS
 from bip39_slip39.entropy import collect_rolls
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import BIP39_LANGUAGE_FILES
 
@@ -120,12 +120,12 @@ def test_english_is_the_default_and_its_text_is_unchanged(
 @pytest.mark.parametrize("lang", ["slip39", "xx", ""])
 def test_an_unknown_language_is_refused(lang: str) -> None:
     """A language without prompts is refused before anything is asked."""
-    with pytest.raises(BTClibMnemonicsValueError, match="no prompts in language"):
+    with pytest.raises(Bip39Slip39ValueError, match="no prompts in language"):
         collect_rolls(4, lang)
 
 
 @pytest.mark.parametrize("lang", [None, 1, b"en"])
 def test_a_language_that_is_no_string_is_refused(lang: object) -> None:
     """A language of another type is the caller's mistake."""
-    with pytest.raises(BTClibMnemonicsTypeError, match="lang"):
+    with pytest.raises(Bip39Slip39TypeError, match="lang"):
         collect_rolls(4, lang)  # type: ignore[arg-type]

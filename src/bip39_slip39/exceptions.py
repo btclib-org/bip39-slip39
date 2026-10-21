@@ -8,10 +8,10 @@ These exist only to tell an exception raised by bip39_slip39 from one
 raised by any other code: each derives from the built-in that says what
 kind of failure it is, and adds nothing to it.
 
-`BTClibMnemonicsException` is what makes that telling apart a single
+`Bip39Slip39Exception` is what makes that telling apart a single
 `except` rather than a tuple a caller has to keep in step with this
 hierarchy. It is inherited *beside* the built-in and not instead of it,
-which is the half that matters: `BTClibMnemonicsValueError` is a
+which is the half that matters: `Bip39Slip39ValueError` is a
 `ValueError`, so code catching the built-in catches it, and
 `json.JSONDecodeError` is the standard library doing the same.
 
@@ -19,7 +19,7 @@ It is caught and never raised: every raise in the package is one of the
 two below it, and which one answers a question the base cannot carry --
 whether the value was wrong or the type was. A caller with something to
 do about that difference names the specific class; `except
-BTClibMnemonicsException` is for the caller who only needs to know it came
+Bip39Slip39Exception` is for the caller who only needs to know it came
 from here.
 
 The classes are this package's own rather than `btclib`'s, which is what
@@ -31,13 +31,13 @@ catching `ValueError` catches both.
 from __future__ import annotations
 
 __all__ = [
-    "BTClibMnemonicsException",
-    "BTClibMnemonicsTypeError",
-    "BTClibMnemonicsValueError",
+    "Bip39Slip39Exception",
+    "Bip39Slip39TypeError",
+    "Bip39Slip39ValueError",
 ]
 
 
-class BTClibMnemonicsException(Exception):  # noqa: N818 -- a kind, like Exception itself, not a leaf raised
+class Bip39Slip39Exception(Exception):  # noqa: N818 -- a kind, like Exception itself, not a leaf raised
     """Anything bip39_slip39 raised, whatever kind of failure it is.
 
     The one name to catch for a caller who handles the standard library's
@@ -47,9 +47,9 @@ class BTClibMnemonicsException(Exception):  # noqa: N818 -- a kind, like Excepti
     """
 
 
-class BTClibMnemonicsValueError(BTClibMnemonicsException, ValueError):
+class Bip39Slip39ValueError(Bip39Slip39Exception, ValueError):
     """A value no valid input could carry; the package's usual refusal."""
 
 
-class BTClibMnemonicsTypeError(BTClibMnemonicsException, TypeError):
+class Bip39Slip39TypeError(Bip39Slip39Exception, TypeError):
     """An input of a type no conversion accepts: a caller error."""

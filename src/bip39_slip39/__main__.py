@@ -24,8 +24,8 @@ from hashlib import sha256
 from bip39_slip39 import bip39, slip39
 from bip39_slip39.entropy import _small_int
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import BIP39_LANGUAGE_FILES
 
@@ -175,7 +175,7 @@ def _main(argv: Sequence[str]) -> int:
     # over a zero secret, which nothing shows
     try:
         _mnemonics(args, bytes(args.bits // 8))
-    except (BTClibMnemonicsTypeError, BTClibMnemonicsValueError) as err:
+    except (Bip39Slip39TypeError, Bip39Slip39ValueError) as err:
         parser.error(str(err))
 
     try:

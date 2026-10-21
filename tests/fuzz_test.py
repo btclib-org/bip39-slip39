@@ -10,7 +10,7 @@ specification's test section. This file is the converse. It does not
 assert that a decoder accepts the right things -- the vectors do that --
 but that it *fails the way the package says it fails*, whatever it is
 handed: an IndexError off a short slice or a KeyError off a word-list
-lookup reaches a caller who catches `BTClibMnemonicsValueError` to reject
+lookup reaches a caller who catches `Bip39Slip39ValueError` to reject
 bad input and has no reason to expect anything else.
 
 `fuzz/`'s atheris harness asks the same question of the same decoders
@@ -36,14 +36,14 @@ from hypothesis import strategies as st
 
 from bip39_slip39 import bip39, dispatch, electrum, slip39
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import WORDLISTS, indexes_from_mnemonic
 
 # what a decoder of this package is allowed to raise. Anything else
 # leaves the contract src/bip39_slip39/exceptions.py documents
-CONTRACT = (BTClibMnemonicsValueError, BTClibMnemonicsTypeError)
+CONTRACT = (Bip39Slip39ValueError, Bip39Slip39TypeError)
 
 DECODERS: dict[str, Callable[[str], Any]] = {
     "bip39.entropy_from_mnemonic": bip39.entropy_from_mnemonic,
@@ -186,7 +186,7 @@ _SURROGATES = st.tuples(
 def test_a_lone_surrogate_is_refused_within_the_contract(
     text: str, sentence: str
 ) -> None:
-    """A lone surrogate is a `BTClibMnemonicsValueError`, not a codec error."""
+    """A lone surrogate is a `Bip39Slip39ValueError`, not a codec error."""
     for decoder in DECODERS.values():
         _read(decoder, sentence + " " + text)
     with contextlib.suppress(*CONTRACT):

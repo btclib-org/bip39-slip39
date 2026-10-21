@@ -39,8 +39,8 @@ from btclib_ecc.curves.sec_point import bytes_from_point
 from bip39_slip39 import bip39, electrum
 from bip39_slip39.electrum import ELECTRUM_WORDLISTS
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import BIP39_LANGUAGE_FILES, WORDLISTS
 from tests import load, vector_id
@@ -451,18 +451,18 @@ def test_mnemonic() -> None:
 
     mnemonic_type = "std"
     with pytest.raises(
-        BTClibMnemonicsValueError, match="^unknown electrum mnemonic version; "
+        Bip39Slip39ValueError, match="^unknown electrum mnemonic version; "
     ):
         electrum.mnemonic_from_entropy(mnemonic_type, entropy, lang)
 
     unkn_ver = "ability awful fetch liberty company spatial panda hat then canal ball cross video"
     with pytest.raises(
-        BTClibMnemonicsValueError, match="unknown electrum mnemonic version; "
+        Bip39Slip39ValueError, match="unknown electrum mnemonic version; "
     ):
         electrum.entropy_from_mnemonic(unkn_ver, lang)
 
     with pytest.raises(
-        BTClibMnemonicsValueError, match="unknown electrum mnemonic version; "
+        Bip39Slip39ValueError, match="unknown electrum mnemonic version; "
     ):
         electrum.seed_from_mnemonic(unkn_ver, "")
 
@@ -519,7 +519,7 @@ def test_version_vectors(mnemonic: str, version: str) -> None:
     """Reproduce electrum's Test_seeds table, refusals included."""
     if not version:
         with pytest.raises(
-            BTClibMnemonicsValueError, match="unknown electrum mnemonic version; "
+            Bip39Slip39ValueError, match="unknown electrum mnemonic version; "
         ):
             electrum.version_from_mnemonic(mnemonic)
     else:
@@ -546,17 +546,17 @@ def test_old_mnemonic() -> None:
     # eighteen words is not an old seed, whatever the words are
     for mnemonic in (" ".join(["like"] * 18), "not a seed"):
         with pytest.raises(
-            BTClibMnemonicsValueError, match="unknown electrum mnemonic version; "
+            Bip39Slip39ValueError, match="unknown electrum mnemonic version; "
         ):
             electrum.version_from_mnemonic(mnemonic)
 
     old = "cell dumb heartbeat north boom tease ship baby bright kingdom rare squeeze"
-    with pytest.raises(BTClibMnemonicsValueError, match="pre-2.0 electrum mnemonic: "):
+    with pytest.raises(Bip39Slip39ValueError, match="pre-2.0 electrum mnemonic: "):
         electrum.entropy_from_mnemonic(old)
     err_msg = (
         "pre-2.0 electrum mnemonic has no seed; use old_master_prv_key_from_mnemonic"
     )
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         electrum.seed_from_mnemonic(old, "")
 
 
@@ -633,7 +633,7 @@ def test_old_vectors(hex_seed: str, mnemonic: str, master_pub_key: str | None) -
         # asserting a multiple of eight. Refusing the same way is what
         # agreeing means; a 17-byte seed is not a seed the encoder has an
         # answer for
-        with pytest.raises(BTClibMnemonicsValueError, match="not a multiple of eight"):
+        with pytest.raises(Bip39Slip39ValueError, match="not a multiple of eight"):
             electrum.old_mnemonic_from_hex_seed(hex_seed)
     else:
         assert electrum.old_mnemonic_from_hex_seed(hex_seed) == mnemonic
@@ -656,7 +656,7 @@ def test_old_vectors(hex_seed: str, mnemonic: str, master_pub_key: str | None) -
         # is_old_seed takes 16 or 32 octets of hex and no other length,
         # so that wallet can be reopened from its twelve words alone
         with pytest.raises(
-            BTClibMnemonicsValueError, match="not a pre-2.0 electrum mnemonic"
+            Bip39Slip39ValueError, match="not a pre-2.0 electrum mnemonic"
         ):
             electrum.old_master_prv_key_from_mnemonic(hex_seed)
 
@@ -711,7 +711,7 @@ def test_old_no_passphrase() -> None:
         prv_key = electrum.old_master_prv_key_from_mnemonic(mnemonic, passphrase)
         assert _old_master_pub_key(prv_key) == master_pub_key
 
-    with pytest.raises(BTClibMnemonicsValueError, match="cannot have a passphrase"):
+    with pytest.raises(Bip39Slip39ValueError, match="cannot have a passphrase"):
         electrum.old_master_prv_key_from_mnemonic(
             mnemonic, "Did you ever hear the tragedy of Darth Plagueis"
         )
@@ -765,7 +765,7 @@ def test_old_weak_decoder() -> None:
     assert hex_seed == "025d2f2d005036911003ca78900ca155c"
     assert len(hex_seed) == 33
 
-    with pytest.raises(BTClibMnemonicsValueError, match="decodes to 33 hex characters"):
+    with pytest.raises(Bip39Slip39ValueError, match="decodes to 33 hex characters"):
         electrum.old_master_prv_key_from_mnemonic(mnemonic)
 
 
@@ -774,12 +774,12 @@ def test_old_invalid() -> None:
     # the encoder takes hex and only hex: bytes.fromhex would skip the
     # space and int() would take the underscore, and neither is a seed
     for hex_seed in ("nonsense", "0123456789abcde", "01234567 89abcdef", "0123_4567"):
-        with pytest.raises(BTClibMnemonicsValueError, match="not a hex string"):
+        with pytest.raises(Bip39Slip39ValueError, match="not a hex string"):
             electrum.old_mnemonic_from_hex_seed(hex_seed)
 
     # eight hex characters to a group, so a length that is not a multiple
     # of eight has no third word for its last group
-    with pytest.raises(BTClibMnemonicsValueError, match="not a multiple of eight"):
+    with pytest.raises(Bip39Slip39ValueError, match="not a multiple of eight"):
         electrum.old_mnemonic_from_hex_seed("0123456789abcdef" * 2 + "abcdef")
 
     # the decoder takes what the recognizer accepts and nothing else: a
@@ -790,7 +790,7 @@ def test_old_invalid() -> None:
         "",
     ):
         with pytest.raises(
-            BTClibMnemonicsValueError, match="not a pre-2.0 electrum mnemonic"
+            Bip39Slip39ValueError, match="not a pre-2.0 electrum mnemonic"
         ):
             electrum.hex_seed_from_old_mnemonic(mnemonic)
 
@@ -860,7 +860,7 @@ def test_a_wordlist_the_encoding_does_not_round_trip(
     # (issue btclib-org/btclib-wallet#38)
     candidate = electrum._mnemonic_from_int_entropy(2, ELECTRUM_WORDLISTS._record("en"))
     err_msg = "cannot extract the same entropy from mnemonic: "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg) as excinfo:
         electrum._search_mnemonic(1, "01", ELECTRUM_WORDLISTS._record("en"), "en")
     assert candidate not in str(excinfo.value)
 
@@ -874,7 +874,7 @@ def test_2fa_words() -> None:
     for is not the seed type it built.
     """
     # thirteen words' worth of entropy
-    with pytest.raises(BTClibMnemonicsValueError, match="electrum mnemonic version: "):
+    with pytest.raises(Bip39Slip39ValueError, match="electrum mnemonic version: "):
         electrum.mnemonic_from_entropy(
             "2fa", 0x110AAAA03974D093EDA670121023CD0772, "en"
         )
@@ -887,7 +887,7 @@ def test_2fa_words() -> None:
     )
     assert electrum._seed_version(thirteen_words).startswith("101")
     with pytest.raises(
-        BTClibMnemonicsValueError, match="unknown electrum mnemonic version; "
+        Bip39Slip39ValueError, match="unknown electrum mnemonic version; "
     ):
         electrum.version_from_mnemonic(thirteen_words)
 
@@ -913,9 +913,7 @@ def test_generated_vectors(
 ) -> None:
     """The sentence electrum builds from an entropy, language by language."""
     if not mnemonic:
-        with pytest.raises(
-            BTClibMnemonicsValueError, match="electrum mnemonic version: "
-        ):
+        with pytest.raises(Bip39Slip39ValueError, match="electrum mnemonic version: "):
             electrum.mnemonic_from_entropy(mnemonic_type, entropy, lang)
         return
 
@@ -972,9 +970,7 @@ def test_portuguese_word_count() -> None:
     assert electrum.lang_from_mnemonic(mnemonic) == "pt"
     # BIP39's portuguese is another word-list, and cannot read it; twelve
     # words, because thirteen is refused before any word is looked up
-    with pytest.raises(
-        BTClibMnemonicsValueError, match="unknown 'pt' word at position 1$"
-    ):
+    with pytest.raises(Bip39Slip39ValueError, match="unknown 'pt' word at position 1$"):
         bip39.entropy_from_mnemonic(" ".join(mnemonic.split()[:12]), "pt")
 
 
@@ -1017,7 +1013,7 @@ def test_is_bip39_mnemonic() -> None:
     assert not electrum._is_bip39_mnemonic(
         ENGLISH, ELECTRUM_WORDLISTS._record("en"), "en"
     )
-    with pytest.raises(BTClibMnemonicsValueError, match="invalid checksum: "):
+    with pytest.raises(Bip39Slip39ValueError, match="invalid checksum: "):
         bip39.entropy_from_mnemonic(ENGLISH, "en")
 
     # a word of no word-list, and a length BIP39 has no checksum for
@@ -1055,7 +1051,7 @@ def test_entropy_round_trips_through_every_candidate(
     monkeypatch.setattr(electrum, "_bin_str_entropy_from_mnemonic", lambda *_: "0")
     candidate = electrum._mnemonic_from_int_entropy(2, ELECTRUM_WORDLISTS._record("en"))
     with pytest.raises(
-        BTClibMnemonicsValueError,
+        Bip39Slip39ValueError,
         match="cannot extract the same entropy from mnemonic: ",
     ) as excinfo:
         electrum.mnemonic_from_entropy("standard", 1, "en")
@@ -1079,7 +1075,7 @@ def test_lang_from_mnemonic() -> None:
     # (issue btclib-org/btclib-wallet#38)
     typo = "btclib " * 11 + "btclib"
     with pytest.raises(
-        BTClibMnemonicsValueError, match="unknown language for mnemonic: 12 words"
+        Bip39Slip39ValueError, match="unknown language for mnemonic: 12 words"
     ) as excinfo:
         electrum.lang_from_mnemonic(typo)
     assert typo not in str(excinfo.value)
@@ -1090,7 +1086,7 @@ def test_lang_from_mnemonic() -> None:
     # meant to spell that entropy, so the caller is asked
     shared = "的 的 的 的 的 的 的 的 的 的 的 在"
     with pytest.raises(
-        BTClibMnemonicsValueError, match="ambiguous language for mnemonic: "
+        Bip39Slip39ValueError, match="ambiguous language for mnemonic: "
     ):
         electrum.lang_from_mnemonic(shared)
 
@@ -1167,7 +1163,7 @@ def test_seed_from_mnemonic_takes_a_str_passphrase() -> None:
     """
     mnemonic = "term gain fish all ivory talent gold either trap today balance kingdom"
     for passphrase in (None, b"", 0):
-        with pytest.raises(BTClibMnemonicsTypeError, match="invalid passphrase type: "):
+        with pytest.raises(Bip39Slip39TypeError, match="invalid passphrase type: "):
             electrum.seed_from_mnemonic(mnemonic, passphrase)  # type: ignore[arg-type]
 
 
@@ -1195,7 +1191,7 @@ def test_an_electrum_mnemonic_is_no_bip39_one() -> None:
     versions = ["segwit", "standard"]
     for mnemonic, version in zip(mnemonics, versions, strict=True):
         assert electrum.version_from_mnemonic(mnemonic)[0] == version
-        with pytest.raises(BTClibMnemonicsValueError, match="invalid checksum: "):
+        with pytest.raises(Bip39Slip39ValueError, match="invalid checksum: "):
             bip39.seed_from_mnemonic(mnemonic, "")
         seed = bip39.seed_from_mnemonic(mnemonic, "", verify_checksum=False)
         assert seed != electrum.seed_from_mnemonic(mnemonic, "")
@@ -1226,9 +1222,9 @@ def test_longest_sentence(lang: str, n_words: int) -> None:
     # the bound is the first thing to fail: the sentence is made of
     # known words, so a failed lookup would have another message
     err_msg = f"invalid number of words: {n_words + 1} instead of at most {n_words}"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         electrum.entropy_from_mnemonic(long, lang)
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         electrum.entropy_from_mnemonic(long)
 
 
