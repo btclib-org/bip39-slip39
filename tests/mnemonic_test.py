@@ -290,7 +290,7 @@ def test_words_with_prefix() -> None:
     ab = word_lists.words_with_prefix("ab", "en")
     assert ab[:3] == ["abandon", "ability", "able"]
     assert ab == [word for word in english if word.startswith("ab")]
-    # the first four letters single out a word, in BIP39 and in SLIP-0039
+    # the first four letters single out a word in English BIP39 and in SLIP-0039
     for lang in ("en", "slip39"):
         words = word_lists.wordlist(lang)
         assert len({word[:4] for word in words}) == len(words)
