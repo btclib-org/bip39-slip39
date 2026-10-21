@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for the import graph of the `btclib_mnemonics` package.
+"""Tests for the import graph of the `bip39_slip39` package.
 
 Every module must be importable *first*, with no other module of this
 package in sys.modules yet. Nothing else in the suite establishes that: a
@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-import btclib_mnemonics
+import bip39_slip39
 from tests import module_names
 
 if TYPE_CHECKING:
@@ -40,10 +40,10 @@ _ROOT = Path(__file__).resolve().parents[1]
 def _is_ours(name: str) -> bool:
     """Answer whether a dotted name is this package or one of its modules.
 
-    `btclib_mnemonics.` and not a bare `startswith`, which would also take
+    `bip39_slip39.` and not a bare `startswith`, which would also take
     in a sibling distribution whose name merely begins the same way.
     """
-    return name == "btclib_mnemonics" or name.startswith("btclib_mnemonics.")
+    return name == "bip39_slip39" or name.startswith("bip39_slip39.")
 
 
 def loaded_modules() -> list[str]:
@@ -112,7 +112,7 @@ def test_the_tests_package_imports_no_submodule() -> None:
     every module that asks it nothing.
     """
     loaded = _loaded_after_importing("tests")
-    assert [m for m in loaded if _is_ours(m)] == ["btclib_mnemonics"]
+    assert [m for m in loaded if _is_ours(m)] == ["bip39_slip39"]
 
 
 # the modules of one interpreter that were loaded from where an installer
@@ -213,7 +213,7 @@ def _top_level_imports(source: str) -> set[str]:
             names.update(alias.name.split(".")[0] for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
             names.add(
-                "btclib_mnemonics" if node.level else (node.module or "").split(".")[0]
+                "bip39_slip39" if node.level else (node.module or "").split(".")[0]
             )
     return names
 
@@ -229,7 +229,7 @@ def test_the_import_scan_finds_a_planted_import() -> None:
         "hashlib",
         "btclib",
         "btclib_wallet",
-        "btclib_mnemonics",
+        "bip39_slip39",
         "typing_extensions",
     }
     assert _outside(names) == ["btclib", "btclib_wallet", "typing_extensions"]
@@ -242,7 +242,7 @@ def test_no_module_imports_outside_the_stdlib() -> None:
     inside a function or behind `TYPE_CHECKING` is one no interpreter
     runs at import, and it would still fail the day it ran.
     """
-    root = Path(btclib_mnemonics.__path__[0])
+    root = Path(bip39_slip39.__path__[0])
     found = {
         path.relative_to(root).as_posix(): _outside(
             _top_level_imports(path.read_text(encoding="utf-8"))

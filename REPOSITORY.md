@@ -22,9 +22,12 @@ them.
 Each section carries the command that sets its setting and the command
 that reads it back, and the `#` lines under a read-back are what it
 printed on 2026-09-29 — section 16's last step — unless a later date
-stands beside it. Section 11 makes such an answer documentation, with a
-reader as its check: nothing re-runs these commands, so an answer that
-differs today is a change made since that date.
+stands beside it. Every call on `repos/btclib-org/bip39-slip39` was
+read again on 2026-10-21, after the repository was renamed, and printed
+what is recorded under it. Section 11 makes such an answer
+documentation, with a reader as its check: nothing re-runs these
+commands, so an answer that differs today is a change made since that
+date.
 
 ## Creating the repository
 
@@ -36,7 +39,7 @@ on the free plan, and section 10's `scorecard` reads a public one only.
 ```shell
 d="BIP39, SLIP39 and Electrum mnemonics, from the entropy up to the seed,"
 d="$d and nothing of bitcoin above it"
-gh repo create btclib-org/btclib-mnemonics --public --description "$d" \
+gh repo create btclib-org/bip39-slip39 --public --description "$d" \
   --disable-wiki
 ```
 
@@ -46,8 +49,8 @@ branch becomes its default whatever it is named, and this tree was built
 on a branch of its own. The read-back below is what says it is:
 
 ```shell
-git push git@github.com:btclib-org/btclib-mnemonics.git main
-gh api -X PATCH repos/btclib-org/btclib-mnemonics -f default_branch=main
+git push git@github.com:btclib-org/bip39-slip39.git main
+gh api -X PATCH repos/btclib-org/bip39-slip39 -f default_branch=main
 ```
 
 Then the switches section 11 turns off or on at the repository level, in
@@ -56,25 +59,25 @@ the only merge method with auto-merge, the head branch deleted on merge,
 and the squash commit's title and body:
 
 ```shell
-gh api -X PATCH repos/btclib-org/btclib-mnemonics \
+gh api -X PATCH repos/btclib-org/bip39-slip39 \
   -F has_issues=true -F has_wiki=false -F has_projects=false \
   -F allow_squash_merge=true -F allow_merge_commit=false \
   -F allow_rebase_merge=false -F allow_auto_merge=true \
   -F delete_branch_on_merge=true \
   -f squash_merge_commit_title=COMMIT_OR_PR_TITLE \
   -f squash_merge_commit_message=COMMIT_MESSAGES \
-  -f homepage=https://btclib-mnemonics.readthedocs.io/
+  -f homepage=https://bip39-slip39.readthedocs.io/
 ```
 
 Read back:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics \
+gh api repos/btclib-org/bip39-slip39 \
   --jq '{visibility, default_branch: .default_branch, has_issues,
          wiki: .has_wiki, projects: .has_projects}'
 # {"default_branch":"main","has_issues":true,"projects":false,
 #  "visibility":"public","wiki":false}
-gh api -i repos/btclib-org/btclib-mnemonics/pages 2>/dev/null | head -1
+gh api -i repos/btclib-org/bip39-slip39/pages 2>/dev/null | head -1
 # HTTP/2.0 404 Not Found
 ```
 
@@ -88,9 +91,9 @@ being the endpoint's generic `Not Found` document.
 
 **Section 3 asks that the repository be named after the distribution,
 hyphenated, and it is.** `pyproject.toml` declares
-`name = "btclib-mnemonics"`, the repository is
-`btclib-org/btclib-mnemonics`, and the import package is
-`btclib_mnemonics`.
+`name = "bip39-slip39"`, the repository is
+`btclib-org/bip39-slip39`, and the import package is
+`bip39_slip39`.
 
 ## Required checks on main
 
@@ -145,7 +148,7 @@ branch that has none; every later change `PATCH`es the sub-endpoint it is
 about, a partial `PUT` dropping the rest:
 
 ```shell
-gh api -X PUT repos/btclib-org/btclib-mnemonics/branches/main/protection \
+gh api -X PUT repos/btclib-org/bip39-slip39/branches/main/protection \
   --input - <<'JSON'
 {"required_status_checks": {"strict": false, "checks": [
    {"context": "test: every job passed", "app_id": 15368},
@@ -171,7 +174,7 @@ where the endpoint types `app_id` as an integer.
 Read back:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics/branches/main/protection \
+gh api repos/btclib-org/bip39-slip39/branches/main/protection \
   --jq '{checks: [.required_status_checks.checks[] | [.context, .app_id]],
          strict: .required_status_checks.strict,
          reviews: .required_pull_request_reviews
@@ -191,8 +194,6 @@ gh api repos/btclib-org/btclib-mnemonics/branches/main/protection \
 #  "reviews":{"dismiss_stale_reviews":true,
 #   "required_approving_review_count":1},
 #  "strict":false}
-# ("strict" read on 2026-10-13, after it was turned off; the rest is
-# as read on 2026-09-29.)
 ```
 
 Three rulesets sit beside it, additive — rules aggregate across rulesets
@@ -200,7 +201,7 @@ and classic protection, taking the most restrictive combination.
 `main-integrity` has no bypass actor, for anyone:
 
 ```shell
-gh api -X POST repos/btclib-org/btclib-mnemonics/rulesets --input - <<'JSON'
+gh api -X POST repos/btclib-org/bip39-slip39/rulesets --input - <<'JSON'
 {"name": "main-integrity", "target": "branch", "enforcement": "active",
  "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
  "bypass_actors": [],
@@ -219,7 +220,7 @@ btclib-org/.github's
 and `CONTRIBUTING.md`'s *Landing it* has the commands.
 
 ```shell
-gh api -X POST repos/btclib-org/btclib-mnemonics/rulesets --input - <<'JSON'
+gh api -X POST repos/btclib-org/bip39-slip39/rulesets --input - <<'JSON'
 {"name": "main-self-merge", "target": "branch", "enforcement": "active",
  "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
  "bypass_actors": [],
@@ -240,7 +241,7 @@ The bypass, when the maintainer adds it back, is actor `3296421`,
 Classic protection's own copy of the signature rule is off:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics/branches/main/protection \
+gh api repos/btclib-org/bip39-slip39/branches/main/protection \
   --jq '.required_signatures.enabled'
 # false
 ```
@@ -259,7 +260,7 @@ nothing else, so the recovery path RELEASING.md gives — delete and
 re-tag a release that failed before `publish-pypi` — still works:
 
 ```shell
-gh api -X POST repos/btclib-org/btclib-mnemonics/rulesets --input - <<'JSON'
+gh api -X POST repos/btclib-org/bip39-slip39/rulesets --input - <<'JSON'
 {"name": "tag-integrity", "target": "tag", "enforcement": "active",
  "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
  "bypass_actors": [],
@@ -272,8 +273,8 @@ JSON
 endpoint:
 
 ```shell
-for id in $(gh api repos/btclib-org/btclib-mnemonics/rulesets --jq '.[].id'); do
-  gh api repos/btclib-org/btclib-mnemonics/rulesets/"$id" \
+for id in $(gh api repos/btclib-org/bip39-slip39/rulesets --jq '.[].id'); do
+  gh api repos/btclib-org/bip39-slip39/rulesets/"$id" \
     --jq '{name, target, enforcement, include: .conditions.ref_name.include,
            rules: [.rules[].type],
            bypass: [.bypass_actors[] | [.actor_id, .bypass_mode]],
@@ -309,7 +310,7 @@ presses it once the review and the checks are in; the call is the one
 under *Creating the repository*. Read back:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics \
+gh api repos/btclib-org/bip39-slip39 \
   --jq '{allow_squash_merge, allow_merge_commit, allow_rebase_merge,
          allow_auto_merge, squash_merge_commit_title,
          squash_merge_commit_message, delete_branch_on_merge}'
@@ -353,7 +354,7 @@ override — so it is left to inherit, and this is the call that reads the
 value it gets:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics/actions/permissions/workflow \
+gh api repos/btclib-org/bip39-slip39/actions/permissions/workflow \
   --jq '{default_workflow_permissions, can_approve_pull_request_reviews}'
 # {"can_approve_pull_request_reviews":false,
 #  "default_workflow_permissions":"read"}
@@ -368,7 +369,7 @@ moves it back for the organization rather than here.
 Read for this repository and for the organization:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics/actions/permissions \
+gh api repos/btclib-org/bip39-slip39/actions/permissions \
   --jq '{allowed_actions, sha_pinning_required}'
 # {"allowed_actions":"all","sha_pinning_required":true}
 gh api orgs/btclib-org/actions/permissions \
@@ -383,7 +384,7 @@ fields](https://github.com/btclib-org/.github#tokens-publishing-scanning).
 ## Sign-off on web commits
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics --jq .web_commit_signoff_required
+gh api repos/btclib-org/bip39-slip39 --jq .web_commit_signoff_required
 # true
 gh api orgs/btclib-org --jq .web_commit_signoff_required
 # true
@@ -401,7 +402,7 @@ tags. `RELEASING.md` records the reasoning and the trusted publishers
 each index is given.
 
 ```shell
-gh api -X PUT repos/btclib-org/btclib-mnemonics/environments/pypi \
+gh api -X PUT repos/btclib-org/bip39-slip39/environments/pypi \
   --input - <<'JSON'
 {"reviewers": [{"type": "User", "id": 3296421},
                {"type": "User", "id": 30932677},
@@ -410,9 +411,9 @@ gh api -X PUT repos/btclib-org/btclib-mnemonics/environments/pypi \
  "deployment_branch_policy": {"protected_branches": false,
                               "custom_branch_policies": true}}
 JSON
-env=repos/btclib-org/btclib-mnemonics/environments/pypi
+env=repos/btclib-org/bip39-slip39/environments/pypi
 gh api -X POST "$env/deployment-branch-policies" -f name='v*' -f type=tag
-gh api -X PUT repos/btclib-org/btclib-mnemonics/environments/testpypi \
+gh api -X PUT repos/btclib-org/bip39-slip39/environments/testpypi \
   --input - <<'JSON'
 {"reviewers": [{"type": "User", "id": 3296421},
                {"type": "User", "id": 30932677},
@@ -429,7 +430,7 @@ JSON
 Read back:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics/environments \
+gh api repos/btclib-org/bip39-slip39/environments \
   --jq '.environments[] | {name, dbp: .deployment_branch_policy,
          rules: [.protection_rules[] | .type],
          reviewers: [.protection_rules[].reviewers[]?.reviewer.login]}'
@@ -440,7 +441,7 @@ gh api repos/btclib-org/btclib-mnemonics/environments \
 # {"dbp":null,"name":"testpypi",
 #  "reviewers":["fametrano","giacomocaironi","pmazzocchi"],
 #  "rules":["required_reviewers"]}
-env=repos/btclib-org/btclib-mnemonics/environments/pypi
+env=repos/btclib-org/bip39-slip39/environments/pypi
 gh api "$env/deployment-branch-policies" \
   --jq '.branch_policies[] | [.name, .type]'
 # ["v*","tag"]
@@ -464,24 +465,30 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 # 200
 ```
 
+The `bip39-slip39` projects on both indexes and on Read the Docs, and
+the two publishers under that name, wait on the setup
+[ISS 106](https://github.com/btclib-org/bip39-slip39/issues/106) asks
+for, and the calls here and under *Read the Docs* are read again under
+that name once it is done.
+
 **The repository's `.homepage` names this tree's own documentation
 site**, set under *Creating the repository* and read back here rather
 than from `pyproject.toml`'s own copy of it:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics --jq '.homepage'
-# https://btclib-mnemonics.readthedocs.io/
+gh api repos/btclib-org/bip39-slip39 --jq '.homepage'
+# https://bip39-slip39.readthedocs.io/
 ```
 
-## Read the Docs, which is btclib-mnemonics.readthedocs.io
+## Read the Docs
 
 The project is imported on [readthedocs.org](https://app.readthedocs.org/)
-from `btclib-org/btclib-mnemonics` under the slug `btclib-mnemonics`, which
-is what `release.yml`'s `documented` job and `pyproject.toml`'s
-`documentation` url name. The slug is what serves the site, and it is not
-the project's name: renaming the slug makes the old one stop answering
-rather than redirect. The `.homepage` *Publishing* reads back is that
-site:
+from `btclib-org/btclib-mnemonics` under the slug `btclib-mnemonics`.
+`release.yml`'s `documented` job, `pyproject.toml`'s `documentation` url
+and the `.homepage` *Publishing* reads back name `bip39-slip39`, which
+waits on the setup *Publishing* names. The slug is what serves the site,
+and it is not the project's name: renaming the slug makes the old one
+stop answering rather than redirect.
 
 ```shell
 curl -sL -o /dev/null -w '%{http_code} %{url_effective}\n' \
@@ -549,7 +556,7 @@ gh api orgs/btclib-org/installations \
   --jq '.installations[] | select(.app_slug == "read-the-docs-community")
         | [.app_slug, .repository_selection]'
 # ["read-the-docs-community","all"]
-gh api repos/btclib-org/btclib-mnemonics/hooks --jq length
+gh api repos/btclib-org/bip39-slip39/hooks --jq length
 # 0
 ```
 
@@ -563,14 +570,14 @@ security updates and private vulnerability reporting are free on a
 public repository and off by default:
 
 ```shell
-gh api -X PATCH repos/btclib-org/btclib-mnemonics --input - <<'JSON'
+gh api -X PATCH repos/btclib-org/bip39-slip39 --input - <<'JSON'
 {"security_and_analysis": {
    "secret_scanning": {"status": "enabled"},
    "secret_scanning_push_protection": {"status": "enabled"}}}
 JSON
-gh api -X PUT repos/btclib-org/btclib-mnemonics/vulnerability-alerts
-gh api -X PUT repos/btclib-org/btclib-mnemonics/automated-security-fixes
-gh api -X PUT repos/btclib-org/btclib-mnemonics/private-vulnerability-reporting
+gh api -X PUT repos/btclib-org/bip39-slip39/vulnerability-alerts
+gh api -X PUT repos/btclib-org/bip39-slip39/automated-security-fixes
+gh api -X PUT repos/btclib-org/bip39-slip39/private-vulnerability-reporting
 ```
 
 Code scanning is `codeql.yml`'s, and GitHub's **default setup** has to
@@ -581,29 +588,29 @@ has. `PATCH`, not `PUT`: that endpoint answers a PUT with a bare 404.
 
 ```shell
 gh api -X PATCH -F state=not-configured \
-  repos/btclib-org/btclib-mnemonics/code-scanning/default-setup
+  repos/btclib-org/bip39-slip39/code-scanning/default-setup
 gh api -X PATCH -F state=not-configured \
-  repos/btclib-org/btclib-mnemonics/code-quality/setup
+  repos/btclib-org/bip39-slip39/code-quality/setup
 ```
 
 Read back:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics --jq '.security_and_analysis'
+gh api repos/btclib-org/bip39-slip39 --jq '.security_and_analysis'
 # {"dependabot_security_updates":{"status":"enabled"},
 #  "secret_scanning":{"status":"enabled"},
 #  "secret_scanning_non_provider_patterns":{"status":"disabled"},
 #  "secret_scanning_push_protection":{"status":"enabled"},
 #  "secret_scanning_validity_checks":{"status":"disabled"}}
-gh api -i repos/btclib-org/btclib-mnemonics/vulnerability-alerts | head -1
+gh api -i repos/btclib-org/bip39-slip39/vulnerability-alerts | head -1
 # HTTP/2.0 204 No Content
-gh api repos/btclib-org/btclib-mnemonics/automated-security-fixes
+gh api repos/btclib-org/bip39-slip39/automated-security-fixes
 # {"enabled":true,"paused":false}
-gh api repos/btclib-org/btclib-mnemonics/private-vulnerability-reporting
+gh api repos/btclib-org/bip39-slip39/private-vulnerability-reporting
 # {"enabled":true}
-gh api repos/btclib-org/btclib-mnemonics/code-scanning/default-setup --jq .state
+gh api repos/btclib-org/bip39-slip39/code-scanning/default-setup --jq .state
 # not-configured
-gh api repos/btclib-org/btclib-mnemonics/code-quality/setup --jq .state
+gh api repos/btclib-org/bip39-slip39/code-quality/setup --jq .state
 # not-configured
 ```
 
@@ -621,14 +628,14 @@ the topics are set from `pyproject.toml` rather than typed a second time:
 ```shell
 sed -n '/^keywords = \[/,/^]/s/^ *"\(.*\)",$/\1/p' pyproject.toml \
   | jq -R . | jq -s '{names: .}' \
-  | gh api -X PUT repos/btclib-org/btclib-mnemonics/topics --input -
+  | gh api -X PUT repos/btclib-org/bip39-slip39/topics --input -
 ```
 
 Read back, and compared, sorted because GitHub returns topics in an order
 of its own; the diff is expected empty:
 
 ```shell
-diff <(gh api repos/btclib-org/btclib-mnemonics --jq '.topics[]' | sort) \
+diff <(gh api repos/btclib-org/bip39-slip39 --jq '.topics[]' | sort) \
      <(sed -n '/^keywords = \[/,/^]/s/^ *"\(.*\)",$/\1/p' pyproject.toml \
        | sort)
 # (nothing, exit 0)
@@ -637,7 +644,7 @@ diff <(gh api repos/btclib-org/btclib-mnemonics --jq '.topics[]' | sort) \
 What the diff compares, the topics as the endpoint returns them:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics --jq '.topics'
+gh api repos/btclib-org/bip39-slip39 --jq '.topics'
 # ["bip39","bitcoin","dice","electrum","mnemonic","seed-phrase",
 #  "shamir-secret-sharing","slip39"]
 ```
@@ -670,7 +677,7 @@ The endpoints above answer for more than this repository decides, and the
 scope at the top is what leaves the rest out.
 
 **Most of the repository document is not a setting.**
-`gh api repos/btclib-org/btclib-mnemonics --jq 'keys[]'` answers with URLs,
+`gh api repos/btclib-org/bip39-slip39 --jq 'keys[]'` answers with URLs,
 counts, timestamps and derived state beside the switches, and the
 switches among them this file records are the ones a section above reads
 back with a call of its own.
@@ -687,9 +694,9 @@ stores, so the repository's own stores are expected empty and a copy in
 either would be that decision undone:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics/actions/secrets --jq .total_count
+gh api repos/btclib-org/bip39-slip39/actions/secrets --jq .total_count
 # 0
-gh api repos/btclib-org/btclib-mnemonics/dependabot/secrets --jq .total_count
+gh api repos/btclib-org/bip39-slip39/dependabot/secrets --jq .total_count
 # 0
 ```
 
@@ -700,6 +707,6 @@ over one of the same name on the organization, so the repository's own
 store is read too:
 
 ```shell
-gh api repos/btclib-org/btclib-mnemonics/actions/variables --jq .total_count
+gh api repos/btclib-org/bip39-slip39/actions/variables --jq .total_count
 # 0
 ```

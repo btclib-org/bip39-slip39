@@ -47,4 +47,4 @@ jobs:
       pull-requests: write # the label; read-only on a fork
     uses: btclib-org/.github/.github/workflows/reusable-api-break.yml@main
     with:
-      package: btclib_mnemonics
+      package: bip39_slip39

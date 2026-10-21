@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for the `btclib_mnemonics.slip39` module.
+"""Tests for the `bip39_slip39.slip39` module.
 
 SLIP-0039's vector file carries a BIP32 root extended private key beside
 each master secret, being upstream's file byte for byte. The master
@@ -15,12 +15,12 @@ from collections.abc import Callable
 
 import pytest
 
-from btclib_mnemonics import slip39
-from btclib_mnemonics.exceptions import (
+from bip39_slip39 import slip39
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
-from btclib_mnemonics.mnemonic import WORDLISTS
+from bip39_slip39.mnemonic import WORDLISTS
 from tests import load, vector_id
 from tests.secret_free import assert_secret_free
 
@@ -632,7 +632,7 @@ def test_a_share_of_a_length_slip39_has_no_share_for_is_refused_undecoded(
     """Refuse the word count before the words are looked up or decoded."""
     decoded = lambda *_: pytest.fail("decoded")  # noqa: E731
 
-    monkeypatch.setattr("btclib_mnemonics.slip39.indexes_from_mnemonic", decoded)
+    monkeypatch.setattr("bip39_slip39.slip39.indexes_from_mnemonic", decoded)
     err_msg = f"invalid mnemonic length: {n_words} words"
     with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
         slip39.share_from_mnemonic(" ".join(["academic"] * n_words))
@@ -654,7 +654,7 @@ def test_shares_above_the_maximum_exponent_are_refused_before_pbkdf2(
 ) -> None:
     """Refuse an exponent above the caller's maximum without running PBKDF2."""
     ran = lambda *_: pytest.fail("PBKDF2 ran")  # noqa: E731
-    monkeypatch.setattr("btclib_mnemonics.slip39.pbkdf2_hmac", ran)
+    monkeypatch.setattr("bip39_slip39.slip39.pbkdf2_hmac", ran)
     mnemonic = _one_of_one(6)
     err_msg = "iteration exponent 6 above the maximum 5"
     with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
@@ -843,7 +843,7 @@ def test_a_record_above_the_maximum_exponent_is_refused_before_pbkdf2(
 ) -> None:
     """The bound holds on the record, the one step that runs PBKDF2."""
     ran = lambda *_: pytest.fail("PBKDF2 ran")  # noqa: E731
-    monkeypatch.setattr("btclib_mnemonics.slip39.pbkdf2_hmac", ran)
+    monkeypatch.setattr("bip39_slip39.slip39.pbkdf2_hmac", ran)
     ems = slip39.EncryptedMasterSecret(1, True, 6, _VALUE)
     err_msg = "iteration exponent 6 above the maximum 5"
     with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:

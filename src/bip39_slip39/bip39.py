@@ -56,8 +56,8 @@ import secrets
 import unicodedata
 from hashlib import pbkdf2_hmac, sha256
 
-from btclib_mnemonics._utils import assert_type, utf8_bytes
-from btclib_mnemonics.entropy import (
+from bip39_slip39._utils import assert_type, utf8_bytes
+from bip39_slip39.entropy import (
     BinStr,
     Entropy,
     _bin_str_entropy_from_entropy,
@@ -65,8 +65,8 @@ from btclib_mnemonics.entropy import (
     _bytes_entropy_from_str,
     _wordlist_indexes_from_bin_str_entropy,
 )
-from btclib_mnemonics.exceptions import BTClibMnemonicsValueError
-from btclib_mnemonics.mnemonic import (
+from bip39_slip39.exceptions import BTClibMnemonicsValueError
+from bip39_slip39.mnemonic import (
     WORDLISTS,
     Mnemonic,
     WordList,

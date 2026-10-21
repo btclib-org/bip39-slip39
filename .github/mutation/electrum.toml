@@ -6,9 +6,9 @@
 
 [cosmic-ray]
 module-path = [
-    "src/btclib_mnemonics/dispatch.py",
-    "src/btclib_mnemonics/electrum.py",
-    "src/btclib_mnemonics/mnemonic.py",
+    "src/bip39_slip39/dispatch.py",
+    "src/bip39_slip39/electrum.py",
+    "src/bip39_slip39/mnemonic.py",
 ]
 
 test-command = """python -m pytest -x -q -n0 -p no:randomly \
@@ -21,8 +21,8 @@ excluded-modules = []
 # every `|` in the three modules is in an annotation, whose mutants are
 # equivalent under deferred evaluation
 #
-#   grep -n ' | ' src/btclib_mnemonics/dispatch.py \
-#       src/btclib_mnemonics/electrum.py src/btclib_mnemonics/mnemonic.py
+#   grep -n ' | ' src/bip39_slip39/dispatch.py \
+#       src/bip39_slip39/electrum.py src/bip39_slip39/mnemonic.py
 [cosmic-ray.filters.operators-filter]
 exclude-operators = ["core/ReplaceBinaryOperator_BitOr_.*"]
 

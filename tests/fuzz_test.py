@@ -34,15 +34,15 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from btclib_mnemonics import bip39, dispatch, electrum, slip39
-from btclib_mnemonics.exceptions import (
+from bip39_slip39 import bip39, dispatch, electrum, slip39
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
-from btclib_mnemonics.mnemonic import WORDLISTS, indexes_from_mnemonic
+from bip39_slip39.mnemonic import WORDLISTS, indexes_from_mnemonic
 
 # what a decoder of this package is allowed to raise. Anything else
-# leaves the contract src/btclib_mnemonics/exceptions.py documents
+# leaves the contract src/bip39_slip39/exceptions.py documents
 CONTRACT = (BTClibMnemonicsValueError, BTClibMnemonicsTypeError)
 
 DECODERS: dict[str, Callable[[str], Any]] = {

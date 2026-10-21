@@ -66,16 +66,16 @@ from functools import cache
 from hashlib import pbkdf2_hmac, sha256, sha512
 from pathlib import Path
 
-from btclib_mnemonics._utils import assert_type, utf8_bytes
-from btclib_mnemonics.entropy import (
+from bip39_slip39._utils import assert_type, utf8_bytes
+from bip39_slip39.entropy import (
     BinStr,
     Entropy,
     _bin_str_entropy_from_entropy,
     _bin_str_entropy_from_wordlist_indexes,
     _bits,
 )
-from btclib_mnemonics.exceptions import BTClibMnemonicsValueError
-from btclib_mnemonics.mnemonic import (
+from bip39_slip39.exceptions import BTClibMnemonicsValueError
+from bip39_slip39.mnemonic import (
     BIP39_LANGUAGE_FILES,
     Mnemonic,
     WordLists,

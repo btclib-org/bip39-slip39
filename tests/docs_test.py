@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 _ROOT = Path(__file__).parents[1]
-_PACKAGE_DIR = _ROOT / "src" / "btclib_mnemonics"
+_PACKAGE_DIR = _ROOT / "src" / "bip39_slip39"
 _DOCS_DIR = _ROOT / "docs" / "source"
 # what a documented module looks like to sphinx: ".. automodule:: name",
 # whatever indentation and options follow it
@@ -55,9 +55,7 @@ def _is_public(parts: tuple[str, ...]) -> bool:
 
 def _dotted(parts: tuple[str, ...]) -> str:
     """Return the dotted name of a module path, a package by its own name."""
-    return ".".join(
-        ("btclib_mnemonics", *parts[: -1 if parts[-1] == "__init__" else None])
-    )
+    return ".".join(("bip39_slip39", *parts[: -1 if parts[-1] == "__init__" else None]))
 
 
 def _shipped() -> set[str]:
@@ -97,8 +95,8 @@ def test_the_docs_sources_were_found_at_all() -> None:
     A wrong `_DOCS_DIR` would make `_documented()` empty, which the second
     of them reports as success.
     """
-    assert (_DOCS_DIR / "btclib_mnemonics.rst").is_file()
-    assert "btclib_mnemonics" in _documented()
+    assert (_DOCS_DIR / "bip39_slip39.rst").is_file()
+    assert "bip39_slip39" in _documented()
 
 
 def test_a_toctree_line_is_not_a_stanza() -> None:
@@ -107,24 +105,24 @@ def test_a_toctree_line_is_not_a_stanza() -> None:
         ".. toctree::\n"
         "   :maxdepth: 4\n"
         "\n"
-        "   btclib_mnemonics\n"
+        "   bip39_slip39\n"
         "\n"
-        ".. automodule:: btclib_mnemonics.slip39\n"
+        ".. automodule:: bip39_slip39.slip39\n"
         "   :members:\n"
     )
-    assert _documented_in(source) == {"btclib_mnemonics.slip39"}
+    assert _documented_in(source) == {"bip39_slip39.slip39"}
 
 
 @pytest.mark.parametrize(
     "parts, public, dotted",
     [
-        (("slip39",), True, "btclib_mnemonics.slip39"),
-        (("schemes", "bip39"), True, "btclib_mnemonics.schemes.bip39"),
-        (("__init__",), True, "btclib_mnemonics"),
-        (("schemes", "__init__"), True, "btclib_mnemonics.schemes"),
-        (("_utils",), False, "btclib_mnemonics._utils"),
-        (("schemes", "_helpers"), False, "btclib_mnemonics.schemes._helpers"),
-        (("_internal", "bip39"), False, "btclib_mnemonics._internal.bip39"),
+        (("slip39",), True, "bip39_slip39.slip39"),
+        (("schemes", "bip39"), True, "bip39_slip39.schemes.bip39"),
+        (("__init__",), True, "bip39_slip39"),
+        (("schemes", "__init__"), True, "bip39_slip39.schemes"),
+        (("_utils",), False, "bip39_slip39._utils"),
+        (("schemes", "_helpers"), False, "bip39_slip39.schemes._helpers"),
+        (("_internal", "bip39"), False, "bip39_slip39._internal.bip39"),
     ],
 )
 def test_is_public_and_dotted(

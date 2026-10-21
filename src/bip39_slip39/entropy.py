@@ -27,9 +27,9 @@ import secrets
 import string
 from collections.abc import Iterable, Sequence
 
-from btclib_mnemonics._rolls_prompts import ROLLS_PROMPTS
-from btclib_mnemonics._utils import Octets, assert_type, bytes_from_octets, is_integer
-from btclib_mnemonics.exceptions import (
+from bip39_slip39._rolls_prompts import ROLLS_PROMPTS
+from bip39_slip39._utils import Octets, assert_type, bytes_from_octets, is_integer
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )

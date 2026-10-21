@@ -25,6 +25,6 @@
 # `gcr.io/v2/oss-fuzz-base/base-builder-python/manifests/latest`.
 FROM gcr.io/oss-fuzz-base/base-builder-python:latest@sha256:21f6fab17ace4dc76e1c56de91ee95d3d03da021df94b41056ba036f6c6f55e9
 
-COPY . $SRC/btclib-mnemonics
-WORKDIR $SRC/btclib-mnemonics
+COPY . $SRC/bip39-slip39
+WORKDIR $SRC/bip39-slip39
 COPY ./.clusterfuzzlite/build.sh $SRC/

@@ -10,8 +10,8 @@ requires = ["uv_build>=0.12.0,<0.13"]
 build-backend = "uv_build"
 
 [project]
-name = "btclib-mnemonics"
-# the one place the version is declared: btclib_mnemonics.__version__ reads
+name = "bip39-slip39"
+# the one place the version is declared: bip39_slip39.__version__ reads
 # it back from the installed metadata, and docs/source/conf.py reads it
 # from this file. A cycle in progress is the month alone; the release's
 # own pull request replaces it by hand with the date the release is cut,
@@ -63,13 +63,13 @@ classifiers = [
 ]
 
 [project.urls]
-homepage = "https://btclib-mnemonics.readthedocs.io/"
-documentation = "https://btclib-mnemonics.readthedocs.io/"
-download = "https://github.com/btclib-org/btclib-mnemonics/releases"
-changelog = "https://github.com/btclib-org/btclib-mnemonics/blob/main/RELEASE_NOTES.md"
-repository = "https://github.com/btclib-org/btclib-mnemonics"
-issues = "https://github.com/btclib-org/btclib-mnemonics/issues"
-pull_requests = "https://github.com/btclib-org/btclib-mnemonics/pulls"
+homepage = "https://bip39-slip39.readthedocs.io/"
+documentation = "https://bip39-slip39.readthedocs.io/"
+download = "https://github.com/btclib-org/bip39-slip39/releases"
+changelog = "https://github.com/btclib-org/bip39-slip39/blob/main/RELEASE_NOTES.md"
+repository = "https://github.com/btclib-org/bip39-slip39"
+issues = "https://github.com/btclib-org/bip39-slip39/issues"
+pull_requests = "https://github.com/btclib-org/bip39-slip39/pulls"
 
 # Every entry below declares a lower bound, the release uv.lock resolved
 # when the entry was written: a bound no run has installed would claim a
@@ -89,7 +89,7 @@ harness = [
 ]
 test = [
     { include-group = "harness" },
-    # the originals of the coercions src/btclib_mnemonics/_utils.py copies,
+    # the originals of the coercions src/bip39_slip39/_utils.py copies,
     # which tests/utils_test.py runs beside the copies, and the Base58 and
     # the curve tests/electrum_test.py reads electrum's published keys
     # with. A test group's and never a runtime dependency: the package
@@ -152,7 +152,7 @@ required-version = ">=0.12.18"
 
 [tool.uv.build-backend]
 # `module-name` is not written: it defaults to `project.name` normalized,
-# which is `btclib_mnemonics` already.
+# which is `bip39_slip39` already.
 #
 # What the sdist carries beyond what the backend puts there by itself --
 # pyproject.toml, the module under `module-root`, and the files
@@ -193,7 +193,7 @@ source-exclude = [
     # the archive carries whole -- rather than by the name of the tool.
     # Anchored, so that the root's own dotted files stay in the archive
     "/docs/**/.*",
-    "/src/btclib_mnemonics/**/.*",
+    "/src/bip39_slip39/**/.*",
     "/tests/**/.*",
     # a leftover of the same kind whose name carries no leading dot
     "*.egg-info",
@@ -201,12 +201,12 @@ source-exclude = [
 ]
 
 [tool.check-wheel-contents]
-# the wheel's `btclib_mnemonics/` diffed against this checkout's
-# `src/btclib_mnemonics/`, file for file and in both directions (W101
+# the wheel's `bip39_slip39/` diffed against this checkout's
+# `src/bip39_slip39/`, file for file and in both directions (W101
 # missing, W102 extra): with no `package` given, check-wheel-contents
 # reads the wheel's own RECORD and asks nothing about the tree the wheel
 # was supposed to carry, so a dropped `py.typed` is reported clean
-package = ["src/btclib_mnemonics"]
+package = ["src/bip39_slip39"]
 
 [tool.check-sdist]
 # tracked files the sdist is meant not to carry, beyond what
@@ -329,7 +329,7 @@ extend-ignore-re = ['\w*[a-z][A-Z]\w*']
 [tool.coverage.run]
 # what the ratchet measures, named here rather than on the command line:
 # unnamed, `--cov` measures every file the run imports
-source = ["btclib_mnemonics", "tests"]
+source = ["bip39_slip39", "tests"]
 omit = ["*/site-packages/*"]
 # statement coverage alone calls a half-tested `if` fully covered
 branch = true
@@ -483,7 +483,7 @@ ignore = [
 # its submodules that way, as its docstring says, and tests/all_test.py
 # walks `__all__` with getattr and fails on the drift this rule would
 # catch
-"src/btclib_mnemonics/__init__.py" = ["F822"]
+"src/bip39_slip39/__init__.py" = ["F822"]
 # T20 is selected for the library, which writes to no stream of its own;
 # a script whose caller is a workflow step is the case it is not about.
 # What it prints -- a pin behind upstream or skipped, the all-clear -- is
@@ -492,12 +492,12 @@ ignore = [
 ".github/scripts/check_vendored_vectors.py" = ["T201"]
 # collecting entropy from dice is a conversation: the module prompts with
 # input() and prints which rolls count, so its prints are the interface
-"src/btclib_mnemonics/entropy.py" = ["T201"]
-# the command `python -m btclib_mnemonics` talks to its user the same way
-"src/btclib_mnemonics/__main__.py" = ["T201"]
+"src/bip39_slip39/entropy.py" = ["T201"]
+# the command `python -m bip39_slip39` talks to its user the same way
+"src/bip39_slip39/__main__.py" = ["T201"]
 # the prompts are in each language of the word lists, Turkish's dotless i
 # and Chinese's fullwidth punctuation among them
-"src/btclib_mnemonics/_rolls_prompts.py" = [
+"src/bip39_slip39/_rolls_prompts.py" = [
     "ambiguous-unicode-character-string",
 ]
 # the D rules are not here: a public test function states what it
@@ -560,5 +560,5 @@ allow-init-docstring = true
 # conversions -- so what a caller catches is not what this body raises.
 # Kept on, every docstring would document its own body instead of its
 # contract; the hierarchy a caller does catch is
-# src/btclib_mnemonics/exceptions.py's
+# src/bip39_slip39/exceptions.py's
 skip-checking-raises = true

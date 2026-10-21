@@ -38,17 +38,17 @@ import sys
 
 import atheris
 
-from btclib_mnemonics import bip39, electrum, mnemonic, slip39
-from btclib_mnemonics.exceptions import BTClibMnemonicsException
-from btclib_mnemonics.mnemonic import normalize_mnemonic
+from bip39_slip39 import bip39, electrum, mnemonic, slip39
+from bip39_slip39.exceptions import BTClibMnemonicsException
+from bip39_slip39.mnemonic import normalize_mnemonic
 
 # tests/fuzz_corpus_test.py reads this by ast.literal_eval, never by
 # importing the module -- atheris below is CI-only and undeclared in
 # pyproject.toml, so the test must not execute this file
 ENTRY_POINTS = (
-    "btclib_mnemonics.bip39:entropy_from_mnemonic",
-    "btclib_mnemonics.electrum:version_from_mnemonic",
-    "btclib_mnemonics.slip39:share_from_mnemonic",
+    "bip39_slip39.bip39:entropy_from_mnemonic",
+    "bip39_slip39.electrum:version_from_mnemonic",
+    "bip39_slip39.slip39:share_from_mnemonic",
 )
 
 

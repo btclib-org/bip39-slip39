@@ -1,6 +1,6 @@
 ---
 name: Bug report
-description: Something in btclib-mnemonics does not work as documented
+description: Something in bip39-slip39 does not work as documented
 type: Bug
 
 body:
@@ -28,10 +28,10 @@ body:
   - type: input
     id: version
     attributes:
-      label: btclib-mnemonics version
+      label: bip39-slip39 version
       description: >
         `python -c "from importlib.metadata import version;
-        print(version('btclib-mnemonics'))"`
+        print(version('bip39-slip39'))"`
       placeholder: "2026.10"
     validations:
       required: true

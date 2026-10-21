@@ -1,7 +1,7 @@
 # Assurance case
 
 [SECURITY](./SECURITY.md) states what a user can and cannot expect of
-btclib-mnemonics in terms of security. This page argues why those
+bip39-slip39 in terms of security. This page argues why those
 expectations hold: the threat model, the trust boundaries, how secure
 design principles are applied, and how common implementation weaknesses
 are countered. Each argument below names the file, the test or the
@@ -35,8 +35,8 @@ page points at it instead of repeating it.
 
 ## Threat model
 
-btclib-mnemonics is a library in its caller's process, and the command
-`python -m btclib_mnemonics` runs in its own and reads and writes its
+bip39-slip39 is a library in its caller's process, and the command
+`python -m bip39_slip39` runs in its own and reads and writes its
 terminal. Neither opens a socket, runs a subprocess or writes a file;
 the one read of a path a caller chose is *Files* below.
 `tests/imports_test.py` holds every module to the standard library,
@@ -67,7 +67,7 @@ vulnerabilities*:
 - side channels: nothing here is constant-time
 - memory disclosure: secret material in a Python object is not zeroized
 - whatever the terminal keeps of the interactive `entropy.collect_rolls`
-  and `python -m btclib_mnemonics`
+  and `python -m bip39_slip39`
 - the PBKDF2 work a SLIP-0039 share's iteration exponent asks for, up to
   the `max_iteration_exponent` a caller passes; a share longer than a
   512-bit secret needs is refused, so its length adds no work
@@ -76,7 +76,7 @@ vulnerabilities*:
 ## Trust boundaries
 
 **The caller and the public API.** Arguments cross from the caller into
-btclib-mnemonics at every public function, and each is validated there.
+bip39-slip39 at every public function, and each is validated there.
 CONTRIBUTING.md's *The public surface* states the rule and names the
 tests that drive it.
 

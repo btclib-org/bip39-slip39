@@ -263,11 +263,11 @@ jobs:
           uv pip install "$GITHUB_WORKSPACE"/dist/*.whl
           .venv/bin/python -c "
           from importlib.metadata import requires, version
-          import btclib_mnemonics
-          from btclib_mnemonics import bip39
+          import bip39_slip39
+          from bip39_slip39 import bip39
 
-          print(version('btclib-mnemonics'), requires('btclib-mnemonics'))
-          assert btclib_mnemonics.__version__ == version('btclib-mnemonics')
+          print(version('bip39-slip39'), requires('bip39-slip39'))
+          assert bip39_slip39.__version__ == version('bip39-slip39')
           mnemonic = bip39.mnemonic_from_entropy(bytes(16))
           assert mnemonic.split()[-1] == 'about'
           assert bip39.seed_from_mnemonic(mnemonic, 'TREZOR').hex().startswith('c55257c3')

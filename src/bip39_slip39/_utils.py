@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from btclib_mnemonics.exceptions import (
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )

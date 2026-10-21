@@ -13,8 +13,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Literal, NamedTuple
 
-from btclib_mnemonics._utils import assert_type, is_integer
-from btclib_mnemonics.exceptions import (
+from bip39_slip39._utils import assert_type, is_integer
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
