@@ -11,7 +11,7 @@ import threading
 import unicodedata
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from btclib_mnemonics._utils import assert_type, is_integer
 from btclib_mnemonics.exceptions import (
@@ -34,6 +34,16 @@ __all__ = [
 ]
 
 WordList = Sequence[str]
+
+
+class _Language(NamedTuple):
+    """The words of a language and the index of each, which belong together."""
+
+    words: list[str]
+    # the index of every word, so that a lookup is not a scan of 2048
+    # strings: indexes_from_mnemonic does one per word, and
+    # lang_from_mnemonic one per word per language
+    positions: dict[str, int]
 
 
 def _filename(filename: object) -> str:
@@ -147,17 +157,21 @@ class WordLists:
     len(wordlist) instead, and its Portuguese list has 1626 words, so for
     electrum it must not.
 
-    The loading is under a lock, and the reason is not merely that two
-    threads might read the same file twice. load_lang treats a non-zero
-    word count as "already loaded", so a second thread reading the count
-    before the words were published would skip the load and get an
-    *empty* word-list back: mnemonic_from_indexes would raise IndexError
-    and indexes_from_mnemonic would report every word as unknown. The
-    lock closes that, and load_lang also publishes the words before the
-    count, so that the count is never ahead of the words it counts. That
-    order is what lets a call given no filename skip the lock once the
-    count is non-zero: it can only see a count whose words are in place.
-    A load, and any call given a filename, still takes the lock.
+    A language is one record, its words and the index of each, and
+    load_lang replaces it in a single store. A reader therefore sees the
+    words, the index and the length of one load, never of two, and never
+    an empty record that a load is about to fill: a second thread would
+    otherwise get an *empty* word-list, mnemonic_from_indexes would refuse
+    every index and indexes_from_mnemonic would call every word unknown.
+    A non-empty record is a finished load, so a call given no filename
+    skips the lock. A load, and any call given a filename, takes it, so
+    that a language is registered once and its file and its record change
+    together.
+
+    A caller outside the package that reads the length and the words in
+    two public calls can still pair those of two loads, if a third thread
+    replaces the language between them. Each conversion in the package
+    takes its length and its words or positions from one read of the record.
 
     The module-level WORDLISTS is a singleton, and load_lang mutating it
     affects every caller in the process: adding a language, or pointing an
@@ -179,17 +193,8 @@ class WordLists:
         self.language_files = {lang: _filename(name) for lang, name in files.items()}
         self.languages = list(self.language_files)
 
-        # create dictionaries where each language has empty word-list
-        wordlists: list[list[str]] = [[] for _ in self.languages]
-        self._wordlist = dict(zip(self.languages, wordlists, strict=True))
-        # the index of every word, so that a lookup is not a scan of 2048
-        # strings: indexes_from_mnemonic does one per word, and
-        # lang_from_mnemonic one per word per language
-        indexes: list[dict[str, int]] = [{} for _ in self.languages]
-        self._index = dict(zip(self.languages, indexes, strict=True))
-
-        zeros = len(self.languages) * [0]
-        self._language_length = dict(zip(self.languages, zeros, strict=True))
+        # each language starts with an empty record, which load_lang replaces
+        self._language = {lang: _Language([], {}) for lang in self.languages}
 
     def load_lang(
         self, lang: str, filename: str | os.PathLike[str] | None = None
@@ -205,14 +210,15 @@ class WordLists:
         language never seen and with no file, and refused as a missing file.
         """
         assert_type(lang, str, "lang")
-        # a non-zero count is a finished load: the class docstring says why
-        if filename is None and self._language_length.get(lang, 0) != 0:
+        # a non-empty record is a finished load: the class docstring says why
+        record = self._language.get(lang)
+        if filename is None and record is not None and record.words:
             return
         path = None if filename is None else _filename(filename)
         with self._lock:
             known = lang in self.languages
             # language has been loaded already, with no replacement asked for
-            if known and self._language_length[lang] != 0 and path is None:
+            if known and self._language[lang].words and path is None:
                 return
             if known and path is None:
                 path = self.language_files[lang]
@@ -230,13 +236,10 @@ class WordLists:
             if not known:
                 self.languages.append(lang)
             self.language_files[lang] = path
-            # the words first and the count second: the count is what
-            # marks the language loaded, so publishing it before the
-            # words it counts is what let a concurrent reader see an
-            # empty list.
-            self._index[lang] = {word: i for i, word in enumerate(words)}
-            self._wordlist[lang] = words
-            self._language_length[lang] = len(words)
+            # one store: a reader holding the old record keeps a whole one
+            self._language[lang] = _Language(
+                words, {word: i for i, word in enumerate(words)}
+            )
 
     def _read_wordlist(self, filename: str) -> list[str]:
         """Return the words of a word-list file, NFKD and comments dropped."""
@@ -264,15 +267,23 @@ class WordLists:
             raise BTClibMnemonicsValueError(err_msg)
         return words
 
+    def _record(self, lang: str) -> _Language:
+        """Return the record of a language, loaded.
+
+        The one read of a language: a caller needing more than one of its
+        words, its length and its positions takes them from the record it
+        gets here, so that they are those of one load.
+        """
+        self.load_lang(lang)
+        return self._language[lang]
+
     def wordlist(self, lang: str) -> WordList:
         """Return the language word-list."""
-        self.load_lang(lang)
-        return self._wordlist[lang]
+        return self._record(lang).words
 
     def language_length(self, lang: str) -> int:
         """Return the number of words in the language word-list."""
-        self.load_lang(lang)
-        return self._language_length[lang]
+        return len(self._record(lang).words)
 
     def index(self, word: str, lang: str) -> int:
         """Return the index of a word into the language word-list.
@@ -280,14 +291,15 @@ class WordLists:
         The refusal does not quote the word: it is one word of a sentence
         that is somebody's secret, usually one or two letters from the
         right one, and an exception message is what ends up in a log or a
-        crash report. indexes_from_mnemonic adds the word's position.
+        crash report. indexes_from_mnemonic refuses an unknown word with
+        its own message, which gives the word's position.
         """
         assert_type(word, str, "word")
-        self.load_lang(lang)
+        record = self._record(lang)
         # lang is quoted below: load_lang has matched it against the
         # registered languages
         normalized = unicodedata.normalize("NFKD", word)
-        found = self._index[lang].get(normalized)
+        found = record.positions.get(normalized)
         if found is None:
             raise BTClibMnemonicsValueError(f"unknown '{lang}' word")
         return found
@@ -299,14 +311,21 @@ class WordLists:
         them; a caller that knows the language names it instead of asking.
         """
         _assert_words(words)
+        return self._langs_of(words, None)
+
+    def _langs_of(self, words: Sequence[str], length: int | None) -> list[str]:
+        """Return the languages holding every word, of that length if given.
+
+        The length and the words are those of one read of the language.
+        """
         normalized = [unicodedata.normalize("NFKD", word) for word in words]
         langs = []
         for lang in self.languages:
-            # the membership test below is on the dictionary load_lang
-            # fills, so the load is a statement of its own rather than
-            # something to hide inside the comprehension
-            self.load_lang(lang)
-            if all(word in self._index[lang] for word in normalized):
+            record = self._record(lang)
+            if length is not None and len(record.words) != length:
+                continue
+            positions = record.positions
+            if all(word in positions for word in normalized):
                 langs.append(lang)
         return langs
 
@@ -408,7 +427,12 @@ def mnemonic_from_indexes(
     """
     _assert_indexes(indexes)
     assert_type(wordlists, WordLists, "wordlists")
-    wordlist = wordlists.wordlist(lang)
+    return _mnemonic_in(wordlists._record(lang), indexes, separator)
+
+
+def _mnemonic_in(record: _Language, indexes: Sequence[int], separator: str) -> Mnemonic:
+    """Return the mnemonic of indexes into the words of a record."""
+    wordlist = record.words
     for position, index in enumerate(indexes, 1):
         if not 0 <= index < len(wordlist):
             err_msg = f"invalid index at position {position}: "
@@ -429,13 +453,17 @@ def indexes_from_mnemonic(
     assert_type(mnemonic, str, "mnemonic")
     assert_type(wordlists, WordLists, "wordlists")
     # loaded first, so that an unknown language is refused as itself and
-    # not as the unknown word the loop below would call it
-    wordlists.load_lang(lang)
+    # not as the unknown word _indexes_in would call it
+    return _indexes_in(wordlists._record(lang), mnemonic, lang)
+
+
+def _indexes_in(record: _Language, mnemonic: Mnemonic, lang: str) -> list[int]:
+    """Return the indexes of the words of a mnemonic in a record."""
     indexes = []
     for position, word in enumerate(mnemonic.split(), 1):
-        try:
-            indexes.append(wordlists.index(word, lang))
-        except BTClibMnemonicsValueError:
+        found = record.positions.get(unicodedata.normalize("NFKD", word))
+        if found is None:
             err_msg = f"unknown '{lang}' word at position {position}"
-            raise BTClibMnemonicsValueError(err_msg) from None
+            raise BTClibMnemonicsValueError(err_msg)
+        indexes.append(found)
     return indexes

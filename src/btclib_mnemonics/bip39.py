@@ -69,8 +69,9 @@ from btclib_mnemonics.exceptions import BTClibMnemonicsValueError
 from btclib_mnemonics.mnemonic import (
     WORDLISTS,
     Mnemonic,
-    indexes_from_mnemonic,
-    mnemonic_from_indexes,
+    WordList,
+    _indexes_in,
+    _mnemonic_in,
     normalize_mnemonic,
 )
 
@@ -101,8 +102,8 @@ _ENTROPY_BITS = 128, 160, 192, 224, 256
 _WORD_COUNTS = tuple((n + n // 32) // 11 for n in _ENTROPY_BITS)
 
 
-def _base(lang: str) -> int:
-    """Return the word-list length of lang, which BIP39 requires to be 2048.
+def _base(wordlist: WordList) -> int:
+    """Return the length of a word-list, which BIP39 requires to be 2048.
 
     WORDLISTS.load_lang already refuses a length that is not a power of
     two, and that is the weaker test: a 1024-word list passes it and then
@@ -113,7 +114,7 @@ def _base(lang: str) -> int:
     keeps `lang="slip39"` from being a silent wrong answer instead of an
     error.
     """
-    base = WORDLISTS.language_length(lang)
+    base = len(wordlist)
     if base != _BIP39_WORDLIST_LENGTH:
         err_msg = f"invalid bip39 wordlist length: {base}; "
         err_msg += f"expected: {_BIP39_WORDLIST_LENGTH}"
@@ -176,9 +177,12 @@ def mnemonic_from_entropy(entropy: Entropy | None = None, lang: str = "en") -> M
     if entropy is None or entropy == "":
         entropy = secrets.randbits(128)
     bin_str_entropy, checksum = _entropy_checksum(entropy)
-    base = _base(lang)
+    # read once: the base and the words of one load, were the language
+    # replaced meanwhile
+    record = WORDLISTS._record(lang)
+    base = _base(record.words)
     indexes = _wordlist_indexes_from_bin_str_entropy(bin_str_entropy + checksum, base)
-    return mnemonic_from_indexes(indexes, lang, separator=_SEPARATORS.get(lang, " "))
+    return _mnemonic_in(record, indexes, _SEPARATORS.get(lang, " "))
 
 
 def _candidate_langs(mnemonic: Mnemonic) -> list[str]:
@@ -187,11 +191,7 @@ def _candidate_langs(mnemonic: Mnemonic) -> list[str]:
     # _BIP39_WORDLIST_LENGTH: slip39's list is 1024 words, and a sentence
     # written from it is not a BIP39 mnemonic in a language nobody named --
     # it is not a BIP39 mnemonic at all
-    return [
-        lang
-        for lang in WORDLISTS.langs_of_words(mnemonic.split())
-        if WORDLISTS.language_length(lang) == _BIP39_WORDLIST_LENGTH
-    ]
+    return WORDLISTS._langs_of(mnemonic.split(), _BIP39_WORDLIST_LENGTH)
 
 
 def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
@@ -300,8 +300,10 @@ def entropy_from_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> BinStr
     mnemonic = normalize_mnemonic(mnemonic)
     _assert_word_count(len(mnemonic.split()))
     lang = lang or lang_from_mnemonic(mnemonic)
-    base = _base(lang)
-    indexes = indexes_from_mnemonic(mnemonic, lang)
+    # read once: the base and the positions of one load
+    record = WORDLISTS._record(lang)
+    base = _base(record.words)
+    indexes = _indexes_in(record, mnemonic, lang)
     cs_entropy = _bin_str_entropy_from_wordlist_indexes(indexes, base)
 
     bits = int(len(cs_entropy) * 32 / 33)

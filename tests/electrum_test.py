@@ -495,7 +495,9 @@ def test_word_order() -> None:
     # prefix, so it is not an electrum mnemonic at all and is refused before it
     # is ever decoded
     reversed_mnemonic = " ".join(reversed(ENGLISH.split()))
-    reversed_entr = electrum._bin_str_entropy_from_mnemonic(reversed_mnemonic, "en")
+    reversed_entr = electrum._bin_str_entropy_from_mnemonic(
+        reversed_mnemonic, ELECTRUM_WORDLISTS._record("en"), "en"
+    )
     assert int(reversed_entr, 2) == 0xFB0A779F83FEDDB0E39AA0DDE898CC384
 
 
@@ -856,10 +858,10 @@ def test_a_wordlist_the_encoding_does_not_round_trip(
     # the failing candidate is a mnemonic like any other, and the
     # exception reports its word count, never the sentence
     # (issue btclib-org/btclib-wallet#38)
-    candidate = electrum._mnemonic_from_int_entropy(2, "en")
+    candidate = electrum._mnemonic_from_int_entropy(2, ELECTRUM_WORDLISTS._record("en"))
     err_msg = "cannot extract the same entropy from mnemonic: "
     with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
-        electrum._search_mnemonic(1, "01", "en")
+        electrum._search_mnemonic(1, "01", ELECTRUM_WORDLISTS._record("en"), "en")
     assert candidate not in str(excinfo.value)
 
 
@@ -1007,23 +1009,35 @@ def test_is_bip39_mnemonic() -> None:
     valid_bip39 = (
         "park leaf system perfect top lecture rather foster best nest craft topic"
     )
-    assert electrum._is_bip39_mnemonic(valid_bip39, "en")
+    assert electrum._is_bip39_mnemonic(
+        valid_bip39, ELECTRUM_WORDLISTS._record("en"), "en"
+    )
     assert bip39.entropy_from_mnemonic(valid_bip39, "en")
 
-    assert not electrum._is_bip39_mnemonic(ENGLISH, "en")
+    assert not electrum._is_bip39_mnemonic(
+        ENGLISH, ELECTRUM_WORDLISTS._record("en"), "en"
+    )
     with pytest.raises(BTClibMnemonicsValueError, match="invalid checksum: "):
         bip39.entropy_from_mnemonic(ENGLISH, "en")
 
     # a word of no word-list, and a length BIP39 has no checksum for
-    assert not electrum._is_bip39_mnemonic("btclib " * 11 + "btclib", "en")
-    assert not electrum._is_bip39_mnemonic(ENGLISH + " abandon", "en")
+    assert not electrum._is_bip39_mnemonic(
+        "btclib " * 11 + "btclib", ELECTRUM_WORDLISTS._record("en"), "en"
+    )
+    assert not electrum._is_bip39_mnemonic(
+        ENGLISH + " abandon", ELECTRUM_WORDLISTS._record("en"), "en"
+    )
 
     # electrum's portuguese, 1626 words read as though eleven bits each.
     # In the vector file for the reason stated above it: a Portuguese
     # sentence in a python source is prose to the spell checkers
     lookalike = LANGUAGE_VECTORS["bip39_lookalike"]
-    assert electrum._is_bip39_mnemonic(lookalike["valid"], "pt")
-    assert not electrum._is_bip39_mnemonic(lookalike["invalid"], "pt")
+    assert electrum._is_bip39_mnemonic(
+        lookalike["valid"], ELECTRUM_WORDLISTS._record("pt"), "pt"
+    )
+    assert not electrum._is_bip39_mnemonic(
+        lookalike["invalid"], ELECTRUM_WORDLISTS._record("pt"), "pt"
+    )
 
 
 def test_entropy_round_trips_through_every_candidate(
@@ -1039,7 +1053,7 @@ def test_entropy_round_trips_through_every_candidate(
     than dead code.
     """
     monkeypatch.setattr(electrum, "_bin_str_entropy_from_mnemonic", lambda *_: "0")
-    candidate = electrum._mnemonic_from_int_entropy(2, "en")
+    candidate = electrum._mnemonic_from_int_entropy(2, ELECTRUM_WORDLISTS._record("en"))
     with pytest.raises(
         BTClibMnemonicsValueError,
         match="cannot extract the same entropy from mnemonic: ",
