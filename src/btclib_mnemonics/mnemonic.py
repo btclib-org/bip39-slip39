@@ -291,7 +291,8 @@ class WordLists:
         The refusal does not quote the word: it is one word of a sentence
         that is somebody's secret, usually one or two letters from the
         right one, and an exception message is what ends up in a log or a
-        crash report. indexes_from_mnemonic adds the word's position.
+        crash report. indexes_from_mnemonic refuses an unknown word with
+        its own message, which gives the word's position.
         """
         assert_type(word, str, "word")
         record = self._record(lang)
