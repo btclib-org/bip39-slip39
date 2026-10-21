@@ -266,6 +266,63 @@ def test_index() -> None:
         word_lists.index("abaco", "en")
 
 
+def test_words_with_prefix() -> None:
+    """The words beginning with a prefix, in list order."""
+    word_lists = WordLists()
+    english = word_lists.wordlist("en")
+    # an empty prefix is every word, and the answer is the caller's own
+    everything = word_lists.words_with_prefix("", "en")
+    assert everything == english
+    assert everything is not english
+    # a full word is its own prefix, and may also begin longer ones
+    assert word_lists.words_with_prefix("zoo", "en") == ["zoo"]
+    assert word_lists.words_with_prefix("act", "en") == [
+        "act",
+        "action",
+        "actor",
+        "actress",
+        "actual",
+    ]
+    # a miss
+    assert word_lists.words_with_prefix("btclib", "en") == []
+    assert word_lists.words_with_prefix("zoos", "en") == []
+    # a short prefix, in list order
+    ab = word_lists.words_with_prefix("ab", "en")
+    assert ab[:3] == ["abandon", "ability", "able"]
+    assert ab == [word for word in english if word.startswith("ab")]
+    # the first four letters single out a word in English BIP39 and in SLIP-0039
+    for lang in ("en", "slip39"):
+        words = word_lists.wordlist(lang)
+        assert len({word[:4] for word in words}) == len(words)
+        for word in words:
+            if len(word) >= 4:
+                assert word_lists.words_with_prefix(word[:4], lang) == [word]
+
+
+def test_words_with_prefix_is_normalized() -> None:
+    """A prefix is in NFKD like the words, so a composed one is found."""
+    word_lists = WordLists()
+    # the japanese list is NFKD: the composed U+304C is U+304B and the
+    # voiced mark U+3099 in it, and is a different prefix from U+304B alone
+    composed = normalize("NFC", "\u304b\u3099")
+    assert composed == "\u304c"
+    voiced = word_lists.words_with_prefix(composed, "ja")
+    assert voiced[:2] == ["\u304b\u3099\u3044\u304d", "\u304b\u3099\u3044\u3051\u3093"]
+    assert voiced == word_lists.words_with_prefix("\u304b\u3099", "ja")
+    assert set(voiced) < set(word_lists.words_with_prefix("\u304b", "ja"))
+
+
+def test_words_with_prefix_refuses() -> None:
+    """A prefix that is no str, and a language that is unknown."""
+    word_lists = WordLists()
+    with pytest.raises(BTClibMnemonicsTypeError, match="^invalid prefix type: int$"):
+        word_lists.words_with_prefix(1, "en")  # type: ignore[arg-type]
+    with pytest.raises(BTClibMnemonicsTypeError, match="^invalid prefix type: bytes$"):
+        word_lists.words_with_prefix(b"ab", "en")  # type: ignore[arg-type]
+    with pytest.raises(BTClibMnemonicsValueError):
+        word_lists.words_with_prefix("ab", "xx")
+
+
 def test_langs_of_words() -> None:
     """The languages whose word-list holds every word, in registry order."""
     word_lists = WordLists()
