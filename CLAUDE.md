@@ -26,9 +26,9 @@ Layers, bottom-up: `exceptions` and the private `_utils`, then `entropy`
 and `mnemonic` (the word lists under `_data/` and the index conversions),
 then the three schemes `bip39`, `electrum` and `slip39`. `bip39` and
 `electrum` import `entropy` and `mnemonic`, `slip39` imports `mnemonic`
-only, and none of the three imports another. The
-one module above them is `dispatch`, which asks each scheme whether a
-sentence is its own.
+only, and none of the three imports another. Two modules sit above
+them: `dispatch`, which asks each scheme whether a sentence is its own,
+and the private `__main__`, the command `python -m btclib_mnemonics`.
 
 The package stops at the seed. A BIP39 or Electrum sentence answers the
 seed it stretches to and a SLIP-0039 set of shares the master secret, and

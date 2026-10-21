@@ -70,6 +70,9 @@ but the standard library.
   scheme with its hex seed and master private key (`electrum`)
 - which of those schemes a sentence belongs to, where more than one
   claims it (`dispatch`)
+- a command that turns dice rolls into a mnemonic whose seed can be
+  recomputed offline, `python -m btclib_mnemonics` (*Dice to a mnemonic*
+  below)
 - the entropy the schemes are generated from, drawn from the operating
   system's CSPRNG or from dice rolls, prompted in the mnemonic's language
   (`entropy`)
@@ -110,7 +113,55 @@ assert slip39.master_secret_from_mnemonics(shares[1:]) == master_secret
 ```
 
 `tests/readme_test.py` runs every Python block of this file, so the
-example above is the one the suite checks.
+examples here are the ones the suite checks.
+
+## Dice to a mnemonic
+
+```shell
+python -m btclib_mnemonics bip39 --contributors 2
+python -m btclib_mnemonics slip39 --groups 2-of-3 3-of-5 --group-threshold 2
+```
+
+The command draws 32 random bytes, R, and shows sha256(R) before the
+first roll: write it down. It cannot then choose R after seeing the
+dice. Each contributor rolls the die and types the faces, unseen: the
+fewest rolls with 2^bits outcomes or more, 100 of a D6 for 256 bits.
+The command then shows R and the mnemonic. A BIP39 mnemonic is shown
+whole. Each SLIP-0039 share is shown alone, the screen and its
+scrollback cleared before and after it. `--help` lists the options.
+
+Whoever knows every contributor's rolls and R knows the seed. So each
+contributor rolls in private: the rolls and R give the seed away only if
+all contributors collude with whoever holds R. To verify it, recompute
+it jointly on a second offline machine. The entropy is the first
+bits / 8 bytes of sha256(rolls_1 ‖ … ‖ rolls_k ‖ R). Each contributor's
+rolls are one byte per roll, the face as rolled (1 to the die's sides),
+in the order typed. The contributors follow in the order they typed, and
+R is the 32 bytes shown in hex:
+
+```python
+from hashlib import sha256
+
+# two contributors, 50 rolls of a D6 each for 128 bits
+rolls = [[1, 2, 3, 4, 5, 6] * 8 + [1, 2], [6, 5, 4, 3, 2, 1] * 8 + [6, 5]]
+r = bytes.fromhex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+assert sha256(r).hexdigest().startswith("630dcd2966c43366")  # the commitment
+entropy = sha256(b"".join(map(bytes, rolls)) + r).digest()[: 128 // 8]
+assert entropy.hex() == "dbe61cbdb00fa79d6ffeb01ab203602f"
+
+# the same entropy, as the command shows it
+from btclib_mnemonics import bip39
+
+assert bip39.mnemonic_from_entropy(entropy).startswith("swim couch control")
+```
+
+A SLIP-0039 entropy is the master secret
+`slip39.master_secret_from_mnemonics` returns from the shares; the
+shares themselves are random. What the terminal keeps of the rolls,
+R and the mnemonic is in SECURITY.md's *Limitations, not
+vulnerabilities*. The screen is cleared with ANSI escape codes. tmux
+and screen keep their own history, and an old Windows console without
+virtual-terminal mode may not honour the codes.
 
 ## Security
 

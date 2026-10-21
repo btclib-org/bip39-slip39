@@ -493,6 +493,8 @@ ignore = [
 # collecting entropy from dice is a conversation: the module prompts with
 # input() and prints which rolls count, so its prints are the interface
 "src/btclib_mnemonics/entropy.py" = ["T201"]
+# the command `python -m btclib_mnemonics` talks to its user the same way
+"src/btclib_mnemonics/__main__.py" = ["T201"]
 # the prompts are in each language of the word lists, Turkish's dotless i
 # and Chinese's fullwidth punctuation among them
 "src/btclib_mnemonics/_rolls_prompts.py" = [
