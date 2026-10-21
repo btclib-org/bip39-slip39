@@ -6,8 +6,8 @@
 
 [cosmic-ray]
 module-path = [
-    "src/btclib_mnemonics/bip39.py",
-    "src/btclib_mnemonics/entropy.py",
+    "src/bip39_slip39/bip39.py",
+    "src/bip39_slip39/entropy.py",
 ]
 
 test-command = """python -m pytest -x -q -n0 -p no:randomly \
@@ -22,7 +22,7 @@ excluded-modules = []
 # evaluation, and in a module-level alias it fails the import, which a
 # test is not needed to notice
 #
-#   grep -n ' | ' src/btclib_mnemonics/bip39.py src/btclib_mnemonics/entropy.py
+#   grep -n ' | ' src/bip39_slip39/bip39.py src/bip39_slip39/entropy.py
 [cosmic-ray.filters.operators-filter]
 exclude-operators = ["core/ReplaceBinaryOperator_BitOr_.*"]
 

@@ -39,7 +39,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-_LIBRARY = Path(__file__).parents[1] / "src" / "btclib_mnemonics"
+_LIBRARY = Path(__file__).parents[1] / "src" / "bip39_slip39"
 
 # the shapes the walk has to be reaching for the gate to mean anything: a
 # module-level function and a private method of a public class. The

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""The coercions of `btclib_mnemonics._utils`, against btclib's originals.
+"""The coercions of `bip39_slip39._utils`, against btclib's originals.
 
 `_utils.py` copies `assert_type`, `bytes_from_octets`, `is_integer` and
 `Octets` from `btclib` so that the package imports nothing of it, and a
@@ -27,8 +27,8 @@ from btclib import alias as btclib_alias
 from btclib import utils as btclib_utils
 from btclib.exceptions import BTClibException
 
-from btclib_mnemonics import _utils
-from btclib_mnemonics.exceptions import BTClibMnemonicsException
+from bip39_slip39 import _utils
+from bip39_slip39.exceptions import BTClibMnemonicsException
 
 _OCTETS = [
     b"",

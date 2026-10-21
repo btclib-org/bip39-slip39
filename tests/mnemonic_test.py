@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for the `btclib_mnemonics.mnemonic` module."""
+"""Tests for the `bip39_slip39.mnemonic` module."""
 
 import threading
 from collections.abc import Callable
@@ -13,12 +13,12 @@ from unicodedata import normalize
 import pytest
 from typing_extensions import override
 
-from btclib_mnemonics import bip39, electrum
-from btclib_mnemonics.exceptions import (
+from bip39_slip39 import bip39, electrum
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
-from btclib_mnemonics.mnemonic import (
+from bip39_slip39.mnemonic import (
     WORDLISTS,
     MnemonicLang,
     WordLists,

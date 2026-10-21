@@ -1,14 +1,14 @@
 # Vendored test vectors
 
 This file is about `tests/_data/`, plus the shipped data this package
-holds that nothing else pins: `src/btclib_mnemonics/_data/wordlist.txt`,
+holds that nothing else pins: `src/bip39_slip39/_data/wordlist.txt`,
 SLIP-0039's word list. A word list is the most load-bearing vendored file
 there is -- every share ever written with it decodes through it -- and
 unlike `english.txt` it has no byte-identical copy under `tests/` for an
 entry to name instead. The package's other word lists have no entry
 because each is already pinned somewhere else or not at all:
 `english.txt` through the test copy below, `electrum_old_english.txt` and
-`electrum_portuguese.txt` through the pins `src/btclib_mnemonics/electrum.py`
+`electrum_portuguese.txt` through the pins `src/bip39_slip39/electrum.py`
 carries beside the constants naming them, and the other BIP39 lists
 nowhere, which is a gap rather than a statement about them.
 
@@ -190,7 +190,7 @@ Portuguese sentence into the English word it is one letter away from.
 
 Pulled 2026-08-02.
 
-### `src/btclib_mnemonics/_data/wordlist.txt`
+### `src/bip39_slip39/_data/wordlist.txt`
 
 ```text
 repo    satoshilabs/slips
@@ -295,9 +295,9 @@ package answers by the generator, over btclib-ecc, and compares.
 
 The word-list they run over has no entry here, and being outside
 `tests/` is not the reason -- `wordlist.txt` is outside it and has one.
-`src/btclib_mnemonics/_data/electrum_old_english.txt` is pinned where it is
+`src/bip39_slip39/_data/electrum_old_english.txt` is pinned where it is
 used: it is shipped code, transcribed from the `_words` tuple of
-`electrum/old_mnemonic.py`, and `src/btclib_mnemonics/electrum.py` carries
+`electrum/old_mnemonic.py`, and `src/bip39_slip39/electrum.py` carries
 that pin beside the constant that names the file.
 
 Pulled 2018-06-11; the pre-2.0 values 2026-08-02.
@@ -335,7 +335,7 @@ line every open branch has to edit. The lists *are* the fact the number
 summarized, and the tree answers whenever the number is wanted:
 
 ```shell
-git ls-files 'tests/_data/*' src/btclib_mnemonics/_data/wordlist.txt \
+git ls-files 'tests/_data/*' src/bip39_slip39/_data/wordlist.txt \
     | grep -cv 'README.md'
 ```
 

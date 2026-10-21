@@ -51,11 +51,11 @@ from typing import Any
 
 import pytest
 
-from btclib_mnemonics import bip39, slip39
-from btclib_mnemonics.exceptions import BTClibMnemonicsTypeError
-from btclib_mnemonics.mnemonic import WordLists
+from bip39_slip39 import bip39, slip39
+from bip39_slip39.exceptions import BTClibMnemonicsTypeError
+from bip39_slip39.mnemonic import WordLists
 
-_LIBRARY = Path(__file__).parents[1] / "src" / "btclib_mnemonics"
+_LIBRARY = Path(__file__).parents[1] / "src" / "bip39_slip39"
 
 # a value of no bool type: a truthy string, and the two integers `bool`
 # inherits from. Every one of them is a call mypy refuses
@@ -78,7 +78,7 @@ class _Case:
 
 _KINDS = (
     _Case(
-        "btclib_mnemonics.slip39.mnemonics_from_master_secret",
+        "bip39_slip39.slip39.mnemonics_from_master_secret",
         "extendable",
         slip39.mnemonics_from_master_secret,
         {"master_secret": "00" * 16},
@@ -87,7 +87,7 @@ _KINDS = (
 
 _TRUTHS = (
     _Case(
-        "btclib_mnemonics.bip39.seed_from_mnemonic",
+        "bip39_slip39.bip39.seed_from_mnemonic",
         "verify_checksum",
         bip39.seed_from_mnemonic,
         {"mnemonic": "abandon " * 11 + "about", "passphrase": ""},
@@ -95,7 +95,7 @@ _TRUTHS = (
         " same either way, being a PBKDF2 of the words",
     ),
     _Case(
-        "btclib_mnemonics.mnemonic.WordLists.__init__",
+        "bip39_slip39.mnemonic.WordLists.__init__",
         "power_of_two",
         WordLists,
         {},
@@ -190,7 +190,7 @@ def test_a_truth_is_read_for_its_truth(case: _Case) -> None:
 def test_every_bool_parameter_is_classified() -> None:
     """No third table: a flag is a kind or a truth, and the walk says so.
 
-    A parameter added anywhere under `src/btclib_mnemonics/` fails here until
+    A parameter added anywhere under `src/bip39_slip39/` fails here until
     somebody decides which of the two it is -- which is the decision this
     file exists to keep from being made by default.
     """
@@ -209,9 +209,9 @@ def test_the_walk_reaches_what_it_claims() -> None:
     """
     found = _bool_parameters()
     # a function's flag, and a method's
-    assert ("btclib_mnemonics.bip39.seed_from_mnemonic", "verify_checksum") in found
-    assert ("btclib_mnemonics.mnemonic.WordLists.__init__", "power_of_two") in found
+    assert ("bip39_slip39.bip39.seed_from_mnemonic", "verify_checksum") in found
+    assert ("bip39_slip39.mnemonic.WordLists.__init__", "power_of_two") in found
 
     # a private function, and a parameter of another type
-    assert ("btclib_mnemonics.slip39._feistel", "decrypt") not in found
-    assert ("btclib_mnemonics.bip39.seed_from_mnemonic", "passphrase") not in found
+    assert ("bip39_slip39.slip39._feistel", "decrypt") not in found
+    assert ("bip39_slip39.bip39.seed_from_mnemonic", "passphrase") not in found

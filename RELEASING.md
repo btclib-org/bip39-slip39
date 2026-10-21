@@ -1,4 +1,4 @@
-# Releasing btclib-mnemonics
+# Releasing bip39-slip39
 
 Releases are published by GitHub Actions
 ([release.yml](./.github/workflows/release.yml)), not from a developer
@@ -89,8 +89,8 @@ anywhere. The upload PyPI accepts turns its pending entry into an ordinary
 one, and TestPyPI's rehearsal does the same there.
 
 1. On [PyPI](https://pypi.org/manage/account/publishing/), add a trusted
-   publisher: PyPI project name `btclib-mnemonics`, owner `btclib-org`,
-   repository `btclib-mnemonics`, workflow `release.yml`,
+   publisher: PyPI project name `bip39-slip39`, owner `btclib-org`,
+   repository `bip39-slip39`, workflow `release.yml`,
    environment `pypi`.
 
 1. On [TestPyPI](https://test.pypi.org/), add the same trusted publisher,
@@ -128,7 +128,7 @@ A rehearsal runs the identical pipeline — lint gate, test matrix, the
 `build` job's build and signature, the `dist` job's packaging checks
 (twine, check-wheel-contents, pyroma) and its wheel smoke test — and
 publishes the very files those checks passed to
-[TestPyPI](https://test.pypi.org/project/btclib-mnemonics/) instead of
+[TestPyPI](https://test.pypi.org/project/bip39-slip39/) instead of
 PyPI, so what `release.yml` publishes and what `test.yml` checked are
 the same files (issue btclib-org/btclib#1166).
 
@@ -184,8 +184,8 @@ the tag exercises the first.
    uv run --isolated --no-project \
      --index https://test.pypi.org/simple/ \
      --index-strategy unsafe-best-match \
-     --with "btclib-mnemonics==${dev:?}" \
-     python -c "import btclib_mnemonics; print(btclib_mnemonics.__version__)"
+     --with "bip39-slip39==${dev:?}" \
+     python -c "import bip39_slip39; print(bip39_slip39.__version__)"
    ```
 
 1. Check that the `build` job is green. It signs a rehearsal's files too,
@@ -259,7 +259,7 @@ result.
    whether the list is right, but whether it is complete:
 
    ```shell
-   uv run --locked --with griffe griffe check btclib_mnemonics \
+   uv run --locked --with griffe griffe check bip39_slip39 \
        -s . -s src -a v<previous version>
    ```
 
@@ -379,7 +379,7 @@ result.
 
 1. Run `uv run pre-commit run --all-files` and `uv run pytest --cov`
    before pressing anything, then verify the
-   [read the docs](https://readthedocs.org/projects/btclib-mnemonics/builds/)
+   [read the docs](https://readthedocs.org/projects/bip39-slip39/builds/)
    build renders. Read the *builds* page and not only the rendered one: a
    site that answers 200 may be serving the last build that succeeded,
    the webhook having quietly refused every delivery since.
@@ -387,7 +387,7 @@ result.
 1. Run each dependent's suite with this release in place of its PyPI
    version, whether or not the notes declare a break. Section 12 of the
    [organization standard](https://github.com/btclib-org/.github#12-releasing)
-   has the rule. The one dependent of `btclib-mnemonics` is
+   has the rule. The one dependent of `bip39-slip39` is
    `btclib-wallet`. Re-derive it with the loop in that section
    before each release rather than carry this list.
 
@@ -395,12 +395,12 @@ result.
    sha of the release pull request's head for `<sha>`, before it merges:
 
    ```shell
-   ref=git+https://github.com/btclib-org/btclib-mnemonics@<sha>
+   ref=git+https://github.com/btclib-org/bip39-slip39@<sha>
    ```
 
    ```shell
    uv run --locked --no-default-groups --group test \
-     --with "btclib-mnemonics @ ${ref:?}" \
+     --with "bip39-slip39 @ ${ref:?}" \
      python -m pytest --no-cov
    ```
 
@@ -497,9 +497,9 @@ result.
 
    ```shell
    tagsha=$(gh api \
-     repos/btclib-org/btclib-mnemonics/git/refs/tags/"v${version:?}" \
+     repos/btclib-org/bip39-slip39/git/refs/tags/"v${version:?}" \
      --jq '.object.sha') &&
-   gh api repos/btclib-org/btclib-mnemonics/git/tags/"${tagsha:?}" \
+   gh api repos/btclib-org/bip39-slip39/git/tags/"${tagsha:?}" \
      --jq '.verification.verified'
    ```
 
@@ -551,7 +551,7 @@ result.
    ```shell
    gh api --paginate \
      --jq '.jobs[] | [.conclusion, (.steps|length), .name] | @tsv' \
-     "repos/btclib-org/btclib-mnemonics/actions/runs/${run:?}/jobs?per_page=100"
+     "repos/btclib-org/bip39-slip39/actions/runs/${run:?}/jobs?per_page=100"
    ```
 
    On a tag `Publish to TestPyPI` is `skipped`, its trigger being the
@@ -574,9 +574,9 @@ result.
    than one that may already hold it, and run something with it:
 
    ```shell
-   uv run --isolated --no-project --with btclib-mnemonics \
-     --refresh-package btclib-mnemonics \
-     python -c "import btclib_mnemonics; print(btclib_mnemonics.__version__)"
+   uv run --isolated --no-project --with bip39-slip39 \
+     --refresh-package bip39-slip39 \
+     python -c "import bip39_slip39; print(bip39_slip39.__version__)"
    ```
 
    from a directory that belongs to no checkout of this project: run
@@ -586,11 +586,11 @@ result.
 
    then check the attestations — the JSON API answers `null` for
    `provenance` even where they exist; the
-   [simple API](https://pypi.org/simple/btclib-mnemonics/) (`Accept:
+   [simple API](https://pypi.org/simple/bip39-slip39/) (`Accept:
    application/vnd.pypi.simple.v1+json`) carries the real link, under
    `/integrity/<project>/<version>/<filename>/provenance`, and
    `pypi-attestations verify pypi <file> --repository
-   https://github.com/btclib-org/btclib-mnemonics` checks the
+   https://github.com/btclib-org/bip39-slip39` checks the
    signature rather than merely its presence.
 
 1. Read the `published` job of the release run, which needs no dispatch:
@@ -634,7 +634,7 @@ result.
    replacing by hand if it ever fires.
 
 1. Read the bill of materials attached to the release,
-   `btclib_mnemonics-<version>.cdx.json`: a CycloneDX 1.6 document naming
+   `bip39_slip39-<version>.cdx.json`: a CycloneDX 1.6 document naming
    the distribution, its licence, the two files with their SHA-256, and
    one component per dependency the wheel's metadata declares. It is read
    out of the built wheel and not out of `pyproject.toml`, which is what
@@ -653,9 +653,9 @@ result.
    ```
 
    ```shell
-   gh release download "v${version:?}" --repo btclib-org/btclib-mnemonics &&
-   wheel=btclib_mnemonics-${version:?}-py3-none-any.whl &&
-   repo=btclib-org/btclib-mnemonics &&
+   gh release download "v${version:?}" --repo btclib-org/bip39-slip39 &&
+   wheel=bip39_slip39-${version:?}-py3-none-any.whl &&
+   repo=btclib-org/bip39-slip39 &&
    workflows=btclib-org/.github/.github/workflows &&
    signer=$workflows/reusable-build.yml@refs/heads/main &&
    gh attestation verify "$wheel" --repo "$repo" \
@@ -739,11 +739,11 @@ command, and both scripts below read the variable out of their own
 environment and refuse to run without it.
 
 ```shell
-git worktree add --detach /tmp/btclib-mnemonics-rebuild "v${version:?}" &&
-cd /tmp/btclib-mnemonics-rebuild &&
+git worktree add --detach /tmp/bip39-slip39-rebuild "v${version:?}" &&
+cd /tmp/bip39-slip39-rebuild &&
 python=$(grep -Ev '^[[:space:]]*(#|$)' .python-version) &&
 export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct) &&
-repo=btclib-org/btclib-mnemonics &&
+repo=btclib-org/bip39-slip39 &&
 workflows=btclib-org/.github/.github/workflows &&
 signer=$workflows/reusable-build.yml@refs/heads/main &&
 tag="v${version:?}" &&
@@ -764,11 +764,11 @@ git clone --depth 1 --filter=blob:none --sparse \
 git -C "$served" sparse-checkout set .github/scripts &&
 uv run --no-project --python "$python" \
   "$served"/.github/scripts/generate_sbom.py dist/ sbom/ &&
-gh attestation verify "dist/btclib_mnemonics-${version:?}.tar.gz" \
+gh attestation verify "dist/bip39_slip39-${version:?}.tar.gz" \
   --repo "$repo" --signer-workflow "$signer" --source-ref "refs/tags/$tag" &&
-gh attestation verify "dist/btclib_mnemonics-${version:?}-py3-none-any.whl" \
+gh attestation verify "dist/bip39_slip39-${version:?}-py3-none-any.whl" \
   --repo "$repo" --signer-workflow "$signer" --source-ref "refs/tags/$tag" &&
-gh attestation verify "sbom/btclib_mnemonics-${version:?}.cdx.json" \
+gh attestation verify "sbom/bip39_slip39-${version:?}.cdx.json" \
   --repo "$repo" --signer-workflow "$signer" --source-ref "refs/tags/$tag"
 ```
 
@@ -919,7 +919,7 @@ reading a mismatch as tampering:
   gh run download "${run:?}" -n sbom -D sbom &&
   gh run download "${run:?}" -n attestation -D attestation &&
   shasum -a 256 dist/* &&
-  curl -s "https://pypi.org/pypi/btclib-mnemonics/${version:?}/json" \
+  curl -s "https://pypi.org/pypi/bip39-slip39/${version:?}/json" \
     | python3 -c 'import json,sys; d=json.load(sys.stdin)
   [print(u["filename"], u["digests"]["sha256"]) for u in d["urls"]]' &&
 

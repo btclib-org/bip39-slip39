@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for the `btclib_mnemonics.bip39` module.
+"""Tests for the `bip39_slip39.bip39` module.
 
 The vector files carry a BIP32 root extended private key beside each
 seed, being upstream's files byte for byte. The seed is where this
@@ -20,12 +20,12 @@ from unicodedata import normalize
 
 import pytest
 
-from btclib_mnemonics import bip39, electrum
-from btclib_mnemonics.exceptions import (
+from bip39_slip39 import bip39, electrum
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
-from btclib_mnemonics.mnemonic import (
+from bip39_slip39.mnemonic import (
     WORDLISTS,
     WordLists,
     data_file,
@@ -518,8 +518,8 @@ def test_a_word_count_bip39_has_no_mnemonic_for_is_refused_undecoded(
     """Refuse the count before the words are looked up or decoded."""
     decoded = lambda *_: pytest.fail("decoded")  # noqa: E731
 
-    monkeypatch.setattr("btclib_mnemonics.bip39._indexes_in", decoded)
-    monkeypatch.setattr("btclib_mnemonics.bip39.lang_from_mnemonic", decoded)
+    monkeypatch.setattr("bip39_slip39.bip39._indexes_in", decoded)
+    monkeypatch.setattr("bip39_slip39.bip39.lang_from_mnemonic", decoded)
     err_msg = f"invalid mnemonic length: {n_words} words"
     for lang in (None, "en"):
         with pytest.raises(BTClibMnemonicsValueError, match=err_msg):

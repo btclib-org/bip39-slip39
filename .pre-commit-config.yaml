@@ -91,7 +91,7 @@ repos:
         # in it as text. The hooks below that rewrite a file carry the
         # same exclusion; codespell and typos take theirs from
         # `pyproject.toml`
-        exclude: ^(src/btclib_mnemonics/_data/electrum_portuguese\.txt$|fuzz/corpus/)
+        exclude: ^(src/bip39_slip39/_data/electrum_portuguese\.txt$|fuzz/corpus/)
       - id: end-of-file-fixer
         exclude: ^fuzz/corpus/
       - id: mixed-line-ending
@@ -312,7 +312,7 @@ repos:
   # destination, so the one grep sees every one; the same destinations
   # without the "./" render the destination alone, which no single
   # pattern reaches without also matching the autodoc anchors these pages
-  # carry, such as href="#module-btclib_mnemonics.bip39".
+  # carry, such as href="#module-bip39_slip39.bip39".
   #
   # "../" is accepted, unlike the three rows above: conf.py's
   # RootFileLinks transform resolves a target written this way against
@@ -585,7 +585,7 @@ repos:
   # in pyproject.toml, next to the ruff one, and says which of its checks
   # are off here and why.
   #
-  # Scoped to btclib_mnemonics, which is where the contract has to be
+  # Scoped to bip39_slip39, which is where the contract has to be
   # written down: what a consumer of the installed package reads is
   # help() and an IDE tooltip, with no README beside it. Neither of the
   # two other trees is that -- a test documents what it claims and not
@@ -597,7 +597,7 @@ repos:
       - id: pydoclint
         name: pydoclint (arguments and return values)
         args: [--config=pyproject.toml]
-        files: ^src/btclib_mnemonics/.*\.py$
+        files: ^src/bip39_slip39/.*\.py$
   # a child process decoded through `text=True` takes the locale's
   # encoding, by the same rule an `open` without one does -- what a
   # failure reports then depends on what Windows decoded the child's
@@ -634,7 +634,7 @@ repos:
   # not the mirrors-mypy hook: it injects --ignore-missing-imports, which
   # turns an unresolved (or misspelled) import into Any, the opposite of
   # strict, and it type checks in an isolated environment, where the
-  # project itself is not installed -- so `import btclib_mnemonics` in a
+  # project itself is not installed -- so `import bip39_slip39` in a
   # test would be Any and every assertion about it would check out
   # vacuously. This is the very command the lint workflow runs, against
   # the project environment and the real pytest.
@@ -650,7 +650,7 @@ repos:
         name: mypy (strict, in the project environment)
         entry: >
           uv run --locked --no-default-groups --group lint --group test
-          mypy src/btclib_mnemonics tests .github/scripts
+          mypy src/bip39_slip39 tests .github/scripts
         language: system
         types: [python]
         pass_filenames: false

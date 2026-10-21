@@ -1,13 +1,13 @@
 ---
 name: Feature request
-description: Add something to btclib-mnemonics, or change how it works
+description: Add something to bip39-slip39, or change how it works
 type: Feature
 
 body:
   - type: markdown
     attributes:
       value: >
-        btclib-mnemonics is the mnemonic schemes -- BIP39, SLIP-0039 and
+        bip39-slip39 is the mnemonic schemes -- BIP39, SLIP-0039 and
         Electrum's -- from the entropy to the seed, with the entropy
         sources they are generated from. What a seed derives to -- a BIP32
         key, an address, a wallet -- is a library above this one, and not
@@ -35,7 +35,7 @@ body:
   - type: textarea
     id: why
     attributes:
-      label: Why it belongs in btclib-mnemonics
+      label: Why it belongs in bip39-slip39
       description: >
         What cannot be done today with what the package already exposes.
     validations:

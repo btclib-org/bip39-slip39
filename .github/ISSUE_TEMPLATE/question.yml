@@ -1,6 +1,6 @@
 ---
 name: Question
-description: Ask how btclib-mnemonics does something, or why it does it that way
+description: Ask how bip39-slip39 does something, or why it does it that way
 type: Task
 
 body:
@@ -9,8 +9,8 @@ body:
       value: >
         Discussions are not enabled here, so a question is an issue: this
         form is what keeps one from having to be filed as a bug. The
-        [documentation](https://btclib-mnemonics.readthedocs.io/) and the
-        [README](https://github.com/btclib-org/btclib-mnemonics/blob/main/README.md)
+        [documentation](https://bip39-slip39.readthedocs.io/) and the
+        [README](https://github.com/btclib-org/bip39-slip39/blob/main/README.md)
         come first, and for a real-time answer there is the Slack channel
         behind the *Chat with the developers* link on the new-issue page.
 
@@ -32,7 +32,7 @@ body:
       label: Version, if it matters
       description: >
         `python -c "from importlib.metadata import version;
-        print(version('btclib-mnemonics'))"`
+        print(version('bip39-slip39'))"`
       placeholder: "2026.10"
 
   - type: markdown

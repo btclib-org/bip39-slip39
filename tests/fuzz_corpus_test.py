@@ -33,8 +33,8 @@ from typing import Any
 
 import pytest
 
-from btclib_mnemonics import slip39
-from btclib_mnemonics.exceptions import BTClibMnemonicsException
+from bip39_slip39 import slip39
+from bip39_slip39.exceptions import BTClibMnemonicsException
 from tests.fuzz_test import DECODERS
 
 _FUZZ = Path(__file__).parent.parent / "fuzz"
@@ -156,6 +156,6 @@ def test_every_decoder_the_hypothesis_tests_drive_is_fuzzed() -> None:
     missing = {
         name
         for name in DECODERS
-        if "btclib_mnemonics." + name.replace(".", ":") not in called
+        if "bip39_slip39." + name.replace(".", ":") not in called
     }
     assert not missing, sorted(missing)

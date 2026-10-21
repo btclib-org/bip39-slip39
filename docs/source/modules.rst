@@ -1,7 +1,7 @@
-btclib_mnemonics
-================
+bip39_slip39
+============
 
 .. toctree::
    :maxdepth: 4
 
-   btclib_mnemonics
+   bip39_slip39

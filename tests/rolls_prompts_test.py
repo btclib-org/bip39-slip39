@@ -14,13 +14,13 @@ from io import StringIO
 
 import pytest
 
-from btclib_mnemonics._rolls_prompts import ROLLS_PROMPTS
-from btclib_mnemonics.entropy import collect_rolls
-from btclib_mnemonics.exceptions import (
+from bip39_slip39._rolls_prompts import ROLLS_PROMPTS
+from bip39_slip39.entropy import collect_rolls
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
-from btclib_mnemonics.mnemonic import BIP39_LANGUAGE_FILES
+from bip39_slip39.mnemonic import BIP39_LANGUAGE_FILES
 
 _LANGS = sorted(ROLLS_PROMPTS)
 

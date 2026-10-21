@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for the `btclib_mnemonics.entropy` module."""
+"""Tests for the `bip39_slip39.entropy` module."""
 
 import math
 import secrets
@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from btclib_mnemonics.entropy import (
+from bip39_slip39.entropy import (
     _bin_str_entropy_from_bytes,
     _bin_str_entropy_from_entropy,
     _bin_str_entropy_from_int,
@@ -25,7 +25,7 @@ from btclib_mnemonics.entropy import (
     bin_str_entropy_from_rolls,
     collect_rolls,
 )
-from btclib_mnemonics.exceptions import (
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
@@ -505,7 +505,7 @@ def test_random_keeps_the_leading_zeros_of_the_draw(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The draw is written at its own width: its leading zeros are entropy."""
-    monkeypatch.setattr("btclib_mnemonics.entropy.secrets.randbits", lambda _: 1)
+    monkeypatch.setattr("bip39_slip39.entropy.secrets.randbits", lambda _: 1)
     assert bin_str_entropy_from_random(128) == "0" * 127 + "1"
 
 

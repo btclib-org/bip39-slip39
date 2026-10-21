@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""`python -m btclib_mnemonics`: dice to a mnemonic with a recomputable seed.
+"""`python -m bip39_slip39`: dice to a mnemonic with a recomputable seed.
 
 The README's *Dice to a mnemonic* says what the command does and how
 to recompute its seed with `hashlib` alone. A BIP39 mnemonic is shown
@@ -21,13 +21,13 @@ import sys
 from collections.abc import Sequence
 from hashlib import sha256
 
-from btclib_mnemonics import bip39, slip39
-from btclib_mnemonics.entropy import _small_int
-from btclib_mnemonics.exceptions import (
+from bip39_slip39 import bip39, slip39
+from bip39_slip39.entropy import _small_int
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
-from btclib_mnemonics.mnemonic import BIP39_LANGUAGE_FILES
+from bip39_slip39.mnemonic import BIP39_LANGUAGE_FILES
 
 __all__: list[str] = []
 
@@ -104,7 +104,7 @@ def _group(text: str) -> tuple[int, int]:
 def _parser() -> argparse.ArgumentParser:
     """Return the command's argument parser."""
     parser = argparse.ArgumentParser(
-        prog="python -m btclib_mnemonics",
+        prog="python -m bip39_slip39",
         description="Dice to a mnemonic whose seed can be recomputed offline.",
     )
     schemes = parser.add_subparsers(dest="scheme", required=True)

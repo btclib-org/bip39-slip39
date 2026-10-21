@@ -15,7 +15,7 @@ against.
 
 ## Architecture
 
-`src/btclib_mnemonics/` is the package, and it imports nothing outside
+`src/bip39_slip39/` is the package, and it imports nothing outside
 the standard library: `tests/imports_test.py` imports each module alone
 to hold that. btclib and btclib-ecc are test dependencies, the oracles a
 copied coercion and a derived key are checked against, and never runtime
@@ -28,7 +28,7 @@ then the three schemes `bip39`, `electrum` and `slip39`. `bip39` and
 `electrum` import `entropy` and `mnemonic`, `slip39` imports `mnemonic`
 only, and none of the three imports another. Two modules sit above
 them: `dispatch`, which asks each scheme whether a sentence is its own,
-and the private `__main__`, the command `python -m btclib_mnemonics`.
+and the private `__main__`, the command `python -m bip39_slip39`.
 
 The package stops at the seed. A BIP39 or Electrum sentence answers the
 seed it stretches to and a SLIP-0039 set of shares the master secret, and
@@ -100,7 +100,7 @@ Do not use Fable unless instructed.
 - **mypy is a *local* hook shelling out to uv on purpose.** The
   mirrors-mypy hook injects `--ignore-missing-imports`, and it type
   checks in an isolated environment where the project is not installed —
-  so `import btclib_mnemonics` in a test would be `Any` and every assertion
+  so `import bip39_slip39` in a test would be `Any` and every assertion
   about it would pass vacuously.
 - **The version is declared once**, in `pyproject.toml`.
   `docs/source/conf.py` parses that file (not the metadata, which would

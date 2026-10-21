@@ -4,7 +4,7 @@
 # recombines into a secret nobody split.
 
 [cosmic-ray]
-module-path = ["src/btclib_mnemonics/slip39.py"]
+module-path = ["src/bip39_slip39/slip39.py"]
 
 test-command = """python -m pytest -x -q -n0 -p no:randomly \
   tests/slip39_test.py"""
@@ -18,7 +18,7 @@ excluded-modules = []
 # an `isinstance` it raises TypeError on the first call, which the first
 # test to reach it reports
 #
-#   grep -n ' | ' src/btclib_mnemonics/slip39.py
+#   grep -n ' | ' src/bip39_slip39/slip39.py
 [cosmic-ray.filters.operators-filter]
 exclude-operators = ["core/ReplaceBinaryOperator_BitOr_.*"]
 

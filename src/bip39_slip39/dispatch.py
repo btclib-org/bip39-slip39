@@ -91,10 +91,10 @@ scheme, and asks slip39 for the rest.
 
 from __future__ import annotations
 
-from btclib_mnemonics import bip39, electrum, slip39
-from btclib_mnemonics._utils import assert_type
-from btclib_mnemonics.exceptions import BTClibMnemonicsValueError
-from btclib_mnemonics.mnemonic import Mnemonic, indexes_from_mnemonic
+from bip39_slip39 import bip39, electrum, slip39
+from bip39_slip39._utils import assert_type
+from bip39_slip39.exceptions import BTClibMnemonicsValueError
+from bip39_slip39.mnemonic import Mnemonic, indexes_from_mnemonic
 
 __all__ = [
     "all_seed_types_from_mnemonic",

@@ -35,15 +35,15 @@ from tests.all_test import library_modules
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-# Walked from `btclib_mnemonics`, on the commit this file is part of: every
+# Walked from `bip39_slip39`, on the commit this file is part of: every
 # public callable that takes at least one keyword-only parameter, and the
 # names of those parameters in declaration order
 KEYWORD_ONLY: dict[str, list[str]] = {
-    "btclib_mnemonics.slip39:master_secret_from_mnemonics": ["max_iteration_exponent"],
-    "btclib_mnemonics.slip39:EncryptedMasterSecret.master_secret": [
+    "bip39_slip39.slip39:master_secret_from_mnemonics": ["max_iteration_exponent"],
+    "bip39_slip39.slip39:EncryptedMasterSecret.master_secret": [
         "max_iteration_exponent"
     ],
-    "btclib_mnemonics.slip39:Recovery.__init__": ["max_iteration_exponent"],
+    "bip39_slip39.slip39:Recovery.__init__": ["max_iteration_exponent"],
 }
 
 
@@ -106,7 +106,7 @@ def test_the_walk_reaches_what_it_claims() -> None:
     that from being how it passes.
     """
     labels = {label for label, _ in _callables()}
-    assert "btclib_mnemonics.slip39:share_from_mnemonic" in labels
-    assert "btclib_mnemonics.slip39:Share.__init__" in labels
-    assert "btclib_mnemonics.mnemonic:WordLists.load_lang" in labels
-    assert "btclib_mnemonics.mnemonic:WordLists._read_wordlist" not in labels
+    assert "bip39_slip39.slip39:share_from_mnemonic" in labels
+    assert "bip39_slip39.slip39:Share.__init__" in labels
+    assert "bip39_slip39.mnemonic:WordLists.load_lang" in labels
+    assert "bip39_slip39.mnemonic:WordLists._read_wordlist" not in labels

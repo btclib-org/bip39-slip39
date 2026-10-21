@@ -47,7 +47,7 @@ jobs:
   public-api:
     uses: btclib-org/.github/.github/workflows/reusable-public-api.yml@main
     with:
-      package: btclib_mnemonics
+      package: bip39_slip39
 
   # `uv audit` over what the wheel declares, before anything is published:
   # btclib-org/.github's reusable-audit.yml, called at @main so that the uv
@@ -155,7 +155,7 @@ jobs:
     # (section 12 of the organization's standard)
     if: >-
       always() && github.event_name == 'workflow_dispatch' &&
-      github.repository == 'btclib-org/btclib-mnemonics' &&
+      github.repository == 'btclib-org/bip39-slip39' &&
       needs.test.result == 'success' && needs.lint.result == 'success' &&
       needs.docs.result == 'success' && needs.ubuntu.result == 'success' &&
       needs.macos.result == 'success' && needs.windows.result == 'success' &&
@@ -164,7 +164,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: testpypi
-      url: https://test.pypi.org/project/btclib-mnemonics/
+      url: https://test.pypi.org/project/bip39-slip39/
     permissions:
       id-token: write # the OIDC token that lets TestPyPI trust the workflow itself
     steps:
@@ -196,7 +196,7 @@ jobs:
     # for its result, on a tag exactly as on a rehearsal
     if: >-
       always() && github.event_name == 'push' &&
-      github.repository == 'btclib-org/btclib-mnemonics' &&
+      github.repository == 'btclib-org/bip39-slip39' &&
       needs.test.result == 'success' && needs.lint.result == 'success' &&
       needs.docs.result == 'success' && needs.ubuntu.result == 'success' &&
       needs.macos.result == 'success' && needs.windows.result == 'success' &&
@@ -207,7 +207,7 @@ jobs:
     # job starts, and admits `v*` tags alone
     environment:
       name: pypi
-      url: https://pypi.org/project/btclib-mnemonics/
+      url: https://pypi.org/project/bip39-slip39/
     permissions:
       id-token: write # the OIDC token that lets PyPI trust the workflow itself
     steps:
@@ -276,4 +276,4 @@ jobs:
     if: github.event_name == 'push'
     uses: btclib-org/.github/.github/workflows/reusable-documented.yml@main
     with:
-      readthedocs-slug: btclib-mnemonics
+      readthedocs-slug: bip39-slip39

@@ -5,7 +5,7 @@
 """Tests for the one policy on integer fields: a bool is not a number.
 
 One file rather than a case per module, because the decision is one and
-`btclib_mnemonics._utils.is_integer` states it. What makes it worth a
+`bip39_slip39._utils.is_integer` states it. What makes it worth a
 refusal is the json boundary: `true` decodes to `True`, and a schema
 mistake would become a roll of one, an index of one or a threshold of
 one instead of failing beside the input that caused it.
@@ -20,13 +20,13 @@ from typing import Any
 
 import pytest
 
-from btclib_mnemonics._utils import is_integer
-from btclib_mnemonics.entropy import (
+from bip39_slip39._utils import is_integer
+from bip39_slip39.entropy import (
     _bin_str_entropy_from_wordlist_indexes,
     bin_str_entropy_from_rolls,
 )
-from btclib_mnemonics.exceptions import BTClibMnemonicsTypeError
-from btclib_mnemonics.slip39 import (
+from bip39_slip39.exceptions import BTClibMnemonicsTypeError
+from bip39_slip39.slip39 import (
     EncryptedMasterSecret,
     Recovery,
     Share,

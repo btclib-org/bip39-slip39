@@ -1,7 +1,7 @@
-.. btclib-mnemonics documentation master file: the root `toctree`.
+.. bip39-slip39 documentation master file: the root `toctree`.
 
-btclib-mnemonics documentation
-==============================
+bip39-slip39 documentation
+==========================
 
 .. toctree::
    :maxdepth: 1
