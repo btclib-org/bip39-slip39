@@ -96,8 +96,8 @@ nothing under `src/` writes a file.
 
 ## Secure design principles
 
-Saltzer and Schroeder's principles, over the layering `CLAUDE.md`'s
-*Architecture* describes.
+Saltzer and Schroeder's principles apply across the layers described in
+[ARCHITECTURE.md](./ARCHITECTURE.md).
 
 - **Economy of mechanism.** Three schemes over one word-list machinery
   (`mnemonic`), BIP39 and Electrum also over one entropy module
