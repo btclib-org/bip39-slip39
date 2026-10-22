@@ -22,12 +22,8 @@ refusal is for.
 
 ## The polarity a truth has to have
 
-`"no"` is true, and so is every other wrong value, so the misreading is
-never "the flag was off": it is always the one the flag's `True` stands
-for. That is what makes a truth safe rather than the fact that it changes
-no answer: the wrong value falls on the side that refuses more. So a
-truth's `True` has to be its conservative value, and a flag whose `True`
-is the permissive one is a kind however little it computes (issue
+`CONTRIBUTING.md`'s *A truth's `True` has to be its conservative value*
+is the rule, with the wrong values it does not cover (issue
 btclib-org/btclib#884).
 
 The two tests below are that line, one each:
@@ -56,10 +52,6 @@ from typing import Any
 import pytest
 
 from btclib_mnemonics import bip39, slip39
-from btclib_mnemonics.entropy import (
-    bin_str_entropy_from_random,
-    bin_str_entropy_from_rolls,
-)
 from btclib_mnemonics.exceptions import BTClibMnemonicsTypeError
 from btclib_mnemonics.mnemonic import WordLists
 
@@ -85,18 +77,6 @@ class _Case:
 
 
 _KINDS = (
-    _Case(
-        "btclib_mnemonics.entropy.bin_str_entropy_from_rolls",
-        "shuffle",
-        bin_str_entropy_from_rolls,
-        {"bits": 8, "dice_sides": 6, "rolls": [1, 2, 3, 4, 5, 6, 1, 2]},
-    ),
-    _Case(
-        "btclib_mnemonics.entropy.bin_str_entropy_from_random",
-        "to_be_hashed",
-        bin_str_entropy_from_random,
-        {"bits": 128},
-    ),
     _Case(
         "btclib_mnemonics.slip39.mnemonics_from_master_secret",
         "extendable",

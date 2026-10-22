@@ -61,6 +61,7 @@ import math
 import secrets
 import string
 import unicodedata
+from bisect import bisect_right
 from functools import cache
 from hashlib import pbkdf2_hmac, sha256, sha512
 from pathlib import Path
@@ -78,9 +79,10 @@ from btclib_mnemonics.mnemonic import (
     BIP39_LANGUAGE_FILES,
     Mnemonic,
     WordLists,
+    _indexes_in,
+    _Language,
+    _mnemonic_in,
     data_file,
-    indexes_from_mnemonic,
-    mnemonic_from_indexes,
 )
 
 __all__ = [
@@ -173,8 +175,18 @@ ELECTRUM_WORDLISTS = WordLists(
 )
 
 
+# the intervals above in order of their start, which they do not come in,
+# and disjoint, which tests/electrum_test.py holds: that is what lets the
+# one interval that could hold a code point be found by bisection
+_CJK_STARTS = tuple(sorted(imin for imin, _ in _CJK_INTERVALS))
+_CJK_ENDS = tuple(imax for _, imax in sorted(_CJK_INTERVALS))
+
+
 def _is_cjk(char: str) -> bool:
-    return any(imin <= ord(char) <= imax for imin, imax in _CJK_INTERVALS)
+    code_point = ord(char)
+    # the last interval starting at or before the code point, if any
+    i = bisect_right(_CJK_STARTS, code_point) - 1
+    return i >= 0 and code_point <= _CJK_ENDS[i]
 
 
 def _normalize(text: str) -> str:
@@ -194,8 +206,12 @@ def _normalize(text: str) -> str:
     """
     text = unicodedata.normalize("NFKD", text)
     text = text.lower()
-    text = "".join(char for char in text if not unicodedata.combining(char))
+    # ASCII has no combining character, and no CJK one either
+    if not text.isascii():
+        text = "".join(char for char in text if not unicodedata.combining(char))
     text = " ".join(text.split())
+    if text.isascii():
+        return text
     # the collapse above leaves no leading or trailing whitespace, so the
     # neighbour lookups cannot run off either end: at i == 0 and at
     # i == len - 1 the character is not whitespace, and the "and" stops
@@ -283,7 +299,7 @@ def _seed_version(mnemonic: Mnemonic) -> str:
     ).hexdigest()
 
 
-def _is_bip39_mnemonic(mnemonic: Mnemonic, lang: str) -> bool:
+def _is_bip39_mnemonic(mnemonic: Mnemonic, record: _Language, lang: str) -> bool:
     """Return True if the mnemonic is also a valid BIP39 mnemonic.
 
     The word-list is the same file for both schemes, so a sentence can
@@ -307,11 +323,11 @@ def _is_bip39_mnemonic(mnemonic: Mnemonic, lang: str) -> bool:
     if len(words) not in {12, 15, 18, 21, 24}:
         return False
     try:
-        indexes = indexes_from_mnemonic(mnemonic, lang, ELECTRUM_WORDLISTS)
+        indexes = _indexes_in(record, mnemonic, lang)
     except BTClibMnemonicsValueError:
         return False
 
-    base = ELECTRUM_WORDLISTS.language_length(lang)
+    base = len(record.words)
     int_entropy = 0
     for index in indexes:
         int_entropy = int_entropy * base + index
@@ -374,7 +390,7 @@ def version_from_mnemonic(mnemonic: Mnemonic) -> tuple[str, str]:
     return mnemonic_type, _normalize(mnemonic)
 
 
-def _mnemonic_from_int_entropy(int_entropy: int, lang: str) -> Mnemonic:
+def _mnemonic_from_int_entropy(int_entropy: int, record: _Language) -> Mnemonic:
     """Return the mnemonic of an integer, least-significant word first.
 
     Electrum's mnemonic_encode. entropy.py's shared helpers end in
@@ -383,12 +399,12 @@ def _mnemonic_from_int_entropy(int_entropy: int, lang: str) -> Mnemonic:
     on the integer directly also keeps the leading-zero question out of
     it, an integer having no leading zeros to lose.
     """
-    base = ELECTRUM_WORDLISTS.language_length(lang)
+    base = len(record.words)
     indexes = []
     while int_entropy:
         int_entropy, index = divmod(int_entropy, base)
         indexes.append(index)
-    return mnemonic_from_indexes(indexes, lang, ELECTRUM_WORDLISTS)
+    return _mnemonic_in(record, indexes, " ")
 
 
 def _decodable(mnemonic: Mnemonic) -> Mnemonic:
@@ -405,19 +421,45 @@ def _decodable(mnemonic: Mnemonic) -> Mnemonic:
     return unicodedata.normalize("NFKD", mnemonic).lower()
 
 
-def _bin_str_entropy_from_mnemonic(mnemonic: Mnemonic, lang: str) -> BinStr:
+def _max_words(base: int) -> int:
+    """Return the words of the longest sentence mnemonic_from_entropy writes.
+
+    The largest entropy it takes is 512 bits. The search steps past it by
+    far less than one more word needs, so the count is the digits of
+    2**512 in the word-list's base: 47 words for a 2048-word list, 48 for
+    Electrum's Portuguese.
+    """
+    n_words = 0
+    largest = 1 << max(_bits)
+    while largest:
+        largest //= base
+        n_words += 1
+    return n_words
+
+
+def _bin_str_entropy_from_mnemonic(
+    mnemonic: Mnemonic, record: _Language, lang: str
+) -> BinStr:
     """Return the entropy of a mnemonic whose first word is least significant.
 
     Electrum's mnemonic_decode, which pops from the tail. The index list
     is reversed before entropy.py's helper sees it, that helper being
     written for BIP39's order.
+
+    A longer sentence than mnemonic_from_entropy can write is refused
+    before a word is looked up, the decode being quadratic in the words.
     """
-    indexes = indexes_from_mnemonic(_decodable(mnemonic), lang, ELECTRUM_WORDLISTS)
-    base = ELECTRUM_WORDLISTS.language_length(lang)
+    base = len(record.words)
+    n_words = len(mnemonic.split())
+    max_words = _max_words(base)
+    if n_words > max_words:
+        err_msg = f"invalid number of words: {n_words} instead of at most {max_words}"
+        raise BTClibMnemonicsValueError(err_msg)
+    indexes = _indexes_in(record, _decodable(mnemonic), lang)
     return _bin_str_entropy_from_wordlist_indexes(indexes[::-1], base)
 
 
-def _random_int_entropy(lang: str) -> int:
+def _random_int_entropy(record: _Language) -> int:
     """Return the entropy electrum's make_seed draws when given none.
 
     132 bits rounded up to whole words, with anything below one word less
@@ -432,7 +474,7 @@ def _random_int_entropy(lang: str) -> int:
     thirteen words. A small share of accepted draws therefore has twelve
     words, exactly as it does in electrum.
     """
-    bits_per_word = math.log2(ELECTRUM_WORDLISTS.language_length(lang))
+    bits_per_word = math.log2(len(record.words))
     nbits = int(math.ceil(_RANDOM_ENTROPY_BITS / bits_per_word) * bits_per_word)
     int_entropy = 1
     while int_entropy < 2 ** (nbits - bits_per_word):
@@ -441,7 +483,9 @@ def _random_int_entropy(lang: str) -> int:
     return int_entropy
 
 
-def _search_mnemonic(int_entropy: int, version: str, lang: str) -> Mnemonic:
+def _search_mnemonic(
+    int_entropy: int, version: str, record: _Language, lang: str
+) -> Mnemonic:
     """Return the first mnemonic of that version at or after entropy + 1."""
     nonce = 0
     while True:
@@ -449,8 +493,8 @@ def _search_mnemonic(int_entropy: int, version: str, lang: str) -> Mnemonic:
         # before it encodes, so the value handed in is never itself tried
         nonce += 1
         candidate = int_entropy + nonce
-        mnemonic = _mnemonic_from_int_entropy(candidate, lang)
-        if candidate != int(_bin_str_entropy_from_mnemonic(mnemonic, lang), 2):
+        mnemonic = _mnemonic_from_int_entropy(candidate, record)
+        if candidate != int(_bin_str_entropy_from_mnemonic(mnemonic, record, lang), 2):
             # never the mnemonic itself, even though it is freshly
             # generated here rather than caller input: it is a seed
             # phrase like any other, and an exception message ends up in
@@ -461,7 +505,7 @@ def _search_mnemonic(int_entropy: int, version: str, lang: str) -> Mnemonic:
         # a pre-2.0 seed and a valid BIP39 mnemonic are both skipped, not
         # returned: electrum would read back what it had just written as
         # an old seed, or as a BIP39 one, and derive other keys from it
-        if _is_old_mnemonic(mnemonic) or _is_bip39_mnemonic(mnemonic, lang):
+        if _is_old_mnemonic(mnemonic) or _is_bip39_mnemonic(mnemonic, record, lang):
             continue
         if _seed_version(mnemonic).startswith(version):
             return mnemonic
@@ -489,14 +533,19 @@ def mnemonic_from_entropy(
         err_msg += f"not in {list(_MNEMONIC_VERSIONS.keys())}"
         raise BTClibMnemonicsValueError(err_msg)
 
+    # read once: every step of the search takes its base and its words from
+    # this record, were the language replaced meanwhile
+    record = ELECTRUM_WORDLISTS._record(lang)
     int_entropy = (
-        _random_int_entropy(lang)
+        _random_int_entropy(record)
         # not `not entropy`: entropy can be an int, and int 0 is a value
         # to search from, not a missing one -- bip39.py's version has why
         if entropy is None or entropy == ""
         else int(_bin_str_entropy_from_entropy(entropy, _bits), 2)
     )
-    mnemonic = _search_mnemonic(int_entropy, _MNEMONIC_VERSIONS[mnemonic_type], lang)
+    mnemonic = _search_mnemonic(
+        int_entropy, _MNEMONIC_VERSIONS[mnemonic_type], record, lang
+    )
 
     # the prefix is necessary and not sufficient, so electrum closes by
     # asking what the sentence it has just built would be read as. "2fa"
@@ -557,7 +606,9 @@ def entropy_from_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> BinStr
     lang = lang or lang_from_mnemonic(mnemonic)
     # the sentence handed in, and not the normalized one version_from_mnemonic
     # returns beside the version: _decodable says why
-    return _bin_str_entropy_from_mnemonic(mnemonic, lang)
+    return _bin_str_entropy_from_mnemonic(
+        mnemonic, ELECTRUM_WORDLISTS._record(lang), lang
+    )
 
 
 def seed_from_mnemonic(mnemonic: Mnemonic, passphrase: str) -> bytes:

@@ -27,9 +27,12 @@ from btclib_mnemonics.entropy import (
 )
 from btclib_mnemonics.exceptions import BTClibMnemonicsTypeError
 from btclib_mnemonics.slip39 import (
+    EncryptedMasterSecret,
+    Recovery,
     Share,
     master_secret_from_mnemonics,
     mnemonic_from_share,
+    mnemonics_from_encrypted_master_secret,
     mnemonics_from_master_secret,
 )
 
@@ -95,6 +98,30 @@ _CASES: list[tuple[str, Callable[[Any], object]]] = [
             [mnemonic_from_share(_share())], max_iteration_exponent=v
         ),
     ),
+    (
+        "slip39 encrypted master secret identifier",
+        lambda v: EncryptedMasterSecret(v, True, 0, bytes(16)),
+    ),
+    (
+        "slip39 encrypted master secret iteration exponent",
+        lambda v: EncryptedMasterSecret(1, True, v, bytes(16)),
+    ),
+    (
+        "slip39 encrypted master secret max iteration exponent",
+        lambda v: EncryptedMasterSecret(1, True, 0, bytes(16)).master_secret(
+            max_iteration_exponent=v
+        ),
+    ),
+    (
+        "slip39 encrypted split group threshold",
+        lambda v: mnemonics_from_encrypted_master_secret(
+            EncryptedMasterSecret(1, True, 0, bytes(16)), group_threshold=v
+        ),
+    ),
+    (
+        "slip39 recovery max iteration exponent",
+        lambda v: Recovery(max_iteration_exponent=v),
+    ),
     # partial and not a lambda, which would close over the loop variable
     *((f"slip39 share {name}", partial(_share_with, name)) for name in _SHARE_FIELDS),
 ]
@@ -124,13 +151,17 @@ def test_the_integers_a_bool_refusal_must_not_take_with_it() -> None:
     refuses everything.
     """
     assert _bin_str_entropy_from_wordlist_indexes([1], 2048) == "00000000001"
-    assert bin_str_entropy_from_rolls(4, 2, [1, 2, 1, 2], shuffle=False) == "0101"
+    assert bin_str_entropy_from_rolls(4, 2, [1, 2, 1, 2]) == "0101"
     one_of_one = mnemonics_from_master_secret(
         bytes(16), [(1, 1)], group_threshold=1, iteration_exponent=0
     )
     assert [len(group) for group in one_of_one] == [1]
     combined = master_secret_from_mnemonics(one_of_one[0], max_iteration_exponent=1)
     assert combined == bytes(16)
+    ems = EncryptedMasterSecret(1, True, 1, bytes(16))
+    assert ems.master_secret(max_iteration_exponent=1) == ems.master_secret()
+    assert len(mnemonics_from_encrypted_master_secret(ems, group_threshold=1)) == 1
+    assert Recovery(max_iteration_exponent=1).groups == {}
     assert all(getattr(_share_with(n, 1), n) == 1 for n in _SHARE_FIELDS)
 
 

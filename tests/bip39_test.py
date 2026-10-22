@@ -12,14 +12,25 @@ unread.
 
 import secrets
 import unicodedata
+from collections.abc import Callable
 from math import ceil
+from pathlib import Path
+from typing import Any
 from unicodedata import normalize
 
 import pytest
 
-from btclib_mnemonics import bip39
-from btclib_mnemonics.exceptions import BTClibMnemonicsValueError
-from btclib_mnemonics.mnemonic import WORDLISTS, WordLists, normalize_mnemonic
+from btclib_mnemonics import bip39, electrum
+from btclib_mnemonics.exceptions import (
+    BTClibMnemonicsTypeError,
+    BTClibMnemonicsValueError,
+)
+from btclib_mnemonics.mnemonic import (
+    WORDLISTS,
+    WordLists,
+    data_file,
+    normalize_mnemonic,
+)
 from tests import load, vector_id
 from tests.mnemonic_test import fullwidth
 
@@ -143,6 +154,8 @@ def test_vectors(lang: str, entr: str, mnemonic: str, seed: str) -> None:
     # simplified chinese shares are the exception -- same words, same
     # indexes, same entropy, and no way to tell the two apart
     assert bip39.entropy_from_mnemonic(mnemonic) == raw_entr
+    assert bip39.is_valid_mnemonic(mnemonic, lang)
+    assert bip39.is_valid_mnemonic(mnemonic)
 
 
 JP_VECTORS = [
@@ -398,6 +411,78 @@ def test_nfkd_fullwidth_latin() -> None:
     assert bip39.seed_from_mnemonic(wide, "") == bip39.seed_from_mnemonic(mnemonic, "")
 
 
+def test_is_valid_mnemonic() -> None:
+    """True on a valid sentence, False on each way of not being one.
+
+    The vectors are in `test_vectors`; this is the other side, and the
+    answer is a bool for every one of them, never an exception.
+    """
+    about = " ".join(["abandon"] * 11 + ["about"])
+    assert bip39.is_valid_mnemonic(about) is True
+    assert bip39.is_valid_mnemonic(about, "en") is True
+    # the sentence as read here: respaced, and in fullwidth latin
+    assert bip39.is_valid_mnemonic(f"  {about.replace(' ', '  ')}\n")
+    assert bip39.is_valid_mnemonic(" ".join(fullwidth(w) for w in about.split()))
+    # an empty lang is no language, as for entropy_from_mnemonic
+    assert bip39.is_valid_mnemonic(about, "")
+
+    bad_checksum = " ".join(["abandon"] * 12)
+    unknown_word = " ".join(["abandon"] * 11 + ["notaword"])
+    wrong_count = f"{about} abandon"
+    for sentence in (bad_checksum, unknown_word, wrong_count, "", " ", "abandon"):
+        for lang in (None, "en"):
+            assert bip39.is_valid_mnemonic(sentence, lang) is False
+    # a valid sentence asked in another language is not valid there
+    assert bip39.is_valid_mnemonic(about, "fr") is False
+
+
+def test_is_valid_mnemonic_with_an_unknown_language_is_false() -> None:
+    """A lang that names no BIP39 word-list answers False, and loads nothing.
+
+    The sentence is valid; the language is the caller's mistake, and the
+    contract of an `is_*` is to answer it. `entropy_from_mnemonic` is
+    where it is refused.
+    """
+    about = " ".join(["abandon"] * 11 + ["about"])
+    for lang in ("xx", "EN", "english", "slip39"):
+        assert bip39.is_valid_mnemonic(about, lang) is False
+        with pytest.raises(BTClibMnemonicsValueError):
+            bip39.entropy_from_mnemonic(about, lang)
+    assert "xx" not in WORDLISTS.languages
+
+
+def test_is_valid_mnemonic_in_an_ambiguous_language() -> None:
+    """Valid in two languages with a different entropy in each: valid.
+
+    `lang_from_mnemonic` refuses to choose one; the question here is not
+    which language but whether there is one.
+    """
+    ambiguous = (
+        "nature distance angle abandon simple palace opinion fatigue "
+        "noble volume simple wagon"
+    )
+    with pytest.raises(BTClibMnemonicsValueError, match="ambiguous language"):
+        bip39.entropy_from_mnemonic(ambiguous)
+    assert bip39.is_valid_mnemonic(ambiguous) is True
+    assert bip39.is_valid_mnemonic(ambiguous, "en") is True
+    assert bip39.is_valid_mnemonic(ambiguous, "fr") is True
+
+    # a sentence of slip39 words is no BIP39 mnemonic in any language
+    slip39_words = " ".join(WORDLISTS.wordlist("slip39")[:12])
+    assert bip39.is_valid_mnemonic(slip39_words) is False
+
+
+@pytest.mark.parametrize(
+    "mnemonic, lang", [(1, None), (None, None), ("a", 1), ("a", b"en")]
+)
+def test_is_valid_mnemonic_refuses_a_value_of_another_type(
+    mnemonic: object, lang: object
+) -> None:
+    """The caller's mistake is a type error, not a False."""
+    with pytest.raises(BTClibMnemonicsTypeError):
+        bip39.is_valid_mnemonic(mnemonic, lang)  # type: ignore[arg-type]
+
+
 def test_the_wordlist_has_to_be_bip39_sized() -> None:
     """WORDLISTS is shared, and only its 2048-word lists are BIP39's.
 
@@ -433,9 +518,100 @@ def test_a_word_count_bip39_has_no_mnemonic_for_is_refused_undecoded(
     """Refuse the count before the words are looked up or decoded."""
     decoded = lambda *_: pytest.fail("decoded")  # noqa: E731
 
-    monkeypatch.setattr("btclib_mnemonics.bip39.indexes_from_mnemonic", decoded)
+    monkeypatch.setattr("btclib_mnemonics.bip39._indexes_in", decoded)
     monkeypatch.setattr("btclib_mnemonics.bip39.lang_from_mnemonic", decoded)
     err_msg = f"invalid mnemonic length: {n_words} words"
     for lang in (None, "en"):
         with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
             bip39.entropy_from_mnemonic(" ".join(["abandon"] * n_words), lang)
+
+
+def _bip39_encode() -> str:
+    return bip39.mnemonic_from_entropy(b"\xff" * 16, "en")
+
+
+def _bip39_decode() -> str:
+    return bip39.entropy_from_mnemonic(" ".join(["zoo"] * 11 + ["wrong"]), "en")
+
+
+def _electrum_encode() -> str:
+    return electrum._mnemonic_from_int_entropy(
+        (1 << 131) - 1, electrum.ELECTRUM_WORDLISTS._record("en")
+    )
+
+
+def _electrum_decode() -> str:
+    return electrum._bin_str_entropy_from_mnemonic(
+        " ".join(["zoo"] * 12), electrum.ELECTRUM_WORDLISTS._record("en"), "en"
+    )
+
+
+def _electrum_search() -> str:
+    return electrum.mnemonic_from_entropy("standard", (1 << 131) - 1, "en")
+
+
+def _bip39_lang_of_words() -> str:
+    return bip39.lang_from_mnemonic(" ".join(["zoo"] * 11 + ["wrong"]))
+
+
+@pytest.mark.parametrize(
+    "wordlists, convert",
+    [
+        (WORDLISTS, _bip39_encode),
+        (WORDLISTS, _bip39_decode),
+        (WORDLISTS, _bip39_lang_of_words),
+        (electrum.ELECTRUM_WORDLISTS, _electrum_encode),
+        (electrum.ELECTRUM_WORDLISTS, _electrum_decode),
+        (electrum.ELECTRUM_WORDLISTS, _electrum_search),
+    ],
+    ids=[
+        "bip39-encode",
+        "bip39-decode",
+        "bip39-lang-of-words",
+        "electrum-encode",
+        "electrum-decode",
+        "electrum-search",
+    ],
+)
+def test_a_language_replaced_mid_conversion_does_not_mix_two_loads(
+    wordlists: WordLists,
+    convert: Callable[[], str],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The base and the words of a conversion come from one load.
+
+    The language is replaced by a shorter list right after each read of
+    it, which is the interleaving of a second thread, forced. A
+    conversion that read the length and then the words or positions in
+    two calls would take the base from one list and the words from the
+    other. Only reads of "en" are followed by the replacement: a scan of
+    every language would otherwise replace "en" before it is read.
+    """
+    lines = Path(data_file("english.txt")).read_text(encoding="utf-8").splitlines()
+    short = tmp_path / "short.txt"
+    short.write_text("\n".join(lines[:1024]) + "\n", encoding="utf-8")
+    expected = convert()
+
+    replaced: list[bool] = []
+
+    def replacing_after(read: Callable[..., Any]) -> Callable[..., Any]:
+        def read_then_replace(*args: Any) -> Any:
+            result = read(*args)
+            if args[-1] == "en":
+                replaced.append(True)
+                wordlists.load_lang("en", short)
+            return result
+
+        return read_then_replace
+
+    # every way of reading a language: the replacement follows each read
+    for name in ("_record", "language_length", "wordlist", "index"):
+        read = replacing_after(getattr(wordlists, name))
+        monkeypatch.setattr(wordlists, name, read)
+    try:
+        assert convert() == expected
+    finally:
+        # the registries are process-wide: put "en" back
+        wordlists.load_lang("en", data_file("english.txt"))
+    assert replaced

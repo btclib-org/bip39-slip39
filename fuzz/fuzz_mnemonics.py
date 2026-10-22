@@ -66,6 +66,8 @@ def fuzz_target(data: bytes) -> None:
         return
     with contextlib.suppress(BTClibMnemonicsException):
         bip39.entropy_from_mnemonic(text)
+    # total over every string, so nothing is suppressed
+    bip39.is_valid_mnemonic(text)
     with contextlib.suppress(BTClibMnemonicsException):
         electrum.version_from_mnemonic(text)
     with contextlib.suppress(BTClibMnemonicsException):
@@ -86,6 +88,8 @@ def fuzz_target(data: bytes) -> None:
         mnemonic.indexes_from_mnemonic(text, "en")
     with contextlib.suppress(BTClibMnemonicsException):
         slip39.master_secret_from_mnemonics(text.split("\n"))
+    with contextlib.suppress(BTClibMnemonicsException):
+        slip39.encrypted_master_secret_from_mnemonics(text.split("\n"))
     with contextlib.suppress(BTClibMnemonicsException):
         share = slip39.share_from_mnemonic(text)
         if slip39.mnemonic_from_share(share) != normalize_mnemonic(text):

@@ -75,6 +75,18 @@ class CountingSource:
         return bytes((self.calls * 31 + i) % 256 for i in range(n_bytes))
 
 
+# an encrypted master secret made with no PBKDF2, for the split refusals
+_EMS = slip39.EncryptedMasterSecret(0x1234, True, 0, bytes(range(16)))
+
+
+def _splits(**kwargs: object) -> list[Callable[[], object]]:
+    """Return both splits, of a master secret and of an encrypted one."""
+    return [
+        lambda: slip39.mnemonics_from_master_secret(bytes(16), **kwargs),  # type: ignore[arg-type]
+        lambda: slip39.mnemonics_from_encrypted_master_secret(_EMS, **kwargs),  # type: ignore[arg-type]
+    ]
+
+
 def test_wordlist() -> None:
     """Verify the word-list satisfies SLIP-0039's own criteria."""
     assert WORDLISTS.language_length("slip39") == 1024
@@ -440,6 +452,15 @@ def test_entropy_source_output_of_another_type_or_length(
     """
     with pytest.raises(error, match=f"invalid entropy source {err_msg}"):
         slip39.mnemonics_from_master_secret(bytes(16), groups, entropy_source=output)  # type: ignore[arg-type]
+    if groups != [(1, 1)]:
+        # the encrypted master secret's split draws no identifier: its
+        # first draw is a share, as long as the value
+        with pytest.raises(error, match="invalid entropy source output"):
+            slip39.mnemonics_from_encrypted_master_secret(
+                _EMS,
+                groups,
+                entropy_source=output,  # type: ignore[arg-type]
+            )
 
 
 @pytest.mark.parametrize("passphrase", [0, [], b""])
@@ -490,8 +511,9 @@ def test_invalid_iteration_exponent(iteration_exponent: int) -> None:
 def test_one_of_many_group() -> None:
     """A 1-of-N group is N copies of one secret; SLIP-0039 forbids it."""
     err_msg = "invalid 1-of-3 group"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
-        slip39.mnemonics_from_master_secret(bytes(16), groups=[(1, 3)])
+    for split in _splits(groups=[(1, 3)]):
+        with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+            split()
 
 
 @pytest.mark.parametrize(
@@ -506,10 +528,9 @@ def test_one_of_many_group() -> None:
 )
 def test_invalid_threshold(groups: list[tuple[int, int]], group_threshold: int) -> None:
     """Refuse thresholds and counts outside SLIP-0039's bounds."""
-    with pytest.raises(BTClibMnemonicsValueError, match="invalid threshold "):
-        slip39.mnemonics_from_master_secret(
-            bytes(16), groups=groups, group_threshold=group_threshold
-        )
+    for split in _splits(groups=groups, group_threshold=group_threshold):
+        with pytest.raises(BTClibMnemonicsValueError, match="invalid threshold "):
+            split()
 
 
 @pytest.mark.parametrize(
@@ -536,17 +557,22 @@ def test_generation_argument_of_another_type(
     """Refuse each argument of a type the signature does not declare.
 
     Each carries a default, so `input_validation_test` never drives it.
+    The encrypted master secret's split shares the arguments it takes.
     """
     with pytest.raises(BTClibMnemonicsTypeError, match=err_msg):
         slip39.mnemonics_from_master_secret(bytes(16), **{argument: value})  # type: ignore[arg-type]
+    if argument in {"groups", "group_threshold", "entropy_source"}:
+        with pytest.raises(BTClibMnemonicsTypeError, match=err_msg):
+            slip39.mnemonics_from_encrypted_master_secret(_EMS, **{argument: value})  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("group", [(1,), (2, 3, 1)])
 def test_a_group_that_is_no_pair(group: tuple[int, ...]) -> None:
     """How many items a group holds is a value, and refused as one."""
     err_msg = f"invalid group: {len(group)} items"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
-        slip39.mnemonics_from_master_secret(bytes(16), groups=[group])  # type: ignore[list-item]
+    for split in _splits(groups=[group]):
+        with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+            split()
 
 
 def test_a_group_may_be_a_list() -> None:
@@ -703,3 +729,332 @@ def test_mul_tables_are_the_bit_by_bit_product() -> None:
     for k, table in enumerate(slip39._MUL_TABLES):
         constant = slip39._EXP[k]
         assert table == bytes(product(a, constant) for a in range(256))
+
+
+@pytest.mark.parametrize("mnemonics, master_secret", VECTORS)
+def test_the_encrypted_master_secret_on_the_vectors(
+    mnemonics: list[str], master_secret: str
+) -> None:
+    """Recover the record, decrypt it, and split it into new groups.
+
+    The new shares recover the vector's master secret under the vector's
+    passphrase, and recombine to the same record.
+    """
+    if not master_secret:
+        with pytest.raises(BTClibMnemonicsValueError):
+            slip39.encrypted_master_secret_from_mnemonics(mnemonics)
+        return
+
+    ems = slip39.encrypted_master_secret_from_mnemonics(mnemonics)
+    assert ems.master_secret(PASSPHRASE) == bytes.fromhex(master_secret)
+    first = slip39.share_from_mnemonic(mnemonics[0])
+    assert (ems.identifier, ems.extendable, ems.iteration_exponent) == (
+        first.identifier,
+        first.extendable,
+        first.iteration_exponent,
+    )
+
+    regrouped = slip39.mnemonics_from_encrypted_master_secret(
+        ems, [(2, 3), (3, 5)], 2, CountingSource()
+    )
+    shares = [regrouped[0][2], regrouped[0][0], *regrouped[1][1:4]]
+    assert slip39.encrypted_master_secret_from_mnemonics(shares) == ems
+    recovered = slip39.master_secret_from_mnemonics(shares, PASSPHRASE)
+    assert recovered == bytes.fromhex(master_secret)
+
+
+def test_the_encrypted_master_secret_repr_masks_its_value() -> None:
+    """`repr` never prints the value, as `Share`'s does not."""
+    ems = slip39.encrypted_master_secret_from_mnemonics(_VECTORS[0][1])
+    assert ems.value.hex() not in repr(ems)
+    assert repr(ems.value) not in repr(ems)
+    assert f"identifier={ems.identifier}" in repr(ems)
+
+
+@pytest.mark.parametrize(
+    "field, value, error, err_msg",
+    [
+        ("identifier", -1, BTClibMnemonicsValueError, "invalid identifier: -1"),
+        ("identifier", 1 << 15, BTClibMnemonicsValueError, "invalid identifier: "),
+        ("identifier", "1", BTClibMnemonicsTypeError, "invalid identifier type: str"),
+        (
+            "iteration_exponent",
+            16,
+            BTClibMnemonicsValueError,
+            "invalid iteration exponent: 16",
+        ),
+        (
+            "iteration_exponent",
+            None,
+            BTClibMnemonicsTypeError,
+            "invalid iteration exponent type: NoneType",
+        ),
+        ("extendable", 1, BTClibMnemonicsTypeError, "invalid extendable type: int"),
+        (
+            "value",
+            "00" * 16,
+            BTClibMnemonicsTypeError,
+            "invalid encrypted master secret value type: str",
+        ),
+        (
+            "value",
+            bytes(15),
+            BTClibMnemonicsValueError,
+            "invalid encrypted master secret value length: 15 bytes",
+        ),
+    ],
+)
+def test_an_encrypted_master_secret_field_out_of_its_domain(
+    field: str, value: object, error: type[Exception], err_msg: str
+) -> None:
+    """Refuse each field of a value or a type the record cannot hold."""
+    fields: dict[str, object] = {
+        "identifier": 1,
+        "extendable": True,
+        "iteration_exponent": 0,
+        "value": bytes(16),
+    }
+    fields[field] = value
+    with pytest.raises(error, match=err_msg):
+        slip39.EncryptedMasterSecret(**fields)  # type: ignore[arg-type]
+
+
+def test_the_encrypted_split_refuses_what_is_no_record() -> None:
+    """A Share is no record, though it carries the same fields and more."""
+    share = slip39.share_from_mnemonic(_VECTORS[0][1][0])
+    err_msg = "invalid encrypted master secret type: Share"
+    with pytest.raises(BTClibMnemonicsTypeError, match=err_msg):
+        slip39.mnemonics_from_encrypted_master_secret(share)  # type: ignore[arg-type]
+
+
+def test_a_record_changed_after_it_was_built_is_refused() -> None:
+    """A frozen dataclass can still be written to, so each use re-checks it."""
+    ems = slip39.EncryptedMasterSecret(1, True, 0, _VALUE)
+    object.__setattr__(ems, "iteration_exponent", 16)
+    err_msg = "invalid iteration exponent: 16"
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+        ems.master_secret()
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+        slip39.mnemonics_from_encrypted_master_secret(ems)
+
+
+def test_a_record_above_the_maximum_exponent_is_refused_before_pbkdf2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The bound holds on the record, the one step that runs PBKDF2."""
+    ran = lambda *_: pytest.fail("PBKDF2 ran")  # noqa: E731
+    monkeypatch.setattr("btclib_mnemonics.slip39.pbkdf2_hmac", ran)
+    ems = slip39.EncryptedMasterSecret(1, True, 6, _VALUE)
+    err_msg = "iteration exponent 6 above the maximum 5"
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+        ems.master_secret(max_iteration_exponent=5)
+    assert_secret_free(excinfo.value, [_VALUE])
+    for bound in (-1, 16):
+        with pytest.raises(BTClibMnemonicsValueError, match="invalid max iteration"):
+            ems.master_secret(max_iteration_exponent=bound)
+    with pytest.raises(BTClibMnemonicsTypeError, match="invalid passphrase type"):
+        ems.master_secret(b"")  # type: ignore[arg-type]
+
+
+def test_a_record_at_the_maximum_exponent_is_decrypted() -> None:
+    """The maximum is inclusive, and by default it is the largest exponent."""
+    ems = slip39.EncryptedMasterSecret(1, True, 1, _VALUE)
+    assert ems.master_secret(max_iteration_exponent=1) == ems.master_secret()
+    sig = inspect.signature(slip39.EncryptedMasterSecret.master_secret)
+    assert sig.parameters["max_iteration_exponent"].default == 15
+
+
+def _backup() -> list[list[str]]:
+    """Return a backup needing two groups of three: 2-of-3, 3-of-5, 2-of-2."""
+    return slip39.mnemonics_from_master_secret(
+        bytes(range(16)),
+        groups=[(2, 3), (3, 5), (2, 2)],
+        group_threshold=2,
+        passphrase=PASSPHRASE,
+        iteration_exponent=0,
+        entropy_source=CountingSource(),
+    )
+
+
+@pytest.mark.parametrize("mnemonics, master_secret", VECTORS)
+def test_the_recovery_on_the_vectors(mnemonics: list[str], master_secret: str) -> None:
+    """Recovering one mnemonic at a time answers as the whole set does.
+
+    A set the vector calls invalid is refused at a share, or when its
+    master secret is asked for.
+    """
+    recovery = slip39.Recovery()
+    if not master_secret:
+        with pytest.raises(BTClibMnemonicsValueError):
+            for mnemonic in mnemonics:
+                recovery.add_mnemonic(mnemonic)
+            recovery.master_secret(PASSPHRASE)
+        return
+
+    for mnemonic in mnemonics:
+        assert not recovery.is_complete
+        recovery.add_mnemonic(mnemonic)
+    assert recovery.is_complete
+    assert recovery.master_secret(PASSPHRASE) == bytes.fromhex(master_secret)
+
+
+def test_the_recovery_answers_how_far_it_is() -> None:
+    """Per group, the shares in and the threshold; and whether it is done."""
+    backup = _backup()
+    recovery = slip39.Recovery()
+    assert (recovery.shares, recovery.groups, recovery.is_complete) == ((), {}, False)
+
+    added = recovery.add_mnemonic(backup[1][4])
+    assert added == slip39.share_from_mnemonic(backup[1][4])
+    assert recovery.shares == (added,)
+    assert recovery.groups == {1: (1, 3)}
+    recovery.add_mnemonic(backup[0][1])
+    recovery.add_mnemonic(backup[0][0])
+    # one group complete is not a complete set: the group threshold is 2
+    assert (recovery.groups, recovery.is_complete) == ({1: (1, 3), 0: (2, 2)}, False)
+    with pytest.raises(BTClibMnemonicsValueError, match="^incomplete set of shares$"):
+        recovery.master_secret(PASSPHRASE)
+    recovery.add_mnemonic(backup[1][0])
+    recovery.add_mnemonic(backup[1][2])
+    assert (recovery.groups, recovery.is_complete) == ({1: (3, 3), 0: (2, 2)}, True)
+    assert recovery.master_secret(PASSPHRASE) == bytes(range(16))
+    assert len(recovery.shares) == 5
+
+
+def _share_like(base: slip39.Share, **fields: object) -> str:
+    """Return the mnemonic of a share differing from base in the fields."""
+    values = {name: getattr(base, name) for name in base.__dataclass_fields__}
+    return slip39.mnemonic_from_share(slip39.Share(**(values | fields)))
+
+
+def _refused(recovery: slip39.Recovery, mnemonic: str, err_msg: str) -> None:
+    """Refuse the mnemonic, quoting none of its words, and leave the set."""
+    before = recovery.shares
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+        recovery.add_mnemonic(mnemonic)
+    share = slip39.share_from_mnemonic(mnemonic)
+    assert_secret_free(excinfo.value, [mnemonic, *mnemonic.split(), share.value])
+    assert recovery.shares == before
+
+
+@pytest.mark.parametrize(
+    "field, value, name",
+    [
+        ("identifier", 0x7ABC, "identifier"),
+        ("extendable", False, "extendable backup flag"),
+        ("iteration_exponent", 1, "iteration exponent"),
+        ("group_threshold", 3, "group threshold"),
+        ("group_count", 4, "group count"),
+        ("value", bytes(range(32)), "share value length"),
+        ("member_threshold", 3, "member threshold in group 0"),
+    ],
+)
+def test_the_recovery_refuses_a_share_of_another_set(
+    field: str, value: object, name: str
+) -> None:
+    """A common parameter differs from the first share's, or a group's."""
+    backup = _backup()
+    recovery = slip39.Recovery()
+    first = recovery.add_mnemonic(backup[0][0])
+    mnemonic = _share_like(first, member_index=1, **{field: value})
+    _refused(recovery, mnemonic, f"^not a share of this set: mismatching {name}$")
+
+
+def test_the_recovery_refuses_a_share_already_in() -> None:
+    """The same share twice, or another one at the same member index."""
+    backup = _backup()
+    recovery = slip39.Recovery()
+    first = recovery.add_mnemonic(backup[1][2])
+    err_msg = "^member 2 of group 1 already in$"
+    _refused(recovery, backup[1][2], err_msg)
+    _refused(recovery, _share_like(first, value=_VALUE), err_msg)
+
+
+def test_the_recovery_refuses_a_share_of_a_complete_group() -> None:
+    """A share beyond a group's threshold, which the whole set refuses too."""
+    backup = _backup()
+    recovery = slip39.Recovery()
+    recovery.add_mnemonic(backup[0][0])
+    recovery.add_mnemonic(backup[0][2])
+    _refused(recovery, backup[0][1], "^group 0 already complete$")
+    with pytest.raises(BTClibMnemonicsValueError, match="3 shares in group 0"):
+        slip39.master_secret_from_mnemonics(backup[0], PASSPHRASE)
+
+
+def test_the_recovery_refuses_a_group_beyond_the_group_threshold() -> None:
+    """A third group of a 2-of-3 set, which the whole set refuses too."""
+    backup = _backup()
+    recovery = slip39.Recovery()
+    recovery.add_mnemonic(backup[0][0])
+    recovery.add_mnemonic(backup[1][0])
+    err_msg = "^group 2 is beyond the group threshold: 2 groups already started$"
+    _refused(recovery, backup[2][0], err_msg)
+
+
+def test_the_recovery_refuses_a_share_above_its_maximum_exponent() -> None:
+    """At the first share, so that no other share is asked for."""
+    recovery = slip39.Recovery(max_iteration_exponent=5)
+    _refused(recovery, _one_of_one(6), "^iteration exponent 6 above the maximum 5$")
+    recovery.add_mnemonic(_one_of_one(5))
+    assert recovery.is_complete
+
+
+@pytest.mark.parametrize(
+    "bound, error, err_msg",
+    [
+        (-1, BTClibMnemonicsValueError, "invalid max iteration exponent: -1"),
+        (16, BTClibMnemonicsValueError, "invalid max iteration exponent: 16"),
+        ("5", BTClibMnemonicsTypeError, "invalid max iteration exponent type: str"),
+    ],
+)
+def test_the_recovery_refuses_a_maximum_exponent_out_of_its_domain(
+    bound: object, error: type[Exception], err_msg: str
+) -> None:
+    """The bound is checked once, when the recovery is made."""
+    with pytest.raises(error, match=err_msg):
+        slip39.Recovery(max_iteration_exponent=bound)  # type: ignore[arg-type]
+
+
+def test_the_recovery_refuses_arguments_of_another_type() -> None:
+    """A mnemonic and a passphrase are str."""
+    recovery = slip39.Recovery()
+    with pytest.raises(BTClibMnemonicsTypeError, match="invalid mnemonic type: list"):
+        recovery.add_mnemonic(_VECTORS[0][1])
+    recovery.add_mnemonic(_VECTORS[0][1][0])
+    with pytest.raises(BTClibMnemonicsTypeError, match="invalid passphrase type"):
+        recovery.master_secret(b"TREZOR")  # type: ignore[arg-type]
+
+
+def test_a_complete_recovery_of_two_splits_is_refused_on_the_digest() -> None:
+    """One identifier, two secrets: the shape is complete, the digest is not.
+
+    Every common parameter matches, so each share is taken and the set is
+    complete; what refuses it is the digest, as it refuses the whole set.
+    """
+    values = [bytes(16), bytes(range(16))]
+    first, second = (
+        slip39.mnemonics_from_encrypted_master_secret(
+            slip39.EncryptedMasterSecret(0x1234, True, 0, value),
+            groups=[(2, 3)],
+            entropy_source=CountingSource(),
+        )[0]
+        for value in values
+    )
+    recovery = slip39.Recovery()
+    recovery.add_mnemonic(first[0])
+    recovery.add_mnemonic(second[1])
+    assert recovery.is_complete
+    mixed = [first[0], second[1]]
+    secrets: list[str | bytes] = list(values)
+    for mnemonic in mixed:
+        secrets += [mnemonic, *mnemonic.split()]
+        secrets.append(slip39.share_from_mnemonic(mnemonic).value)
+    err_msg = "^invalid digest: the shares do not belong together$"
+    refusals: list[Callable[[], object]] = [
+        recovery.master_secret,
+        lambda: slip39.master_secret_from_mnemonics(mixed),
+    ]
+    for refused in refusals:
+        with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+            refused()
+        assert_secret_free(excinfo.value, secrets)

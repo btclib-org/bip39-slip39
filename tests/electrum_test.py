@@ -26,8 +26,10 @@ ones of the package.
 
 import hmac
 import secrets
+import string
 from hashlib import sha256
-from unicodedata import normalize
+from itertools import pairwise
+from unicodedata import combining, normalize
 
 import pytest
 from btclib import base58
@@ -493,7 +495,9 @@ def test_word_order() -> None:
     # prefix, so it is not an electrum mnemonic at all and is refused before it
     # is ever decoded
     reversed_mnemonic = " ".join(reversed(ENGLISH.split()))
-    reversed_entr = electrum._bin_str_entropy_from_mnemonic(reversed_mnemonic, "en")
+    reversed_entr = electrum._bin_str_entropy_from_mnemonic(
+        reversed_mnemonic, ELECTRUM_WORDLISTS._record("en"), "en"
+    )
     assert int(reversed_entr, 2) == 0xFB0A779F83FEDDB0E39AA0DDE898CC384
 
 
@@ -854,10 +858,10 @@ def test_a_wordlist_the_encoding_does_not_round_trip(
     # the failing candidate is a mnemonic like any other, and the
     # exception reports its word count, never the sentence
     # (issue btclib-org/btclib-wallet#38)
-    candidate = electrum._mnemonic_from_int_entropy(2, "en")
+    candidate = electrum._mnemonic_from_int_entropy(2, ELECTRUM_WORDLISTS._record("en"))
     err_msg = "cannot extract the same entropy from mnemonic: "
     with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
-        electrum._search_mnemonic(1, "01", "en")
+        electrum._search_mnemonic(1, "01", ELECTRUM_WORDLISTS._record("en"), "en")
     assert candidate not in str(excinfo.value)
 
 
@@ -1005,23 +1009,35 @@ def test_is_bip39_mnemonic() -> None:
     valid_bip39 = (
         "park leaf system perfect top lecture rather foster best nest craft topic"
     )
-    assert electrum._is_bip39_mnemonic(valid_bip39, "en")
+    assert electrum._is_bip39_mnemonic(
+        valid_bip39, ELECTRUM_WORDLISTS._record("en"), "en"
+    )
     assert bip39.entropy_from_mnemonic(valid_bip39, "en")
 
-    assert not electrum._is_bip39_mnemonic(ENGLISH, "en")
+    assert not electrum._is_bip39_mnemonic(
+        ENGLISH, ELECTRUM_WORDLISTS._record("en"), "en"
+    )
     with pytest.raises(BTClibMnemonicsValueError, match="invalid checksum: "):
         bip39.entropy_from_mnemonic(ENGLISH, "en")
 
     # a word of no word-list, and a length BIP39 has no checksum for
-    assert not electrum._is_bip39_mnemonic("btclib " * 11 + "btclib", "en")
-    assert not electrum._is_bip39_mnemonic(ENGLISH + " abandon", "en")
+    assert not electrum._is_bip39_mnemonic(
+        "btclib " * 11 + "btclib", ELECTRUM_WORDLISTS._record("en"), "en"
+    )
+    assert not electrum._is_bip39_mnemonic(
+        ENGLISH + " abandon", ELECTRUM_WORDLISTS._record("en"), "en"
+    )
 
     # electrum's portuguese, 1626 words read as though eleven bits each.
     # In the vector file for the reason stated above it: a Portuguese
     # sentence in a python source is prose to the spell checkers
     lookalike = LANGUAGE_VECTORS["bip39_lookalike"]
-    assert electrum._is_bip39_mnemonic(lookalike["valid"], "pt")
-    assert not electrum._is_bip39_mnemonic(lookalike["invalid"], "pt")
+    assert electrum._is_bip39_mnemonic(
+        lookalike["valid"], ELECTRUM_WORDLISTS._record("pt"), "pt"
+    )
+    assert not electrum._is_bip39_mnemonic(
+        lookalike["invalid"], ELECTRUM_WORDLISTS._record("pt"), "pt"
+    )
 
 
 def test_entropy_round_trips_through_every_candidate(
@@ -1037,7 +1053,7 @@ def test_entropy_round_trips_through_every_candidate(
     than dead code.
     """
     monkeypatch.setattr(electrum, "_bin_str_entropy_from_mnemonic", lambda *_: "0")
-    candidate = electrum._mnemonic_from_int_entropy(2, "en")
+    candidate = electrum._mnemonic_from_int_entropy(2, ELECTRUM_WORDLISTS._record("en"))
     with pytest.raises(
         BTClibMnemonicsValueError,
         match="cannot extract the same entropy from mnemonic: ",
@@ -1183,3 +1199,95 @@ def test_an_electrum_mnemonic_is_no_bip39_one() -> None:
             bip39.seed_from_mnemonic(mnemonic, "")
         seed = bip39.seed_from_mnemonic(mnemonic, "", verify_checksum=False)
         assert seed != electrum.seed_from_mnemonic(mnemonic, "")
+
+
+@pytest.mark.parametrize("lang, n_words", [("en", 47), ("ja", 47), ("pt", 48)])
+def test_longest_sentence(lang: str, n_words: int) -> None:
+    """A sentence longer than the longest one written is refused unread."""
+    # the longest entropy, 512 bits, written and read back
+    mnemonic = electrum.mnemonic_from_entropy("standard", (1 << 512) - 1, lang)
+    assert len(mnemonic.split()) <= n_words
+    assert electrum.entropy_from_mnemonic(mnemonic, lang) != ""
+
+    # the search steps past 2**512 by far less than a word needs, so the
+    # count of 2**512 is the longest sentence
+    base = ELECTRUM_WORDLISTS.language_length(lang)
+    assert base ** (n_words - 1) <= 1 << 512 < base**n_words
+
+    # a sentence of n_words + 1 words whose seed version prefix is "01",
+    # the way to reach the decode: only the last word is searched for
+    words = ELECTRUM_WORDLISTS.wordlist(lang)
+    long = next(
+        sentence
+        for last in words
+        if electrum._mnemonic_type(sentence := " ".join([words[0]] * n_words + [last]))
+        == "standard"
+    )
+    # the bound is the first thing to fail: the sentence is made of
+    # known words, so a failed lookup would have another message
+    err_msg = f"invalid number of words: {n_words + 1} instead of at most {n_words}"
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+        electrum.entropy_from_mnemonic(long, lang)
+    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+        electrum.entropy_from_mnemonic(long)
+
+
+def test_cjk_intervals() -> None:
+    """_is_cjk agrees with the interval list at every edge."""
+    intervals = sorted(electrum._CJK_INTERVALS)
+    # disjoint, which is what lets bisection find the one interval
+    for (_, previous_end), (start, _) in pairwise(intervals):
+        assert previous_end < start
+
+    def in_intervals(code_point: int) -> bool:
+        return any(imin <= code_point <= imax for imin, imax in intervals)
+
+    for imin, imax in intervals:
+        for code_point in (imin - 1, imin, imin + 1, imax - 1, imax, imax + 1):
+            assert electrum._is_cjk(chr(code_point)) == in_intervals(code_point)
+    assert not electrum._is_cjk(chr(0))
+    assert not electrum._is_cjk("a")
+    assert not electrum._is_cjk(chr(0x10FFFF))
+
+
+def _normalize_reference(text: str) -> str:
+    """Return the text by a linear scan of the intervals, with no ASCII path."""
+
+    def is_cjk(char: str) -> bool:
+        return any(imin <= ord(char) <= imax for imin, imax in electrum._CJK_INTERVALS)
+
+    text = normalize("NFKD", text).lower()
+    text = "".join(c for c in text if not combining(c))
+    text = " ".join(text.split())
+    return "".join(
+        text[i]
+        for i in range(len(text))
+        if not (
+            text[i] in string.whitespace and is_cjk(text[i - 1]) and is_cjk(text[i + 1])
+        )
+    )
+
+
+def test_normalize() -> None:
+    """The ASCII path returns what the full one does."""
+    texts = [
+        "",
+        " ",
+        "  Abandon \t ABOUT\n",
+        "  Él  ÉST　漢 字  ",
+        "a漢 字b 字 c",
+        "ｱ ｲ　ｳ",
+        "İ K Å",
+        "한 국 어",
+        "\u3042\u3000\u3044 \u3046",
+    ]
+    texts.extend(
+        bip39.mnemonic_from_entropy(secrets.token_bytes(16), lang)
+        for lang in ("en", "ja", "zh", "es")
+    )
+    for imin, imax in electrum._CJK_INTERVALS:
+        for code_point in (imin - 1, imin, imax, imax + 1):
+            edge = chr(code_point)
+            texts.append(f"a {edge} {edge} b")
+    for text in texts:
+        assert electrum._normalize(text) == _normalize_reference(text)

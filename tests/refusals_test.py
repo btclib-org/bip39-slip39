@@ -255,7 +255,7 @@ def test_an_unknown_word_is_refused_by_its_position() -> None:
             call()
         assert_secret_free(excinfo.value, [sentence, *sentence.split()])
         # the word-list's own refusal is not left chained behind it
-        assert excinfo.value.__suppress_context__
+        assert excinfo.value.__context__ is None
 
 
 def test_an_unknown_language_is_refused_as_itself() -> None:

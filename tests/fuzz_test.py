@@ -25,7 +25,9 @@ from __future__ import annotations
 
 import contextlib
 import random
+import re
 from collections.abc import Callable
+from functools import partial
 from typing import Any, NamedTuple
 
 import pytest
@@ -61,6 +63,9 @@ DECODERS: dict[str, Callable[[str], Any]] = {
     "slip39.master_secret_from_mnemonics": (
         lambda s: slip39.master_secret_from_mnemonics(s.split("\n"))
     ),
+    "slip39.encrypted_master_secret_from_mnemonics": (
+        lambda s: slip39.encrypted_master_secret_from_mnemonics(s.split("\n"))
+    ),
 }
 
 
@@ -95,6 +100,32 @@ def test_a_decoder_refuses_english_words_within_the_contract(
 def test_a_share_is_read_within_the_contract(sentence: str) -> None:
     """Sentences of SLIP-0039 words reach the header and the checksum."""
     _read(slip39.share_from_mnemonic, sentence)
+
+
+# None, every registered language, and a few that name no word-list. The
+# empty string is no language, as for entropy_from_mnemonic
+_LANGS = st.sampled_from([None, *WORDLISTS.languages, "", "xx", "EN", "english"])
+
+_SENTENCES = st.one_of(
+    st.text(max_size=256),
+    _sentences("en", 0, 25),
+    # valid ones, which arbitrary words almost never are
+    st.tuples(st.binary(min_size=16, max_size=32), st.sampled_from(["en", "fr"])).map(
+        lambda t: bip39.mnemonic_from_entropy(t[0][: len(t[0]) // 4 * 4], t[1])
+    ),
+)
+
+
+@given(text=_SENTENCES, lang=_LANGS)
+def test_is_valid_mnemonic_answers_every_str(text: str, lang: str | None) -> None:
+    """An `is_*` is total: a bool for any str, with nothing suppressed.
+
+    A True is a sentence `entropy_from_mnemonic` accepts as well.
+    """
+    valid = bip39.is_valid_mnemonic(text, lang)
+    assert isinstance(valid, bool)
+    if valid and lang:
+        bip39.entropy_from_mnemonic(text, lang)
 
 
 _FIELD = st.integers(min_value=0, max_value=15)
@@ -236,3 +267,97 @@ def test_recombination_of_valid_shares_stays_within_the_contract(
     chosen = data.draw(st.lists(st.sampled_from(pool), max_size=12))
     with contextlib.suppress(*CONTRACT):
         slip39.master_secret_from_mnemonics(chosen)
+
+
+def _answer(call: Callable[[], bytes]) -> bytes | str:
+    """Return what the call answers, or the message of its refusal."""
+    try:
+        return call()
+    except CONTRACT as e:
+        return str(e)
+
+
+# the whole set's refusal of a set short of shares or of groups: the
+# count found, then the threshold
+_TOO_FEW = re.compile(
+    r"^(\d+) (?:shares in group \d+, member|groups, group) threshold is (\d+)$"
+)
+
+
+_DIGEST = "invalid digest: the shares do not belong together"
+
+
+def _short(refusal: bytes | str) -> bool:
+    """Whether the whole set was refused only for holding too few shares.
+
+    Never asked of an empty set: the recovery takes every first share.
+    """
+    found = _TOO_FEW.match(refusal) if isinstance(refusal, str) else None
+    return found is not None and int(found[1]) < int(found[2])
+
+
+def _add_and_compare(recovery: slip39.Recovery, mnemonic: str) -> None:
+    """Add the mnemonic, then ask the whole set about the shares held.
+
+    Where the recovery is complete, the two answers are equal: the same
+    secret, or the same refusal. Where it is not, the two differ in the
+    message only: the recovery refuses as incomplete, and the whole set
+    is refused for too few shares or groups, or on the digest of a
+    complete group holding shares of two splits that share an
+    identifier, never for anything else. A refused share makes the
+    whole set refused once added to the shares held.
+    """
+    try:
+        recovery.add_mnemonic(mnemonic)
+    except CONTRACT:
+        held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
+        whole = [*held, mnemonic]
+        refusal = _answer(partial(slip39.master_secret_from_mnemonics, whole))
+        assert isinstance(refusal, str)
+    held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
+    expected = _answer(partial(slip39.master_secret_from_mnemonics, held))
+    answer = _answer(recovery.master_secret)
+    if recovery.is_complete:
+        assert answer == expected
+    else:
+        assert answer == "incomplete set of shares"
+        assert _short(expected) or expected == _DIGEST, expected
+
+
+@given(first=_splits(), second=_splits(), data=st.data())
+def test_a_recovery_agrees_with_the_whole_set(
+    first: _Split, second: _Split, data: st.DataObject
+) -> None:
+    """Valid shares of two splits, added one at a time, as the whole set.
+
+    `_add_and_compare` says what agreeing means.
+    """
+    pool = [m for split in (first, second) for group in split.mnemonics for m in group]
+    recovery = slip39.Recovery()
+    for mnemonic in data.draw(st.lists(st.sampled_from(pool), max_size=12)):
+        _add_and_compare(recovery, mnemonic)
+
+
+def test_a_partial_recovery_of_two_splits_is_refused_on_the_digest() -> None:
+    """A group completed from two splits, another group still partial.
+
+    One seed gives both splits one identifier, so every share is taken;
+    the whole set is refused on the first group's digest before it
+    counts the second group's shares.
+    """
+    first, second = (
+        slip39.mnemonics_from_master_secret(
+            secret,
+            [(2, 2), (2, 2)],
+            2,
+            iteration_exponent=0,
+            entropy_source=random.Random(0).randbytes,
+        )
+        for secret in (bytes(16), bytes(range(16)))
+    )
+    recovery = slip39.Recovery()
+    for mnemonic in (first[0][0], second[0][1], first[1][0]):
+        _add_and_compare(recovery, mnemonic)
+    assert recovery.groups == {0: (2, 2), 1: (1, 2)}
+    held = [slip39.mnemonic_from_share(s) for s in recovery.shares]
+    assert _answer(partial(slip39.master_secret_from_mnemonics, held)) == _DIGEST
