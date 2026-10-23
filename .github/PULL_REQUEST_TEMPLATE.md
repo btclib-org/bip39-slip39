@@ -13,8 +13,9 @@
 
 ## Checks
 
-<!-- CI runs each command below, and rejects the pull request if one fails:
-     the point of running it locally is not to wait for CI to tell you. -->
+<!-- CI runs the gates below, in the locked forms CONTRIBUTING.md
+     gives, and rejects the pull request if one fails: the point of
+     running them locally is not to wait for CI to tell you. -->
 
 - [ ] `uv run pre-commit run --all-files` is clean (ruff, mypy strict,
       markdownlint, the copyright notice, `uv.lock`)
