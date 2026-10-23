@@ -20,14 +20,14 @@ import pytest
 
 from bip39_slip39 import bip39, exceptions, slip39
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsException,
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39Exception,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 
 
 def test_every_exception_of_the_module_is_one_base_to_catch() -> None:
-    """`except BTClibMnemonicsException` tells this package's failure apart.
+    """`except Bip39Slip39Exception` tells this package's failure apart.
 
     The classes are found rather than listed, so one added to the module
     is one this covers: a new exception that forgot the base would be a
@@ -41,33 +41,33 @@ def test_every_exception_of_the_module_is_one_base_to_catch() -> None:
     ]
     assert len(classes) == len(exceptions.__all__), "a non-class in __all__"
     uncatchable = [
-        cls.__name__ for cls in classes if not issubclass(cls, BTClibMnemonicsException)
+        cls.__name__ for cls in classes if not issubclass(cls, Bip39Slip39Exception)
     ]
     assert not uncatchable
 
 
 @pytest.mark.parametrize(
     "cls, builtin",
-    [(BTClibMnemonicsValueError, ValueError), (BTClibMnemonicsTypeError, TypeError)],
+    [(Bip39Slip39ValueError, ValueError), (Bip39Slip39TypeError, TypeError)],
     ids=["ValueError", "TypeError"],
 )
 def test_the_base_is_inherited_beside_the_builtin_not_instead_of_it(
-    cls: type[BTClibMnemonicsException], builtin: type[Exception]
+    cls: type[Bip39Slip39Exception], builtin: type[Exception]
 ) -> None:
     """The half that keeps every `except ValueError` already written working."""
     assert issubclass(cls, builtin)
-    assert issubclass(cls, BTClibMnemonicsException)
+    assert issubclass(cls, Bip39Slip39Exception)
 
 
 def test_the_base_carries_no_behaviour_of_its_own() -> None:
     """It adds a name to catch and nothing else, which is the whole design."""
-    assert BTClibMnemonicsException.__init__ is Exception.__init__
-    assert BTClibMnemonicsException.__str__ is Exception.__str__
-    error = BTClibMnemonicsValueError("bad")
+    assert Bip39Slip39Exception.__init__ is Exception.__init__
+    assert Bip39Slip39Exception.__str__ is Exception.__str__
+    error = Bip39Slip39ValueError("bad")
     assert str(error) == "bad"
     assert error.args == ("bad",)
     back = pickle.loads(pickle.dumps(error))  # noqa: S301 -- bytes this test wrote
-    assert type(back) is BTClibMnemonicsValueError
+    assert type(back) is Bip39Slip39ValueError
     assert back.args == error.args
 
 
@@ -83,7 +83,7 @@ def test_the_exceptions_are_not_btclibs() -> None:
     """
     from btclib.exceptions import BTClibException  # noqa: PLC0415
 
-    assert not issubclass(BTClibMnemonicsException, BTClibException)
+    assert not issubclass(Bip39Slip39Exception, BTClibException)
 
 
 def test_a_refusal_raised_inside_the_package_is_a_value_error() -> None:
@@ -96,13 +96,13 @@ def test_a_refusal_raised_inside_the_package_is_a_value_error() -> None:
     """
     with pytest.raises(ValueError, match="invalid checksum: ") as bip39_refusal:
         bip39.entropy_from_mnemonic("abandon " * 12, "en")
-    assert isinstance(bip39_refusal.value, BTClibMnemonicsValueError)
+    assert isinstance(bip39_refusal.value, Bip39Slip39ValueError)
 
     with pytest.raises(ValueError, match="checksum") as slip39_refusal:
         slip39.share_from_mnemonic(" ".join(["academic"] * 20))
-    assert isinstance(slip39_refusal.value, BTClibMnemonicsValueError)
+    assert isinstance(slip39_refusal.value, Bip39Slip39ValueError)
 
     # and a wrong type is a TypeError the same way
     with pytest.raises(TypeError, match="invalid passphrase type: ") as refusal:
         slip39.master_secret_from_mnemonics([], b"")  # type: ignore[arg-type]
-    assert isinstance(refusal.value, BTClibMnemonicsTypeError)
+    assert isinstance(refusal.value, Bip39Slip39TypeError)

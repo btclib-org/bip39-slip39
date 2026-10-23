@@ -25,7 +25,7 @@ prefix flavour, and the comment beside them gives the rate.
 import pytest
 
 from bip39_slip39 import bip39, dispatch, electrum, slip39
-from bip39_slip39.exceptions import BTClibMnemonicsValueError
+from bip39_slip39.exceptions import Bip39Slip39ValueError
 from tests import load, vector_id
 
 # every word in the pre-2.0 list, so electrum reads it as "old" although
@@ -337,7 +337,7 @@ def test_slip39_bad_set_of_good_sentences(mnemonics: list[str]) -> None:
     for mnemonic in mnemonics:
         assert dispatch.seed_type_from_mnemonic(mnemonic) == "slip39"
 
-    with pytest.raises(BTClibMnemonicsValueError):
+    with pytest.raises(Bip39Slip39ValueError):
         slip39.master_secret_from_mnemonics(mnemonics, SLIP39_PASSPHRASE)
 
 

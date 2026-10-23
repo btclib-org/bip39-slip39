@@ -6,7 +6,7 @@
 
 > Every public function guarantees the validation of all its inputs,
 > directly or indirectly. A malformed argument leaves as
-> `BTClibMnemonicsTypeError` or `BTClibMnemonicsValueError`.
+> `Bip39Slip39TypeError` or `Bip39Slip39ValueError`.
 
 CONTRIBUTING.md's "Every public function validates its inputs" states it,
 and which of the two classes comes out is not a coin toss -- it is the
@@ -14,9 +14,9 @@ distinction issue btclib-org/btclib#814 settled, so this file drives the
 two separately:
 
 - **a value of a type the signature does not declare** is the caller's
-  own mistake, and leaves as a `BTClibMnemonicsTypeError`.
+  own mistake, and leaves as a `Bip39Slip39TypeError`.
 - **a value of a declared type that no valid input carries** is a fact
-  about the input, and leaves as a `BTClibMnemonicsException`.
+  about the input, and leaves as a `Bip39Slip39Exception`.
 
 ## How it calls what it calls
 
@@ -63,8 +63,8 @@ from typing import Any
 import pytest
 
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsException,
-    BTClibMnemonicsTypeError,
+    Bip39Slip39Exception,
+    Bip39Slip39TypeError,
 )
 
 _LIBRARY = Path(__file__).parents[1] / "src" / "bip39_slip39"
@@ -177,13 +177,13 @@ _ANSWERS_A_WRONG_VALUE = {
 def test_a_wrong_type_leaves_as_a_type_error_of_the_package(dotted: str) -> None:
     """The first rule, and it has no exceptions.
 
-    `BTClibMnemonicsTypeError` and not the base: this is where the class is
-    the point. A bare `TypeError` fails here as a `BTClibMnemonicsValueError`
+    `Bip39Slip39TypeError` and not the base: this is where the class is
+    the point. A bare `TypeError` fails here as a `Bip39Slip39ValueError`
     does -- the first is a leak from underneath the package, the second
     is the package calling a caller's mistake a fact about the input.
     """
     for call in _calls(dotted, _WRONG_TYPE):
-        with pytest.raises(BTClibMnemonicsTypeError):
+        with pytest.raises(Bip39Slip39TypeError):
             call()
 
 
@@ -198,7 +198,7 @@ def test_a_wrong_value_leaves_as_an_exception_of_the_package(dotted: str) -> Non
     given is the base.
     """
     for call in _calls(dotted, _WRONG_VALUE):
-        with pytest.raises(BTClibMnemonicsException):
+        with pytest.raises(Bip39Slip39Exception):
             call()
 
 

@@ -26,8 +26,8 @@ from bip39_slip39.entropy import (
     collect_rolls,
 )
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 
 # the refusal of a string entropy that is not ASCII digits (issue
@@ -70,7 +70,7 @@ def test_an_index_no_word_answers_to_is_refused() -> None:
     )
 
     for out_of_range in (-1, 2048, 2**32):
-        with pytest.raises(BTClibMnemonicsValueError) as excinfo:
+        with pytest.raises(Bip39Slip39ValueError) as excinfo:
             _bin_str_entropy_from_wordlist_indexes([*good, out_of_range], 2048)
         # the bound and not the index, a word of the mnemonic
         assert str(excinfo.value) == "invalid index: not in [0, 2048)"
@@ -78,7 +78,7 @@ def test_an_index_no_word_answers_to_is_refused() -> None:
     assert _bin_str_entropy_from_wordlist_indexes([2048], 4096)
 
     for not_an_index in (1.0, "1", True):
-        with pytest.raises(BTClibMnemonicsTypeError, match="invalid index type: "):
+        with pytest.raises(Bip39Slip39TypeError, match="invalid index type: "):
             _bin_str_entropy_from_wordlist_indexes([not_an_index], 2048)  # type: ignore[list-item]
 
 
@@ -133,7 +133,7 @@ def test_conversions() -> None:
         int(too_long, 2),
         int(too_long, 2).to_bytes(max_bits // 8 + 1, byteorder="big"),
     ):
-        with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits"):
+        with pytest.raises(Bip39Slip39ValueError, match="invalid number of bits"):
             _bin_str_entropy_from_entropy(entr, _bits)
 
     # entr integer has its leftmost bit set to 0
@@ -142,12 +142,12 @@ def test_conversions() -> None:
     assert len(bin_str_entropy) == max_bits
 
     # one bit over
-    with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits"):
+    with pytest.raises(Bip39Slip39ValueError, match="invalid number of bits"):
         _bin_str_entropy_from_entropy(1 << max_bits, _bits)
 
     # far past CPython's limit on decimal digits, still the package's refusal
     for huge in (10**5000, "1" * 5000):
-        with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits"):
+        with pytest.raises(Bip39Slip39ValueError, match="invalid number of bits"):
             _bin_str_entropy_from_entropy(huge, _bits)
 
     i = secrets.randbits(255)
@@ -164,7 +164,7 @@ def test_conversions() -> None:
     assert int(raw2, 2) == i
     assert len(raw2) == 255
     assert _bin_str_entropy_from_str(f"0{raw2}", _bits) == raw
-    with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits"):
+    with pytest.raises(Bip39Slip39ValueError, match="invalid number of bits"):
         _bin_str_entropy_from_str(raw, 128)
 
 
@@ -178,12 +178,12 @@ def test_exceptions() -> None:
 
     # 214 is not in [128, 160, 192, 224, 256, 512]
     err_msg = "invalid number of bits: "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         _bin_str_entropy_from_entropy(bin_str_entropy214, _bits)
 
     # 214 is not in [216]
     err_msg = "invalid number of bits: "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         _bin_str_entropy_from_entropy(bin_str_entropy214, 216)
 
     int_entropy211 = int(bin_str_entropy214, 2)  # 211 bits
@@ -201,28 +201,28 @@ def test_exceptions() -> None:
     assert int(entropy, 2) == int_entropy211
 
     # the value stays out of the message, being seed material
-    with pytest.raises(BTClibMnemonicsValueError) as excinfo:
+    with pytest.raises(Bip39Slip39ValueError) as excinfo:
         _bin_str_entropy_from_entropy(-1 * int_entropy211, _bits)
     assert str(excinfo.value) == "negative entropy"
 
     bytes_entropy216 = int_entropy211.to_bytes(27, byteorder="big", signed=False)
-    with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits"):
+    with pytest.raises(Bip39Slip39ValueError, match="invalid number of bits"):
         _bin_str_entropy_from_entropy(bytes_entropy216, 214)
 
     entropy = _bin_str_entropy_from_entropy(bytes_entropy216, 216)
     assert entropy != bin_str_entropy216
 
     err_msg = "invalid number of bits: "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         _bin_str_entropy_from_entropy(bytes_entropy216, 224)
 
     # an empty tuple is entropy of no spelling at all, which is what it
     # is refused as: it used to reach `len()` and be reported as zero
     # bits, a number it never carried
-    with pytest.raises(BTClibMnemonicsTypeError, match="invalid octets type: tuple"):
+    with pytest.raises(Bip39Slip39TypeError, match="invalid octets type: tuple"):
         _bin_str_entropy_from_entropy((), _bits)  # type: ignore[arg-type]
 
-    with pytest.raises(BTClibMnemonicsTypeError, match="invalid entropy type: int"):
+    with pytest.raises(Bip39Slip39TypeError, match="invalid entropy type: int"):
         _bin_str_entropy_from_str(3, _bits)  # type: ignore[arg-type]
 
     # 130 bits are 17 bytes, left-padded
@@ -380,25 +380,25 @@ def test_bin_str_entropy_from_rolls() -> None:
 
     rolls = [secrets.randbelow(base) + 1 for _ in range(roll_number - 2)]
     err_msg = "too few rolls in the usable "  # [1-16] range, missing 2 rolls
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         bin_str_entropy_from_rolls(bits, dice_base, rolls)
 
     rolls = [secrets.randbelow(base) + 1 for _ in range(roll_number)]
     rolls[1] = base + 1
     err_msg = "too few rolls in the usable "  # [1-16] range, missing 1 rolls
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         bin_str_entropy_from_rolls(bits, dice_base, rolls)
 
     rolls = [secrets.randbelow(base) + 1 for _ in range(roll_number)]
     rolls[1] = dice_base + 1
     # the bound and not the roll
-    with pytest.raises(BTClibMnemonicsValueError) as excinfo:
+    with pytest.raises(Bip39Slip39ValueError) as excinfo:
         bin_str_entropy_from_rolls(bits, dice_base, rolls)
     assert str(excinfo.value) == f"invalid roll: not in [1-{dice_base}]"
 
     rolls = [secrets.randbelow(base) + 1 for _ in range(roll_number)]
     err_msg = "invalid dice base: "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         bin_str_entropy_from_rolls(bits, 1, rolls)
 
     # the boundary itself, not 1: `< 2` weakened to `<= 2` still refuses
@@ -432,7 +432,7 @@ def test_a_die_of_2_49_minus_one_faces_does_not_gain_a_bit() -> None:
     base = 2**48
     rolls = [base + 1] * math.ceil(128 / 48)
     err_msg = "too few rolls in the usable "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         bin_str_entropy_from_rolls(128, sides, rolls)
 
     usable = [base] * math.ceil(128 / 48)
@@ -446,12 +446,12 @@ def test_a_dice_base_that_is_not_an_integer() -> None:
     AttributeError from inside the bit accounting.
     """
     err_msg = "invalid dice base type: float"
-    with pytest.raises(BTClibMnemonicsTypeError, match=err_msg):
+    with pytest.raises(Bip39Slip39TypeError, match=err_msg):
         bin_str_entropy_from_rolls(4, 2.0, [1, 2, 1, 2])  # type: ignore[arg-type]
 
     # a bool is not another spelling of the number one either
     err_msg = "invalid dice base type: bool"
-    with pytest.raises(BTClibMnemonicsTypeError, match=err_msg):
+    with pytest.raises(Bip39Slip39TypeError, match=err_msg):
         # no `type: ignore` here, and that is the point: `bool` is an
         # `int` to the type checker, so only this refusal catches it
         bin_str_entropy_from_rolls(4, True, [1, 2, 1, 2])
@@ -485,7 +485,7 @@ def test_the_rolls_are_read_in_the_order_rolled() -> None:
 )
 def test_rolls_of_another_type(bits: Any, rolls: Any, err_msg: str) -> None:
     """Refuse what is no number of bits, no sequence, or no integer roll."""
-    with pytest.raises(BTClibMnemonicsTypeError, match=err_msg):
+    with pytest.raises(Bip39Slip39TypeError, match=err_msg):
         bin_str_entropy_from_rolls(bits, 2, rolls)
 
 
@@ -522,7 +522,7 @@ def test_bin_str_entropy_from_random(bits: int) -> None:
 @pytest.mark.parametrize("bits", [0, -1])
 def test_random_refuses_no_bits(bits: int) -> None:
     """A draw of no bits, or fewer, is refused."""
-    with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits: "):
+    with pytest.raises(Bip39Slip39ValueError, match="invalid number of bits: "):
         bin_str_entropy_from_random(bits)
 
 
@@ -535,9 +535,9 @@ def test_what_is_no_binary_string_is_refused_without_being_echoed() -> None:
     this module says a length or a count instead.
     """
     for not_binary in ("2" * 128, "abc" * 43):
-        with pytest.raises(BTClibMnemonicsValueError, match="not a binary 0/1 string"):
+        with pytest.raises(Bip39Slip39ValueError, match="not a binary 0/1 string"):
             _bin_str_entropy_from_str(not_binary, _bits)
-        with pytest.raises(BTClibMnemonicsValueError, match="not a binary 0/1 string"):
+        with pytest.raises(Bip39Slip39ValueError, match="not a binary 0/1 string"):
             _wordlist_indexes_from_bin_str_entropy(not_binary, 2048)
 
 
@@ -551,9 +551,9 @@ def test_a_bin_str_that_is_no_str() -> None:
     """
     wrongs: tuple[Any, ...] = (None, 1.5, 1, b"0" * 128)
     for wrong in wrongs:
-        with pytest.raises(BTClibMnemonicsTypeError, match="invalid entropy type: "):
+        with pytest.raises(Bip39Slip39TypeError, match="invalid entropy type: "):
             _wordlist_indexes_from_bin_str_entropy(wrong, 2048)
-        with pytest.raises(BTClibMnemonicsTypeError, match="invalid entropy type: "):
+        with pytest.raises(Bip39Slip39TypeError, match="invalid entropy type: "):
             _bin_str_entropy_from_str(wrong, _bits)
 
 
@@ -581,7 +581,7 @@ def test_raw_entropy_is_ascii_0_and_1_alone() -> None:
             _bytes_entropy_from_str,
             lambda x: _wordlist_indexes_from_bin_str_entropy(x, 2048),
         ):
-            with pytest.raises(BTClibMnemonicsValueError) as excinfo:
+            with pytest.raises(Bip39Slip39ValueError) as excinfo:
                 read(not_raw)
             assert str(excinfo.value) == _NOT_BINARY
 

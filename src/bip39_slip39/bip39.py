@@ -65,7 +65,7 @@ from bip39_slip39.entropy import (
     _bytes_entropy_from_str,
     _wordlist_indexes_from_bin_str_entropy,
 )
-from bip39_slip39.exceptions import BTClibMnemonicsValueError
+from bip39_slip39.exceptions import Bip39Slip39ValueError
 from bip39_slip39.mnemonic import (
     WORDLISTS,
     Mnemonic,
@@ -118,7 +118,7 @@ def _base(wordlist: WordList) -> int:
     if base != _BIP39_WORDLIST_LENGTH:
         err_msg = f"invalid bip39 wordlist length: {base}; "
         err_msg += f"expected: {_BIP39_WORDLIST_LENGTH}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     return base
 
 
@@ -131,7 +131,7 @@ def _assert_word_count(n_words: int) -> None:
     if n_words not in _WORD_COUNTS:
         err_msg = f"invalid mnemonic length: {n_words} words, "
         err_msg += f"not in {list(_WORD_COUNTS)}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
 
 def _entropy_checksum(entropy: Entropy) -> tuple[BinStr, BinStr]:
@@ -227,9 +227,7 @@ def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
         # valid is one typo away from being recovered, and an exception
         # message ends up in logs and crash reports
         n_words = len(mnemonic.split())
-        raise BTClibMnemonicsValueError(
-            f"unknown language for mnemonic: {n_words} words"
-        )
+        raise Bip39Slip39ValueError(f"unknown language for mnemonic: {n_words} words")
     if len(candidates) == 1:
         return candidates[0]
 
@@ -238,7 +236,7 @@ def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
         entropies = {entropy_from_mnemonic(mnemonic, lang) for lang in valid}
         if len(entropies) > 1:
             err_msg = f"ambiguous language for mnemonic: {valid}"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         return (valid or candidates)[0]
     return valid[0]
 
@@ -251,7 +249,7 @@ def is_valid_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> bool:
     Any string is answered, with `False` for one that is not valid, so
     there is no exception to catch; a `mnemonic` or `lang` of another
     type is the caller's mistake and leaves as a
-    `BTClibMnemonicsTypeError`, as everywhere in this package.
+    `Bip39Slip39TypeError`, as everywhere in this package.
 
     The language is read off the words if it is not provided, and the
     sentence is valid if it is in *any* word-list that holds its words.
@@ -280,7 +278,7 @@ def is_valid_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> bool:
     for candidate in langs:
         try:
             entropy_from_mnemonic(mnemonic, candidate)
-        except BTClibMnemonicsValueError:
+        except Bip39Slip39ValueError:
             continue
         return True
     return False
@@ -313,7 +311,7 @@ def entropy_from_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> BinStr
     if cs_entropy[bits:] != checksum:
         # neither checksum is quoted: each is bits of the entropy, or of
         # its hash, and an exception message ends up in logs
-        raise BTClibMnemonicsValueError(f"invalid checksum: {len(indexes)} words")
+        raise Bip39Slip39ValueError(f"invalid checksum: {len(indexes)} words")
 
     return bin_str_entropy
 

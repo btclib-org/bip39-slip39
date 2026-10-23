@@ -28,7 +28,7 @@ from btclib import utils as btclib_utils
 from btclib.exceptions import BTClibException
 
 from bip39_slip39 import _utils
-from bip39_slip39.exceptions import BTClibMnemonicsException
+from bip39_slip39.exceptions import Bip39Slip39Exception
 
 _OCTETS = [
     b"",
@@ -88,7 +88,7 @@ def _outcome(function: Callable[[Any], Any], value: Any) -> tuple[str, Any]:
     """
     try:
         return "answer", function(value)
-    except (BTClibMnemonicsException, BTClibException) as error:
+    except (Bip39Slip39Exception, BTClibException) as error:
         builtin = next(c for c in type(error).__mro__ if c in {ValueError, TypeError})
         return builtin.__name__, str(error)
 
@@ -107,11 +107,11 @@ def test_the_copy_answers_as_the_original(
 
 def test_the_copy_raises_the_packages_own_exceptions() -> None:
     """The half the comparison above abstracts away, asserted by name."""
-    with pytest.raises(BTClibMnemonicsException):
+    with pytest.raises(Bip39Slip39Exception):
         _utils.bytes_from_octets("not hex")
-    with pytest.raises(BTClibMnemonicsException):
+    with pytest.raises(Bip39Slip39Exception):
         _utils.bytes_from_octets(1.5)  # type: ignore[arg-type]
-    with pytest.raises(BTClibMnemonicsException):
+    with pytest.raises(Bip39Slip39Exception):
         _utils.assert_type(1, str, "value")
 
 
