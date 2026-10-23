@@ -13,12 +13,14 @@
 
 ## Checks
 
-<!-- CI runs all of this, and rejects the pull request if any of it fails:
+<!-- CI runs each command below, and rejects the pull request if one fails:
      the point of running it locally is not to wait for CI to tell you. -->
 
 - [ ] `uv run pre-commit run --all-files` is clean (ruff, mypy strict,
       markdownlint, the copyright notice, `uv.lock`)
 - [ ] `uv run pytest` passes
+- [ ] I have read and understood every line of this change, and can
+      answer a review of it without the model
 
 ## Anything the reviewer should know
 
