@@ -9,4 +9,4 @@ holds the dice prompts used by `entropy`.
 `bip39` and `electrum` depend on `entropy` and `mnemonic`; `slip39`
 depends on `mnemonic` only. The schemes do not import one another.
 `dispatch` identifies a sentence's scheme, and `__main__` is the
-`python -m btclib_mnemonics` entry point.
+`python -m bip39_slip39` entry point.
