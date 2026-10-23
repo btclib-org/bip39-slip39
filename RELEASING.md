@@ -656,13 +656,19 @@ result.
    gh release download "v${version:?}" --repo btclib-org/bip39-slip39 &&
    wheel=bip39_slip39-${version:?}-py3-none-any.whl &&
    repo=btclib-org/bip39-slip39 &&
+   id=$(gh api "repos/$repo" --jq .id) &&
+   cert='.[].verificationResult.signature.certificate' &&
    workflows=btclib-org/.github/.github/workflows &&
    signer=$workflows/reusable-build.yml@refs/heads/main &&
-   gh attestation verify "$wheel" --repo "$repo" \
-     --signer-workflow "$signer" --source-ref "refs/tags/v${version:?}" &&
-   gh attestation verify "$wheel" --repo "$repo" \
+   gh attestation verify "$wheel" --owner btclib-org \
      --signer-workflow "$signer" --source-ref "refs/tags/v${version:?}" \
-     --bundle "v${version:?}.intoto.jsonl"
+     --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
+     grep -qx "${id:?}" &&
+   gh attestation verify "$wheel" --owner btclib-org \
+     --signer-workflow "$signer" --source-ref "refs/tags/v${version:?}" \
+     --bundle "v${version:?}.intoto.jsonl" \
+     --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
+     grep -qx "${id:?}"
    ```
 
    the first asks the attestations API for the signed statement, the
@@ -675,8 +681,12 @@ result.
    `--signer-workflow` names the workflow that signed, and both forms
    need it. The signing runs inside `btclib-org/.github`'s
    `reusable-build.yml`, which `release.yml`'s `build` job calls, so
-   that is the workflow the certificate names, while `--repo` still names
-   this repository. `--source-ref` names the tag, which is what stops a
+   that is the workflow the certificate names. `--owner` names the
+   organization, and the check of `sourceRepositoryIdentifier` names this
+   repository by its id, which a rename keeps: `--repo` compares the
+   current name, and refuses every release signed before a rename. The
+   exit code is `0` only where a verified attestation names this
+   repository. `--source-ref` names the tag, which is what stops a
    rehearsal dispatched from a branch from verifying as this release. A
    release made before this repository called `reusable-build.yml` was
    signed by `reusable-attest.yml`, and verifies with that workflow as
@@ -744,14 +754,18 @@ cd /tmp/bip39-slip39-rebuild &&
 python=$(grep -Ev '^[[:space:]]*(#|$)' .python-version) &&
 export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct) &&
 repo=btclib-org/bip39-slip39 &&
+id=$(gh api "repos/$repo" --jq .id) &&
+cert='.[].verificationResult.signature.certificate' &&
 workflows=btclib-org/.github/.github/workflows &&
 signer=$workflows/reusable-build.yml@refs/heads/main &&
 tag="v${version:?}" &&
 wheels=$(mktemp -d) &&
 gh release download "v${version:?}" --repo "$repo" --dir "$wheels" \
   --pattern '*.whl' &&
-gh attestation verify "$wheels"/*.whl \
-  --repo "$repo" --signer-workflow "$signer" --source-ref "refs/tags/$tag" &&
+gh attestation verify "$wheels"/*.whl --owner btclib-org \
+  --signer-workflow "$signer" --source-ref "refs/tags/$tag" \
+  --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
+  grep -qx "${id:?}" &&
 uv_version=$(unzip -p "$wheels"/*.whl '*.dist-info/WHEEL' |
   sed -n 's/^Generator: uv //p') &&
 [[ $uv_version =~ ^[0-9]+([.][0-9]+)*$ ]] &&
@@ -765,11 +779,20 @@ git -C "$served" sparse-checkout set .github/scripts &&
 uv run --no-project --python "$python" \
   "$served"/.github/scripts/generate_sbom.py dist/ sbom/ &&
 gh attestation verify "dist/bip39_slip39-${version:?}.tar.gz" \
-  --repo "$repo" --signer-workflow "$signer" --source-ref "refs/tags/$tag" &&
+  --owner btclib-org \
+  --signer-workflow "$signer" --source-ref "refs/tags/$tag" \
+  --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
+  grep -qx "${id:?}" &&
 gh attestation verify "dist/bip39_slip39-${version:?}-py3-none-any.whl" \
-  --repo "$repo" --signer-workflow "$signer" --source-ref "refs/tags/$tag" &&
+  --owner btclib-org \
+  --signer-workflow "$signer" --source-ref "refs/tags/$tag" \
+  --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
+  grep -qx "${id:?}" &&
 gh attestation verify "sbom/bip39_slip39-${version:?}.cdx.json" \
-  --repo "$repo" --signer-workflow "$signer" --source-ref "refs/tags/$tag"
+  --owner btclib-org \
+  --signer-workflow "$signer" --source-ref "refs/tags/$tag" \
+  --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
+  grep -qx "${id:?}"
 ```
 
 A release made before this repository called `reusable-build.yml` names
