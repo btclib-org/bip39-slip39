@@ -63,8 +63,8 @@ from hashlib import pbkdf2_hmac, sha256
 
 from bip39_slip39._utils import Octets, assert_type, bytes_from_octets, is_integer
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import (
     WORDLISTS,
@@ -190,7 +190,7 @@ def _interpolate(points: Sequence[tuple[int, bytes]], x: int) -> bytes:
     indexes = [x_i for x_i, _ in points]
     if len(set(indexes)) != len(indexes):
         err_msg = f"invalid points: repeated index in {sorted(indexes)}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     result = 0
     for x_i, y_i in points:
         log_basis = sum(
@@ -275,7 +275,7 @@ def _assert_valid_length(n_bytes: int, what: str) -> None:
     if not _MIN_SECRET_BYTES <= n_bytes <= _MAX_SECRET_BYTES or n_bytes % 2:
         err_msg = f"invalid {what} length: {n_bytes} bytes; "
         err_msg += f"must be even, from {_MIN_SECRET_BYTES} to {_MAX_SECRET_BYTES}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
 
 def _assert_in_ranges(*fields: tuple[str, int, int, int]) -> None:
@@ -284,7 +284,7 @@ def _assert_in_ranges(*fields: tuple[str, int, int, int]) -> None:
         _assert_integers((name, value))
         if not lower <= value <= upper:
             err_msg = f"invalid {name}: {value}, not in [{lower}-{upper}]"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
 
 
 @dataclass(frozen=True)
@@ -339,7 +339,7 @@ class Share:
         if self.group_count < self.group_threshold:
             err_msg = f"group count {self.group_count} "
             err_msg += f"smaller than group threshold {self.group_threshold}"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         _assert_valid_length(len(self.value), "share value")
 
 
@@ -358,7 +358,7 @@ def _indexes_from_mnemonic(mnemonic: Mnemonic) -> list[int]:
             if word not in wordlist
         ]
         err_msg = f"not in the SLIP-0039 word-list: words at positions {positions}"
-        raise BTClibMnemonicsValueError(err_msg) from None
+        raise Bip39Slip39ValueError(err_msg) from None
 
 
 def share_from_mnemonic(mnemonic: Mnemonic) -> Share:
@@ -374,7 +374,7 @@ def share_from_mnemonic(mnemonic: Mnemonic) -> Share:
     if not _MIN_WORDS <= n_words <= _MAX_WORDS:
         err_msg = f"invalid mnemonic length: {n_words} words, "
         err_msg += f"from {_MIN_WORDS} to {_MAX_WORDS} needed"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     indexes = _indexes_from_mnemonic(mnemonic)
 
     n_bits = _RADIX_BITS * n_words
@@ -388,7 +388,7 @@ def share_from_mnemonic(mnemonic: Mnemonic) -> Share:
         # never the share itself: it is the (encrypted) master secret, one
         # typo away from being recoverable, and an exception message ends
         # up in logs and crash reports
-        raise BTClibMnemonicsValueError(f"invalid checksum: {n_words} words")
+        raise Bip39Slip39ValueError(f"invalid checksum: {n_words} words")
 
     padded_bits = n_bits - _HEADER_BITS - _CHECKSUM_BITS
     # the padded value is a whole number of words, so its length is a
@@ -397,12 +397,12 @@ def share_from_mnemonic(mnemonic: Mnemonic) -> Share:
     padding = padded_bits % 16
     if padding > 8:
         err_msg = f"invalid mnemonic length: {n_words} words"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     value_bits = padded_bits - padding
     value = bits >> _CHECKSUM_BITS & ((1 << padded_bits) - 1)
     if value >> value_bits:
         # the bits themselves are not quoted, being bits of the share
-        raise BTClibMnemonicsValueError("invalid padding: must be all zeros")
+        raise Bip39Slip39ValueError("invalid padding: must be all zeros")
 
     # the five four-bit fields after the identifier, the flag and the
     # exponent, last first
@@ -459,7 +459,7 @@ def _assert_valid_passphrase(passphrase: str) -> None:
     assert_type(passphrase, str, "passphrase")
     if any(not 32 <= ord(char) <= 126 for char in passphrase):
         err_msg = "invalid passphrase: only printable ASCII (32-126) is allowed"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
 
 def _round_function(
@@ -508,14 +508,14 @@ def _assert_valid_max_exponent(max_iteration_exponent: int) -> None:
     if not 0 <= max_iteration_exponent <= _MAX_EXPONENT:
         err_msg = f"invalid max iteration exponent: {max_iteration_exponent}, "
         err_msg += f"not in [0-{_MAX_EXPONENT}]"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
 
 def _assert_not_above(iteration_exponent: int, max_iteration_exponent: int) -> None:
     if iteration_exponent > max_iteration_exponent:
         err_msg = f"iteration exponent {iteration_exponent} "
         err_msg += f"above the maximum {max_iteration_exponent}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
 
 @dataclass(frozen=True)
@@ -594,9 +594,7 @@ def _recover_secret(threshold: int, shares: Sequence[tuple[int, bytes]]) -> byte
     # one.
     # SLIP-0039's reference implementation compares with `!=` too.
     if digest_share[:_DIGEST_BYTES] != _digest(random_part, secret):
-        raise BTClibMnemonicsValueError(
-            "invalid digest: the shares do not belong together"
-        )
+        raise Bip39Slip39ValueError("invalid digest: the shares do not belong together")
     return secret
 
 
@@ -610,11 +608,11 @@ def _drawn(entropy_source: Callable[[int], bytes], n_bytes: int) -> bytes:
     drawn: object = entropy_source(n_bytes)
     if not isinstance(drawn, bytes | bytearray):
         err_msg = f"invalid entropy source output type: {type(drawn).__name__}"
-        raise BTClibMnemonicsTypeError(err_msg)
+        raise Bip39Slip39TypeError(err_msg)
     if len(drawn) != n_bytes:
         err_msg = f"invalid entropy source output length: {len(drawn)} bytes "
         err_msg += f"instead of {n_bytes}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     return bytes(drawn)
 
 
@@ -659,20 +657,20 @@ def _grouped(shares: Sequence[Share]) -> list[tuple[int, bytes]]:
         if len(thresholds) > 1:
             err_msg = f"mismatching member thresholds in group {group_index}: "
             err_msg += f"{sorted(thresholds)}"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         threshold = thresholds.pop()
         indexes = [member.member_index for member in members]
         if len(set(indexes)) != len(indexes):
             err_msg = f"duplicate member indexes in group {group_index}: "
             err_msg += f"{sorted(indexes)}"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         # equal, not "at least": SLIP-0039 asks for the threshold
         # number of shares and no more, so that a share which does not
         # belong is reported instead of being quietly outvoted
         if len(members) != threshold:
             err_msg = f"{len(members)} shares in group {group_index}, "
             err_msg += f"member threshold is {threshold}"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         points = [(member.member_index, member.value) for member in members]
         group_shares.append((group_index, _recover_secret(threshold, points)))
     return group_shares
@@ -691,7 +689,7 @@ def _common_field(shares: Sequence[Share]) -> Share:
     ):
         if len(values) > 1:
             err_msg = f"mismatching {name}: {sorted(values, key=str)}"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
     return first
 
 
@@ -712,7 +710,7 @@ def _assert_mnemonic_sequence(mnemonics: object) -> None:
     """
     if isinstance(mnemonics, str) or not isinstance(mnemonics, Sequence):
         err_msg = f"invalid mnemonics type: {type(mnemonics).__name__}"
-        raise BTClibMnemonicsTypeError(err_msg)
+        raise Bip39Slip39TypeError(err_msg)
 
 
 def _assert_groups(groups: object) -> None:
@@ -725,16 +723,14 @@ def _assert_groups(groups: object) -> None:
     `_assert_valid_split`'s.
     """
     if not isinstance(groups, Sequence):
-        raise BTClibMnemonicsTypeError(f"invalid groups type: {type(groups).__name__}")
+        raise Bip39Slip39TypeError(f"invalid groups type: {type(groups).__name__}")
     for group in groups:
         if not isinstance(group, tuple | list):
-            raise BTClibMnemonicsTypeError(
-                f"invalid group type: {type(group).__name__}"
-            )
+            raise Bip39Slip39TypeError(f"invalid group type: {type(group).__name__}")
         if len(group) != 2:
             err_msg = f"invalid group: {len(group)} items, "
             err_msg += "(member threshold, member count) required"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         _assert_integers(("member threshold", group[0]), ("member count", group[1]))
 
 
@@ -742,9 +738,7 @@ def _assert_integers(*named: tuple[str, object]) -> None:
     """Refuse each value that is not an integer, a bool included."""
     for what, value in named:
         if not is_integer(value):
-            raise BTClibMnemonicsTypeError(
-                f"invalid {what} type: {type(value).__name__}"
-            )
+            raise Bip39Slip39TypeError(f"invalid {what} type: {type(value).__name__}")
 
 
 def _ems_from_shares(shares: Sequence[Share]) -> EncryptedMasterSecret:
@@ -754,7 +748,7 @@ def _ems_from_shares(shares: Sequence[Share]) -> EncryptedMasterSecret:
     if len(group_shares) != first.group_threshold:
         err_msg = f"{len(group_shares)} groups, "
         err_msg += f"group threshold is {first.group_threshold}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     return EncryptedMasterSecret(
         identifier=first.identifier,
         extendable=first.extendable,
@@ -774,7 +768,7 @@ def encrypted_master_secret_from_mnemonics(
     """
     _assert_mnemonic_sequence(mnemonics)
     if not mnemonics:
-        raise BTClibMnemonicsValueError("no mnemonic")
+        raise Bip39Slip39ValueError("no mnemonic")
     return _ems_from_shares([share_from_mnemonic(mnemonic) for mnemonic in mnemonics])
 
 
@@ -804,7 +798,7 @@ def _assert_valid_split(
     _assert_integers(("group threshold", group_threshold))
     if not callable(entropy_source):
         err_msg = f"invalid entropy source type: {type(entropy_source).__name__}"
-        raise BTClibMnemonicsTypeError(err_msg)
+        raise Bip39Slip39TypeError(err_msg)
     for member_threshold, member_count in groups:
         # a 1-of-N group is N shares differing in an index and a
         # checksum, i.e. N copies of the same secret: SLIP-0039 forbids
@@ -812,12 +806,12 @@ def _assert_valid_split(
         if member_threshold == 1 and member_count > 1:
             err_msg = f"invalid 1-of-{member_count} group; "
             err_msg += "a group with threshold 1 must have a single member"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
     for threshold, count in ((group_threshold, len(groups)), *groups):
         if not 0 < threshold <= count <= _MAX_SHARE_COUNT:
             err_msg = f"invalid threshold {threshold} of {count}; "
             err_msg += f"0 < threshold <= count <= {_MAX_SHARE_COUNT} required"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
 
 
 def mnemonics_from_encrypted_master_secret(
@@ -911,7 +905,7 @@ def mnemonics_from_master_secret(
     if not 0 <= iteration_exponent <= _MAX_EXPONENT:
         err_msg = f"invalid iteration exponent: {iteration_exponent}, "
         err_msg += f"not in [0-{_MAX_EXPONENT}]"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
     # the low fifteen bits of the first two bytes drawn, rather than the
     # high fifteen: both are uniform, and this way a two-byte source
@@ -1005,7 +999,7 @@ class Recovery:
             ):
                 if theirs != ours:
                     err_msg = f"not a share of this set: mismatching {name}"
-                    raise BTClibMnemonicsValueError(err_msg)
+                    raise Bip39Slip39ValueError(err_msg)
 
         group_index = share.group_index
         members = [s for s in self._shares if s.group_index == group_index]
@@ -1014,18 +1008,18 @@ class Recovery:
             if started == share.group_threshold:
                 err_msg = f"group {group_index} is beyond the group threshold: "
                 err_msg += f"{started} groups already started"
-                raise BTClibMnemonicsValueError(err_msg)
+                raise Bip39Slip39ValueError(err_msg)
             return
         if share.member_threshold != members[0].member_threshold:
             err_msg = "not a share of this set: "
             err_msg += f"mismatching member threshold in group {group_index}"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         if any(s.member_index == share.member_index for s in members):
             err_msg = f"member {share.member_index} of group {group_index} already in"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
         if len(members) == share.member_threshold:
             err_msg = f"group {group_index} already complete"
-            raise BTClibMnemonicsValueError(err_msg)
+            raise Bip39Slip39ValueError(err_msg)
 
     def master_secret(self, passphrase: str = "") -> bytes:
         """Return the master secret, once the set is complete.
@@ -1038,7 +1032,7 @@ class Recovery:
         """
         _assert_valid_passphrase(passphrase)
         if not self.is_complete:
-            raise BTClibMnemonicsValueError("incomplete set of shares")
+            raise Bip39Slip39ValueError("incomplete set of shares")
         return _ems_from_shares(self._shares).master_secret(
             passphrase, max_iteration_exponent=self._max_iteration_exponent
         )

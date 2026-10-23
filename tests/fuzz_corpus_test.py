@@ -15,7 +15,7 @@ code -- it parses the source with `ast` and resolves what a harness
 is what each harness names, and `fuzz_target`'s own body has to call
 each of them and each decoder `tests/fuzz_test.py` lists. Every seed is
 then tried against every entry point, and passes if at least one reads it
-without raising `BTClibMnemonicsException`; a seed the SLIP-0039 decoder
+without raising `Bip39Slip39Exception`; a seed the SLIP-0039 decoder
 reads has to encode back to its own bytes.
 
 What this gate is for is keeping the fuzzer's own starting point honest
@@ -34,7 +34,7 @@ from typing import Any
 import pytest
 
 from bip39_slip39 import slip39
-from bip39_slip39.exceptions import BTClibMnemonicsException
+from bip39_slip39.exceptions import Bip39Slip39Exception
 from tests.fuzz_test import DECODERS
 
 _FUZZ = Path(__file__).parent.parent / "fuzz"
@@ -142,7 +142,7 @@ def test_every_seed_is_read(path: Path, seed: Path) -> None:
     for spec in _entry_points(_tree(path)):
         try:
             result = _resolve(spec)(text)
-        except BTClibMnemonicsException:
+        except Bip39Slip39Exception:
             continue
         read.append(spec)
         if isinstance(result, slip39.Share):

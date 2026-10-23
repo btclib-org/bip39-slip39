@@ -293,8 +293,8 @@ alone.
 **Every public function validates its inputs.** Whatever it is handed — a
 sentence, an entropy, octets, or a `Share` somebody built earlier — a name
 a caller can reach checks it before acting on it, and a malformed
-argument leaves as a `BTClibMnemonicsTypeError` or a
-`BTClibMnemonicsValueError`, each beside the built-in of its name so that
+argument leaves as a `Bip39Slip39TypeError` or a
+`Bip39Slip39ValueError`, each beside the built-in of its name so that
 a caller catching `ValueError` still catches it.
 `tests/input_validation_test.py` drives the rule over every public
 function whose required parameters are all package input types, and
@@ -302,9 +302,9 @@ function whose required parameters are all package input types, and
 
 **A value of a type the signature does not declare is the caller's own
 mistake**, a call mypy already refuses, and it leaves as a
-`BTClibMnemonicsTypeError`; a value of a declared type that no valid
+`Bip39Slip39TypeError`; a value of a declared type that no valid
 input carries is a fact about the input and leaves as a
-`BTClibMnemonicsValueError`. The line is the annotation, and deliberately
+`Bip39Slip39ValueError`. The line is the annotation, and deliberately
 not which built-in a helper happens to derive from: those two coincide
 only by accident (btclib-org/btclib#745).
 

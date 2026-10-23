@@ -21,7 +21,7 @@ the recombination of shares, which takes one share per line.
 A crash here on hostile input is a defect in the decoder, never in this
 harness: `data` is decoded as UTF-8 and handed straight to each entry
 point, bytes that are no UTF-8 being refused before any of them could
-be. `BTClibMnemonicsException` is what each answers malformed input
+be. `Bip39Slip39Exception` is what each answers malformed input
 with, so that family is caught below as the expected outcome; any other
 exception propagates to atheris as the finding it is. A share that
 decodes is encoded again, and has to spell the sentence it came from as
@@ -39,7 +39,7 @@ import sys
 import atheris
 
 from bip39_slip39 import bip39, electrum, mnemonic, slip39
-from bip39_slip39.exceptions import BTClibMnemonicsException
+from bip39_slip39.exceptions import Bip39Slip39Exception
 from bip39_slip39.mnemonic import normalize_mnemonic
 
 # tests/fuzz_corpus_test.py reads this by ast.literal_eval, never by
@@ -55,7 +55,7 @@ ENTRY_POINTS = (
 def fuzz_target(data: bytes) -> None:
     """Read `data` as a BIP39, an Electrum and a SLIP-0039 sentence.
 
-    `BTClibMnemonicsException` is swallowed as each entry point's own
+    `Bip39Slip39Exception` is swallowed as each entry point's own
     refusal of malformed input; any other exception propagates, which is
     how atheris tells a defect in the decoder from the domain of input it
     already rejects.
@@ -64,33 +64,33 @@ def fuzz_target(data: bytes) -> None:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
         return
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         bip39.entropy_from_mnemonic(text)
     # total over every string, so nothing is suppressed
     bip39.is_valid_mnemonic(text)
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         electrum.version_from_mnemonic(text)
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         bip39.lang_from_mnemonic(text)
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         electrum.entropy_from_mnemonic(text)
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         electrum.lang_from_mnemonic(text)
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         electrum.hex_seed_from_old_mnemonic(text)
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         bip39.seed_from_mnemonic(text, "")
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         electrum.seed_from_mnemonic(text, "")
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         electrum.old_master_prv_key_from_mnemonic(text)
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         mnemonic.indexes_from_mnemonic(text, "en")
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         slip39.master_secret_from_mnemonics(text.split("\n"))
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         slip39.encrypted_master_secret_from_mnemonics(text.split("\n"))
-    with contextlib.suppress(BTClibMnemonicsException):
+    with contextlib.suppress(Bip39Slip39Exception):
         share = slip39.share_from_mnemonic(text)
         if slip39.mnemonic_from_share(share) != normalize_mnemonic(text):
             msg = "a decoded share encodes to another sentence"

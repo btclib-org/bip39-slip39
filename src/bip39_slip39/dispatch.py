@@ -93,7 +93,7 @@ from __future__ import annotations
 
 from bip39_slip39 import bip39, electrum, slip39
 from bip39_slip39._utils import assert_type
-from bip39_slip39.exceptions import BTClibMnemonicsValueError
+from bip39_slip39.exceptions import Bip39Slip39ValueError
 from bip39_slip39.mnemonic import Mnemonic, indexes_from_mnemonic
 
 __all__ = [
@@ -122,7 +122,7 @@ def _slip39_seed_type(mnemonic: Mnemonic) -> str:
     try:
         slip39.share_from_mnemonic(mnemonic)
     except ValueError:
-        # BTClibMnemonicsValueError for a bad checksum, length or field,
+        # Bip39Slip39ValueError for a bad checksum, length or field,
         # and for a word that is not in the list
         return ""
     return "slip39"
@@ -146,14 +146,14 @@ def _bip39_seed_type(mnemonic: Mnemonic, lang: str) -> str:
     try:
         indexes_from_mnemonic(mnemonic, lang)
     except ValueError:
-        # BTClibMnemonicsValueError is a ValueError, so this catches the
+        # Bip39Slip39ValueError is a ValueError, so this catches the
         # unknown word and the unknown language together
         return ""
     if len(words) not in _BIP39_WORD_COUNTS:
         return "bip39_wordlist"
     try:
         bip39.entropy_from_mnemonic(mnemonic, lang)
-    except BTClibMnemonicsValueError:
+    except Bip39Slip39ValueError:
         return "bip39_wordlist"
     return "bip39"
 
@@ -181,7 +181,7 @@ def all_seed_types_from_mnemonic(mnemonic: Mnemonic, lang: str = "en") -> list[s
 
     try:
         version = electrum.version_from_mnemonic(mnemonic)[0]
-    except BTClibMnemonicsValueError:
+    except Bip39Slip39ValueError:
         pass
     else:
         seed_types.append(f"electrum_{version}")

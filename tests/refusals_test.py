@@ -4,7 +4,7 @@
 
 """What a refusal of `bip39_slip39` says, and what it does not.
 
-A wrong type leaves as a `BTClibMnemonicsTypeError` naming the
+A wrong type leaves as a `Bip39Slip39TypeError` naming the
 parameter, not as a builtin raised from underneath the package (issue
 btclib-org/btclib-wallet#134) nor as a value refusal (issue
 btclib-org/btclib-wallet#136): these are the calls
@@ -29,8 +29,8 @@ import pytest
 
 from bip39_slip39 import bip39, dispatch, electrum, entropy, mnemonic, slip39
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 from tests import load
 from tests.secret_free import assert_secret_free
@@ -176,8 +176,8 @@ _WRONG_TYPES: list[tuple[str, Callable[[], Any], str]] = [
 def test_a_wrong_type_is_the_packages_refusal(
     call: Callable[[], Any], err_msg: str
 ) -> None:
-    """A `BTClibMnemonicsTypeError` naming the parameter, and no builtin."""
-    with pytest.raises(BTClibMnemonicsTypeError, match=f"^{err_msg}$") as excinfo:
+    """A `Bip39Slip39TypeError` naming the parameter, and no builtin."""
+    with pytest.raises(Bip39Slip39TypeError, match=f"^{err_msg}$") as excinfo:
         call()
     assert_secret_free(
         excinfo.value, [*_ABOUT_WORDS, *_ENTROPY_SPELLINGS, *_WRONGLY_TYPED]
@@ -214,7 +214,7 @@ def test_an_index_out_of_range_is_refused_by_its_position(index: int) -> None:
     indexes = [1337, 1789]
     words = mnemonic.mnemonic_from_indexes(indexes, "en").split()
     err_msg = r"^invalid index at position 3: not in \[0, 2048\)$"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg) as excinfo:
         mnemonic.mnemonic_from_indexes([*indexes, index], "en")
     # 2048 is a bound the message states, so it is not listed; -1 is
     secrets = [*map(str, indexes), *words, *(["-1"] if index < 0 else [])]
@@ -227,7 +227,7 @@ def test_an_index_out_of_range_is_not_quoted(index: int) -> None:
     indexes = [1337, 1789]
     words = mnemonic.mnemonic_from_indexes(indexes, "en").split()
     err_msg = r"^invalid index at position 3: not in \[0, 2048\)$"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg) as excinfo:
         mnemonic.mnemonic_from_indexes([*indexes, index], "en")
     secrets = [
         str(abs(index)),
@@ -251,7 +251,7 @@ def test_an_unknown_word_is_refused_by_its_position() -> None:
         lambda: mnemonic.indexes_from_mnemonic(sentence, "en"),
         lambda: bip39.entropy_from_mnemonic(sentence, "en"),
     ):
-        with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+        with pytest.raises(Bip39Slip39ValueError, match=err_msg) as excinfo:
             call()
         assert_secret_free(excinfo.value, [sentence, *sentence.split()])
         # the word-list's own refusal is not left chained behind it
@@ -261,7 +261,7 @@ def test_an_unknown_word_is_refused_by_its_position() -> None:
 def test_an_unknown_language_is_refused_as_itself() -> None:
     """Not as an unknown word, which the per-word loop would call it."""
     with pytest.raises(
-        BTClibMnemonicsValueError, match="^Missing file for an unknown language$"
+        Bip39Slip39ValueError, match="^Missing file for an unknown language$"
     ) as excinfo:
         mnemonic.indexes_from_mnemonic(_ABOUT, "xx")
     assert_secret_free(excinfo.value, _ABOUT_WORDS)
@@ -277,7 +277,7 @@ def test_a_bip39_checksum_refusal_quotes_no_checksum() -> None:
     flipped = [*indexes[:-1], indexes[-1] ^ 1]
     broken = mnemonic.mnemonic_from_indexes(flipped, "en")
     with pytest.raises(
-        BTClibMnemonicsValueError, match="^invalid checksum: 12 words$"
+        Bip39Slip39ValueError, match="^invalid checksum: 12 words$"
     ) as excinfo:
         bip39.entropy_from_mnemonic(broken, "en")
     digest = sha256(entropy).digest()
@@ -307,7 +307,7 @@ def test_a_slip39_padding_refusal_quotes_no_bit() -> None:
     vectors = load("_data", "vectors.json")
     ((share,),) = [v[1] for v in vectors if "invalid padding (128 bits)" in v[0]]
     with pytest.raises(
-        BTClibMnemonicsValueError, match="^invalid padding: must be all zeros$"
+        Bip39Slip39ValueError, match="^invalid padding: must be all zeros$"
     ) as excinfo:
         slip39.share_from_mnemonic(share)
     idx = slip39._indexes_from_mnemonic(share)
@@ -342,7 +342,7 @@ def test_an_unknown_electrum_version_quotes_no_hash_prefix() -> None:
     version = electrum._seed_version(_ABOUT)
     prefix = version[:3]
     with pytest.raises(
-        BTClibMnemonicsValueError, match="^unknown electrum mnemonic version; "
+        Bip39Slip39ValueError, match="^unknown electrum mnemonic version; "
     ) as excinfo:
         electrum.version_from_mnemonic(_ABOUT)
     assert_secret_free(
@@ -382,7 +382,7 @@ def test_a_secret_in_the_place_of_a_name_is_not_repeated(
 ) -> None:
     """The refusal of an unknown language or version quotes neither."""
     leaked = "zebra7f7f7f7f7f7f"
-    with pytest.raises(BTClibMnemonicsValueError) as excinfo:
+    with pytest.raises(Bip39Slip39ValueError) as excinfo:
         call(leaked)
     secrets = [leaked, leaked.encode(), leaked.encode().hex(), *_ENTROPY_SPELLINGS]
     assert_secret_free(excinfo.value, secrets)
@@ -401,7 +401,7 @@ def test_a_word_list_file_that_cannot_be_read_is_a_value_error(
         str(not_utf8): "^invalid wordlist file: not UTF-8$",
     }
     for filename, err_msg in cases.items():
-        with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+        with pytest.raises(Bip39Slip39ValueError, match=err_msg) as excinfo:
             mnemonic.WordLists().load_lang("xx", filename)
         assert filename not in str(excinfo.value)
         assert excinfo.value.__suppress_context__
@@ -411,11 +411,11 @@ def test_a_word_list_file_that_cannot_be_read_is_a_value_error(
 def test_the_word_lists_constructor_validates_its_arguments() -> None:
     """The language files are a dict of file names, named by str."""
     for bad in ("abc", 5, [("xx", "x.txt")]):
-        with pytest.raises(BTClibMnemonicsTypeError, match="^invalid language_files"):
+        with pytest.raises(Bip39Slip39TypeError, match="^invalid language_files"):
             mnemonic.WordLists(bad)  # type: ignore[arg-type]
-    with pytest.raises(BTClibMnemonicsTypeError, match="^invalid language type: int$"):
+    with pytest.raises(Bip39Slip39TypeError, match="^invalid language type: int$"):
         mnemonic.WordLists({1: "x.txt"})  # type: ignore[dict-item]
-    with pytest.raises(BTClibMnemonicsTypeError, match="^invalid filename type: int$"):
+    with pytest.raises(Bip39Slip39TypeError, match="^invalid filename type: int$"):
         mnemonic.WordLists({"xx": 5})  # type: ignore[dict-item]
     # a path object names a file as well as its str does
     word_lists = mnemonic.WordLists({"en": Path(mnemonic.data_file("english.txt"))})
@@ -428,12 +428,12 @@ def test_the_word_lists_constructor_validates_its_arguments() -> None:
 def test_the_wordlists_argument_is_validated() -> None:
     """Both functions taking one refuse what is no `WordLists`."""
     with pytest.raises(
-        BTClibMnemonicsTypeError, match="^invalid wordlists type: int$"
+        Bip39Slip39TypeError, match="^invalid wordlists type: int$"
     ) as excinfo:
         mnemonic.indexes_from_mnemonic("abandon", "en", 5)  # type: ignore[arg-type]
     assert_secret_free(excinfo.value, ["abandon"])
     with pytest.raises(
-        BTClibMnemonicsTypeError, match="^invalid wordlists type: dict$"
+        Bip39Slip39TypeError, match="^invalid wordlists type: dict$"
     ) as excinfo:
         mnemonic.mnemonic_from_indexes([1337, 1789], "en", {})  # type: ignore[arg-type]
     words = mnemonic.mnemonic_from_indexes([1337, 1789], "en").split()
@@ -462,7 +462,7 @@ def test_a_lone_surrogate_is_refused_as_a_value_error(
 ) -> None:
     """In a mnemonic or a passphrase, with no UnicodeEncodeError behind it."""
     with pytest.raises(
-        BTClibMnemonicsValueError, match=f"^invalid {what}: contains a lone surrogate$"
+        Bip39Slip39ValueError, match=f"^invalid {what}: contains a lone surrogate$"
     ) as excinfo:
         call()
     assert excinfo.value.__context__ is None

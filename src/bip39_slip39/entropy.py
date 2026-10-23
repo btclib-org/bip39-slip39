@@ -30,8 +30,8 @@ from collections.abc import Iterable, Sequence
 from bip39_slip39._rolls_prompts import ROLLS_PROMPTS
 from bip39_slip39._utils import Octets, assert_type, bytes_from_octets, is_integer
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 
 __all__ = [
@@ -107,7 +107,7 @@ def _int_from_bin_str(entropy: BinStr) -> int:
     """
     assert_type(entropy, str, "entropy")
     if not _is_ascii_digits(entropy, "01"):
-        raise BTClibMnemonicsValueError("invalid entropy: not a binary 0/1 string")
+        raise Bip39Slip39ValueError("invalid entropy: not a binary 0/1 string")
     return int(entropy, 2)
 
 
@@ -149,11 +149,9 @@ def _bin_str_entropy_from_wordlist_indexes(indexes: Sequence[int], base: int) ->
     entropy = 0
     for index in indexes:
         if not is_integer(index):
-            raise BTClibMnemonicsTypeError(
-                f"invalid index type: {type(index).__name__}"
-            )
+            raise Bip39Slip39TypeError(f"invalid index type: {type(index).__name__}")
         if not 0 <= index < base:
-            raise BTClibMnemonicsValueError(f"invalid index: not in [0, {base})")
+            raise Bip39Slip39ValueError(f"invalid index: not in [0, {base})")
         entropy = entropy * base + index
 
     binentropy = f"{entropy:b}"
@@ -221,7 +219,7 @@ def _bin_str_entropy_from_bytes(bytes_entropy: Octets, bits: OneOrMoreInt) -> Bi
     n_bits = len(bytes_entropy) * 8
     if n_bits not in bits:
         err_msg = f"invalid number of bits: {n_bits} instead of {bits}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
     int_entropy = int.from_bytes(bytes_entropy, byteorder="big", signed=False)
     return _bin_str_entropy_from_int(int_entropy, n_bits)
@@ -242,7 +240,7 @@ def _bin_str_entropy_from_int(int_entropy: int, bits: OneOrMoreInt) -> BinStr:
     allowed are refused.
     """
     if int_entropy < 0:
-        raise BTClibMnemonicsValueError("negative entropy")
+        raise Bip39Slip39ValueError("negative entropy")
 
     # if a single int, make it a tuple
     if isinstance(bits, int):
@@ -255,7 +253,7 @@ def _bin_str_entropy_from_int(int_entropy: int, bits: OneOrMoreInt) -> BinStr:
     n_bits = len(bin_str)
     if n_bits > bits[-1]:
         err_msg = f"invalid number of bits: {n_bits} instead of at most {bits[-1]}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
     # pad up to the next allowed bit length
     n_bits = next(v for v in bits if v >= n_bits)
@@ -281,7 +279,7 @@ def _bin_str_entropy_from_str(str_entropy: str, bits: OneOrMoreInt) -> BinStr:
     n_bits = len(str_entropy)
     if n_bits not in bits:
         err_msg = f"invalid number of bits: {n_bits} instead of {bits}"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     return str_entropy
 
 
@@ -309,7 +307,7 @@ def collect_rolls(bits: int, lang: str = "en") -> tuple[int, list[int]]:
     """
     assert_type(lang, str, "lang")
     if lang not in ROLLS_PROMPTS:
-        raise BTClibMnemonicsValueError(
+        raise Bip39Slip39ValueError(
             f"no prompts in language {lang!r}: one of {sorted(ROLLS_PROMPTS)}"
         )
     prompts = ROLLS_PROMPTS[lang]
@@ -359,10 +357,10 @@ def _assert_rolls(rolls: object) -> None:
     have dropped the repeated ones before reaching here.
     """
     if not isinstance(rolls, Sequence):
-        raise BTClibMnemonicsTypeError(f"invalid rolls type: {type(rolls).__name__}")
+        raise Bip39Slip39TypeError(f"invalid rolls type: {type(rolls).__name__}")
     for roll in rolls:
         if not is_integer(roll):
-            raise BTClibMnemonicsTypeError(f"invalid roll type: {type(roll).__name__}")
+            raise Bip39Slip39TypeError(f"invalid roll type: {type(roll).__name__}")
 
 
 def bin_str_entropy_from_rolls(
@@ -385,18 +383,16 @@ def bin_str_entropy_from_rolls(
     rolls' own width, leading zeros included, are retained.
     """
     if not is_integer(bits):
-        raise BTClibMnemonicsTypeError(f"invalid bits type: {type(bits).__name__}")
+        raise Bip39Slip39TypeError(f"invalid bits type: {type(bits).__name__}")
     # `_bits_per_digit` below takes `base.bit_length()`, which a float
     # has no method named, so a caller passing 6.0 would hear a bare
     # AttributeError rather than this module's own message
     if not is_integer(dice_sides):
         err_msg = f"invalid dice base type: {type(dice_sides).__name__}"
-        raise BTClibMnemonicsTypeError(err_msg)
+        raise Bip39Slip39TypeError(err_msg)
     _assert_rolls(rolls)
     if dice_sides < 2:
-        raise BTClibMnemonicsValueError(
-            f"invalid dice base: {dice_sides}, must be >= 2"
-        )
+        raise Bip39Slip39ValueError(f"invalid dice base: {dice_sides}, must be >= 2")
     bits_per_roll = _bits_per_digit(dice_sides)
     # used base
     base = 2**bits_per_roll
@@ -408,7 +404,7 @@ def bin_str_entropy_from_rolls(
         # reject invalid rolls not in [1-dice_sides], naming the bound and
         # not the roll, which with the wrong `dice_sides` is a real one
         if not 0 < roll <= dice_sides:
-            raise BTClibMnemonicsValueError(f"invalid roll: not in [1-{dice_sides}]")
+            raise Bip39Slip39ValueError(f"invalid roll: not in [1-{dice_sides}]")
 
         # collect only usable rolls in [1-base]
         if 0 < roll <= base:
@@ -419,7 +415,7 @@ def bin_str_entropy_from_rolls(
     if min_roll_number > 0:
         msg = f"too few rolls in the usable [1-{base}] range"
         msg += f", missing {min_roll_number} rolls"
-        raise BTClibMnemonicsValueError(msg)
+        raise Bip39Slip39ValueError(msg)
 
     # the leftmost bits of what was rolled, not of the number it spells:
     # that has no leading zeros, and its first bit would be a 1 far more
@@ -430,8 +426,8 @@ def bin_str_entropy_from_rolls(
 def bin_str_entropy_from_random(bits: int) -> BinStr:
     """Return `bits` of raw entropy drawn from the system CSPRNG, `secrets`."""
     if not is_integer(bits):
-        raise BTClibMnemonicsTypeError(f"invalid bits type: {type(bits).__name__}")
+        raise Bip39Slip39TypeError(f"invalid bits type: {type(bits).__name__}")
     if bits < 1:
-        raise BTClibMnemonicsValueError(f"invalid number of bits: {bits}, must be >= 1")
+        raise Bip39Slip39ValueError(f"invalid number of bits: {bits}, must be >= 1")
     # at its own width: the number drawn has no leading zeros
     return f"{secrets.randbits(bits):0{bits}b}"

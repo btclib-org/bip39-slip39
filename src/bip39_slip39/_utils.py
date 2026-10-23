@@ -22,8 +22,8 @@ from __future__ import annotations
 from typing import Any
 
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 
 __all__ = [
@@ -55,10 +55,10 @@ def _assert_byte_shaped(octets: bytes | bytearray | memoryview) -> None:
         return
     if not octets.c_contiguous:
         err_msg = "invalid octets: non-contiguous memoryview"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
     if octets.format != "B":
         err_msg = f"invalid octets: memoryview format {octets.format!r} instead of 'B'"
-        raise BTClibMnemonicsValueError(err_msg)
+        raise Bip39Slip39ValueError(err_msg)
 
 
 def bytes_from_octets(octets: Octets) -> bytes:
@@ -75,14 +75,14 @@ def bytes_from_octets(octets: Octets) -> bytes:
         try:
             return bytes.fromhex(octets)
         except ValueError as e:
-            raise BTClibMnemonicsValueError(f"invalid hex string: {e}") from e
+            raise Bip39Slip39ValueError(f"invalid hex string: {e}") from e
     if isinstance(octets, (bytes, bytearray, memoryview)):
         _assert_byte_shaped(octets)
         return bytes(octets)
     # what is neither would otherwise reach whatever the caller does next
     # with it, and fail there as a complaint about a builtin
     err_msg = f"invalid octets type: {type(octets).__name__}"  # type: ignore[unreachable]
-    raise BTClibMnemonicsTypeError(err_msg)
+    raise Bip39Slip39TypeError(err_msg)
 
 
 def is_integer(value: Any) -> bool:
@@ -114,7 +114,7 @@ def utf8_bytes(text: str, what: str) -> bytes:
         pass
     # raised outside the except: inside it, the error would stay in
     # __context__ even with "from None"
-    raise BTClibMnemonicsValueError(f"invalid {what}: contains a lone surrogate")
+    raise Bip39Slip39ValueError(f"invalid {what}: contains a lone surrogate")
 
 
 def assert_type(value: Any, expected: Any, what: str) -> None:
@@ -127,4 +127,4 @@ def assert_type(value: Any, expected: Any, what: str) -> None:
     """
     if not isinstance(value, expected):
         err_msg = f"invalid {what} type: {type(value).__name__}"
-        raise BTClibMnemonicsTypeError(err_msg)
+        raise Bip39Slip39TypeError(err_msg)

@@ -22,8 +22,8 @@ import pytest
 
 from bip39_slip39 import bip39, electrum
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import (
     WORDLISTS,
@@ -61,11 +61,11 @@ def test_bip39() -> None:
 
     wrong_mnemonic = f"{mnemonic} abandon"
     err_msg = "invalid mnemonic length: 13 words"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         bip39.entropy_from_mnemonic(wrong_mnemonic, lang)
 
     err_msg = "invalid checksum: "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         wr_m = "abandon abandon atom trust ankle walnut oil across awake bunker divorce oil"
         bip39.entropy_from_mnemonic(wr_m, lang)
 
@@ -204,7 +204,7 @@ def test_lang_from_mnemonic() -> None:
     # from the one it was meant to be (issue btclib-org/btclib-wallet#38)
     typo = "btclib " * 11 + "btclib"
     err_msg = "unknown language for mnemonic: 12 words"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg) as excinfo:
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg) as excinfo:
         bip39.lang_from_mnemonic(typo)
     assert typo not in str(excinfo.value)
     assert "btclib" not in str(excinfo.value)
@@ -235,7 +235,7 @@ def test_ambiguous_language() -> None:
     en = bip39.entropy_from_mnemonic(ambiguous, "en")
     assert en != bip39.entropy_from_mnemonic(ambiguous, "fr")
     with pytest.raises(
-        BTClibMnemonicsValueError, match="ambiguous language for mnemonic: "
+        Bip39Slip39ValueError, match="ambiguous language for mnemonic: "
     ):
         bip39.lang_from_mnemonic(ambiguous)
 
@@ -256,7 +256,7 @@ def test_ambiguous_language() -> None:
         "puzzle muscle bonus relief"
     )
     assert candidates(invalid) == ["en", "fr"]
-    with pytest.raises(BTClibMnemonicsValueError, match="invalid checksum: "):
+    with pytest.raises(Bip39Slip39ValueError, match="invalid checksum: "):
         bip39.entropy_from_mnemonic(invalid)
 
 
@@ -446,7 +446,7 @@ def test_is_valid_mnemonic_with_an_unknown_language_is_false() -> None:
     about = " ".join(["abandon"] * 11 + ["about"])
     for lang in ("xx", "EN", "english", "slip39"):
         assert bip39.is_valid_mnemonic(about, lang) is False
-        with pytest.raises(BTClibMnemonicsValueError):
+        with pytest.raises(Bip39Slip39ValueError):
             bip39.entropy_from_mnemonic(about, lang)
     assert "xx" not in WORDLISTS.languages
 
@@ -461,7 +461,7 @@ def test_is_valid_mnemonic_in_an_ambiguous_language() -> None:
         "nature distance angle abandon simple palace opinion fatigue "
         "noble volume simple wagon"
     )
-    with pytest.raises(BTClibMnemonicsValueError, match="ambiguous language"):
+    with pytest.raises(Bip39Slip39ValueError, match="ambiguous language"):
         bip39.entropy_from_mnemonic(ambiguous)
     assert bip39.is_valid_mnemonic(ambiguous) is True
     assert bip39.is_valid_mnemonic(ambiguous, "en") is True
@@ -479,7 +479,7 @@ def test_is_valid_mnemonic_refuses_a_value_of_another_type(
     mnemonic: object, lang: object
 ) -> None:
     """The caller's mistake is a type error, not a False."""
-    with pytest.raises(BTClibMnemonicsTypeError):
+    with pytest.raises(Bip39Slip39TypeError):
         bip39.is_valid_mnemonic(mnemonic, lang)  # type: ignore[arg-type]
 
 
@@ -494,20 +494,20 @@ def test_the_wordlist_has_to_be_bip39_sized() -> None:
     assert WORDLISTS.language_length("slip39") == 1024
 
     err_msg = "invalid bip39 wordlist length: 1024; expected: 2048"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         bip39.mnemonic_from_entropy(bytes.fromhex("00" * 16), "slip39")
 
     # a sentence of slip39 words, so that the refusal is the word-list
     # length and not an unknown word
     mnemonic = " ".join(WORDLISTS.wordlist("slip39")[:12])
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         bip39.entropy_from_mnemonic(mnemonic, "slip39")
 
 
 @pytest.mark.parametrize("n_bytes", [0, 15, 17, 33, 64, 100])
 def test_entropy_of_a_size_bip39_has_no_mnemonic_for_is_refused(n_bytes: int) -> None:
     """Refuse the 512 bits of 48 words, and what is longer, not truncate it."""
-    with pytest.raises(BTClibMnemonicsValueError, match="invalid number of bits"):
+    with pytest.raises(Bip39Slip39ValueError, match="invalid number of bits"):
         bip39.mnemonic_from_entropy(bytes(range(n_bytes)) or "0", "en")
 
 
@@ -522,7 +522,7 @@ def test_a_word_count_bip39_has_no_mnemonic_for_is_refused_undecoded(
     monkeypatch.setattr("bip39_slip39.bip39.lang_from_mnemonic", decoded)
     err_msg = f"invalid mnemonic length: {n_words} words"
     for lang in (None, "en"):
-        with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+        with pytest.raises(Bip39Slip39ValueError, match=err_msg):
             bip39.entropy_from_mnemonic(" ".join(["abandon"] * n_words), lang)
 
 

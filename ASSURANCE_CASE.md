@@ -23,7 +23,7 @@ page points at it instead of repeating it.
   reports a pin that is no longer upstream's tip.
 - **Malformed input is refused the way the package says it is.** A
   public function handed an argument it cannot use raises
-  `BTClibMnemonicsTypeError` or `BTClibMnemonicsValueError`
+  `Bip39Slip39TypeError` or `Bip39Slip39ValueError`
   (`tests/input_validation_test.py`, `tests/integer_policy_test.py`,
   `tests/bool_parameter_test.py`, `tests/refusals_test.py`), and a decoder
   handed a hostile sentence, lone surrogates included, raises one of the

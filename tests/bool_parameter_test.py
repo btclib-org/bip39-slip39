@@ -29,7 +29,7 @@ btclib-org/btclib#884).
 The two tests below are that line, one each:
 
 - a kind refuses `"no"`, `0`, `1` and (where the annotation does not
-  declare it) `None`, with a `BTClibMnemonicsTypeError`
+  declare it) `None`, with a `Bip39Slip39TypeError`
 - a truth **accepts** them, on a fixture the flag's `True` accepts: a
   truth that starts refusing fails here, and the entry has to move rather
   than the test being edited
@@ -52,7 +52,7 @@ from typing import Any
 import pytest
 
 from bip39_slip39 import bip39, slip39
-from bip39_slip39.exceptions import BTClibMnemonicsTypeError
+from bip39_slip39.exceptions import Bip39Slip39TypeError
 from bip39_slip39.mnemonic import WordLists
 
 _LIBRARY = Path(__file__).parents[1] / "src" / "bip39_slip39"
@@ -168,7 +168,7 @@ def test_a_kind_refuses_a_non_bool(case: _Case) -> None:
     is wrong too, no kind here declaring `bool | None`.
     """
     for value in (*_WRONG_TYPES, None):
-        with pytest.raises(BTClibMnemonicsTypeError, match=f"invalid {case.flag} type"):
+        with pytest.raises(Bip39Slip39TypeError, match=f"invalid {case.flag} type"):
             case.function(**case.args, **{case.flag: value})
 
 

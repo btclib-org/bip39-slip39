@@ -15,8 +15,8 @@ from typing_extensions import override
 
 from bip39_slip39 import bip39, electrum
 from bip39_slip39.exceptions import (
-    BTClibMnemonicsTypeError,
-    BTClibMnemonicsValueError,
+    Bip39Slip39TypeError,
+    Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import (
     WORDLISTS,
@@ -177,7 +177,7 @@ def test_wordlist_2(tmp_path: Path) -> None:
 
     lang = "fakeen"
     err_msg = "^Missing file for an unknown language$"
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         word_lists.load_lang(lang)
 
     # dictionary length must be a power of two.
@@ -188,13 +188,13 @@ def test_wordlist_2(tmp_path: Path) -> None:
     fname = "fakeenglish.txt"
     filename = str(Path(__file__).parent / "_data" / fname)
     err_msg = "invalid wordlist length: "
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         word_lists.load_lang(lang, filename)
     # and the language it could not read is not registered: asked again,
     # it reads the file again and raises again, rather than answering as
     # a language with no words
     assert lang not in word_lists.languages
-    with pytest.raises(BTClibMnemonicsValueError, match=err_msg):
+    with pytest.raises(Bip39Slip39ValueError, match=err_msg):
         word_lists.load_lang(lang, filename)
 
     # dynamically add a new language
@@ -262,7 +262,7 @@ def test_index() -> None:
     # that is in it
     assert word_lists.index(normalize("NFC", "ábaco"), "es") == 0
 
-    with pytest.raises(BTClibMnemonicsValueError, match="unknown 'en' word$"):
+    with pytest.raises(Bip39Slip39ValueError, match="unknown 'en' word$"):
         word_lists.index("abaco", "en")
 
 
@@ -315,11 +315,11 @@ def test_words_with_prefix_is_normalized() -> None:
 def test_words_with_prefix_refuses() -> None:
     """A prefix that is no str, and a language that is unknown."""
     word_lists = WordLists()
-    with pytest.raises(BTClibMnemonicsTypeError, match="^invalid prefix type: int$"):
+    with pytest.raises(Bip39Slip39TypeError, match="^invalid prefix type: int$"):
         word_lists.words_with_prefix(1, "en")  # type: ignore[arg-type]
-    with pytest.raises(BTClibMnemonicsTypeError, match="^invalid prefix type: bytes$"):
+    with pytest.raises(Bip39Slip39TypeError, match="^invalid prefix type: bytes$"):
         word_lists.words_with_prefix(b"ab", "en")  # type: ignore[arg-type]
-    with pytest.raises(BTClibMnemonicsValueError):
+    with pytest.raises(Bip39Slip39ValueError):
         word_lists.words_with_prefix("ab", "xx")
 
 
@@ -343,9 +343,7 @@ def test_power_of_two() -> None:
     fname = "fakeenglish.txt"
     filename = str(Path(__file__).parent / "_data" / fname)
 
-    with pytest.raises(
-        BTClibMnemonicsValueError, match="invalid wordlist length: 2047"
-    ):
+    with pytest.raises(Bip39Slip39ValueError, match="invalid wordlist length: 2047"):
         WordLists().load_lang("fakeen", filename)
 
     word_lists = WordLists(power_of_two=False)
@@ -507,7 +505,7 @@ def test_a_mnemonic_that_is_no_str() -> None:
     """
     wrongs: tuple[Any, ...] = (None, 1.5, b"abandon")
     for wrong in wrongs:
-        with pytest.raises(BTClibMnemonicsTypeError, match="invalid mnemonic type: "):
+        with pytest.raises(Bip39Slip39TypeError, match="invalid mnemonic type: "):
             indexes_from_mnemonic(wrong, "en")
-        with pytest.raises(BTClibMnemonicsTypeError, match="invalid mnemonic type: "):
+        with pytest.raises(Bip39Slip39TypeError, match="invalid mnemonic type: "):
             bip39.seed_from_mnemonic(wrong, "")
