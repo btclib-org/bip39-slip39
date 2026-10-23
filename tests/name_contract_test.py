@@ -29,7 +29,7 @@ from pathlib import Path
 
 import pytest
 
-_LIBRARY = Path(__file__).parents[1] / "src" / "btclib_mnemonics"
+_LIBRARY = Path(__file__).parents[1] / "src" / "bip39_slip39"
 
 # what each prefix promises the return type is. `verify` is matched anywhere in
 # the name and not only at the front: a `batch_verify` is a verification, and
@@ -179,14 +179,14 @@ def test_the_walk_reaches_what_it_claims() -> None:
 
     A walk that found nothing would pass the test above.
     """
-    assert _NAMED["btclib_mnemonics._utils.is_integer"] == "bool"
-    assert _NAMED["btclib_mnemonics._utils.assert_type"] == "None"
+    assert _NAMED["bip39_slip39._utils.is_integer"] == "bool"
+    assert _NAMED["bip39_slip39._utils.assert_type"] == "None"
     # a method
-    assert _NAMED["btclib_mnemonics.slip39.assert_valid"] == "None"
+    assert _NAMED["bip39_slip39.slip39.assert_valid"] == "None"
 
     # a private name, and a name that promises nothing
-    assert "btclib_mnemonics.slip39._assert_mnemonic_sequence" not in _NAMED
-    assert "btclib_mnemonics._utils.bytes_from_octets" not in _NAMED
+    assert "bip39_slip39.slip39._assert_mnemonic_sequence" not in _NAMED
+    assert "bip39_slip39._utils.bytes_from_octets" not in _NAMED
 
 
 def test_check_says_one_thing() -> None:
@@ -238,11 +238,11 @@ def test_the_walk_reaches_every_shape_of_member() -> None:
     no class here uses are asked of `_is_a_read` directly.
     """
     assert _CLASS_MEMBERS == {
-        "btclib_mnemonics.slip39.Share.assert_valid": False,
-        "btclib_mnemonics.slip39.EncryptedMasterSecret.assert_valid": False,
-        "btclib_mnemonics.slip39.Recovery.shares": True,
-        "btclib_mnemonics.slip39.Recovery.groups": True,
-        "btclib_mnemonics.slip39.Recovery.is_complete": True,
+        "bip39_slip39.slip39.Share.assert_valid": False,
+        "bip39_slip39.slip39.EncryptedMasterSecret.assert_valid": False,
+        "bip39_slip39.slip39.Recovery.shares": True,
+        "bip39_slip39.slip39.Recovery.groups": True,
+        "bip39_slip39.slip39.Recovery.is_complete": True,
     }
     assert _is_a_read({"property"})
     assert _is_a_read({"functools.cached_property"})

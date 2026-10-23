@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""The btclib_mnemonics test suite, and the code its modules share.
+"""The bip39_slip39 test suite, and the code its modules share.
 
 The vector files are the reference implementations' and electrum's:
 read them here and hand them to `pytest.mark.parametrize`, so that a
@@ -30,13 +30,13 @@ import re
 from pathlib import Path
 from typing import Any
 
-import btclib_mnemonics
+import bip39_slip39
 
 _TESTS_DIR = Path(__file__).parent
 
 
 def module_names() -> list[str]:
-    """Return every module of the installed btclib_mnemonics, the root included.
+    """Return every module of the installed bip39_slip39, the root included.
 
     Here rather than at each site that walks the package, none of which
     owns the walk. What the walk covers -- a second package root, a
@@ -45,12 +45,10 @@ def module_names() -> list[str]:
     asserts against whatever its own walk found.
     """
     return [
-        "btclib_mnemonics",
+        "bip39_slip39",
         *(
             module.name
-            for module in pkgutil.walk_packages(
-                btclib_mnemonics.__path__, "btclib_mnemonics."
-            )
+            for module in pkgutil.walk_packages(bip39_slip39.__path__, "bip39_slip39.")
         ),
     ]
 

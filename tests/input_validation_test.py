@@ -62,12 +62,12 @@ from typing import Any
 
 import pytest
 
-from btclib_mnemonics.exceptions import (
+from bip39_slip39.exceptions import (
     BTClibMnemonicsException,
     BTClibMnemonicsTypeError,
 )
 
-_LIBRARY = Path(__file__).parents[1] / "src" / "btclib_mnemonics"
+_LIBRARY = Path(__file__).parents[1] / "src" / "bip39_slip39"
 
 # a value of no type the alias declares: the caller's own mistake, and a
 # call mypy refuses. The tuples are read round-robin so that a function
@@ -162,14 +162,14 @@ _DRIVEN = sorted(_DRIVABLE)
 # by dotted name, with the reason that is its contract
 _ANSWERS_A_WRONG_VALUE = {
     # an `is_*` is total over the declared types: False is its answer
-    "btclib_mnemonics.bip39.is_valid_mnemonic",
+    "bip39_slip39.bip39.is_valid_mnemonic",
     # a sentence no scheme claims: the empty list, and "", are the answers
     # the two docstrings give for it
-    "btclib_mnemonics.dispatch.all_seed_types_from_mnemonic",
-    "btclib_mnemonics.dispatch.seed_type_from_mnemonic",
+    "bip39_slip39.dispatch.all_seed_types_from_mnemonic",
+    "bip39_slip39.dispatch.seed_type_from_mnemonic",
     # a reading of the sentence that checks nothing of its value, so any
     # str is normalized whether or not it is a mnemonic
-    "btclib_mnemonics.mnemonic.normalize_mnemonic",
+    "bip39_slip39.mnemonic.normalize_mnemonic",
 }
 
 
@@ -259,14 +259,14 @@ def test_the_walk_reaches_what_it_claims() -> None:
     leave alone: a private name, and a function whose required parameters
     are not all in the vocabulary.
     """
-    assert _DRIVABLE["btclib_mnemonics.slip39.share_from_mnemonic"] == ["Mnemonic"]
-    assert _DRIVABLE["btclib_mnemonics.slip39.master_secret_from_mnemonics"] == [
+    assert _DRIVABLE["bip39_slip39.slip39.share_from_mnemonic"] == ["Mnemonic"]
+    assert _DRIVABLE["bip39_slip39.slip39.master_secret_from_mnemonics"] == [
         "Sequence[Mnemonic]"
     ]
     # `lang` carries a default and is not driven
-    assert _DRIVABLE["btclib_mnemonics.bip39.entropy_from_mnemonic"] == ["Mnemonic"]
+    assert _DRIVABLE["bip39_slip39.bip39.entropy_from_mnemonic"] == ["Mnemonic"]
 
     # `_entropy_checksum` takes an `Entropy`, which the vocabulary builds
-    assert "btclib_mnemonics.bip39._entropy_checksum" not in _DRIVABLE
+    assert "bip39_slip39.bip39._entropy_checksum" not in _DRIVABLE
     # a required parameter the vocabulary does not build: the passphrase
-    assert "btclib_mnemonics.bip39.seed_from_mnemonic" not in _DRIVABLE
+    assert "bip39_slip39.bip39.seed_from_mnemonic" not in _DRIVABLE

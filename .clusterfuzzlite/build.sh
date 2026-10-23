@@ -4,7 +4,7 @@
 # LICENSE file or https://opensource.org/license/mit for the full text.
 #
 # Runs inside the container the Dockerfile beside this file builds, cwd
-# at $SRC/btclib-mnemonics (the Dockerfile's WORKDIR).
+# at $SRC/bip39-slip39 (the Dockerfile's WORKDIR).
 #
 # What the install takes is uv.lock's and not the index's.
 # requirements.txt beside this file is the lock exported -- the package's
@@ -30,7 +30,7 @@ pip3 install --no-deps --no-build-isolation -e .
 
 # compile_python_fuzzer forwards every extra argument straight to
 # pyinstaller, ahead of the fuzzer's own path (base-builder's own
-# compile_python_fuzzer script). --collect-data=btclib_mnemonics is what
+# compile_python_fuzzer script). --collect-data=bip39_slip39 is what
 # closes a gap PyInstaller's own analysis does not: `mnemonic` reads the
 # word-lists under the package's `_data/` directory, from a path built
 # off `__file__`, and a frozen onefile executable bundles no non-Python
@@ -41,8 +41,8 @@ pip3 install --no-deps --no-build-isolation -e .
 # up next to a target's own binary with no configuration -- so a new
 # fuzz_*.py with a corpus directory beside it is picked up here without a
 # second list of names to keep in step with the first.
-for fuzzer in $(find "$SRC/btclib-mnemonics/fuzz" -maxdepth 1 -name 'fuzz_*.py'); do
-  compile_python_fuzzer "$fuzzer" --collect-data=btclib_mnemonics
+for fuzzer in $(find "$SRC/bip39-slip39/fuzz" -maxdepth 1 -name 'fuzz_*.py'); do
+  compile_python_fuzzer "$fuzzer" --collect-data=bip39_slip39
   name=$(basename "$fuzzer" .py)
   if [ -d "fuzz/corpus/$name" ]; then
     zip -j "$OUT/${name}_seed_corpus.zip" "fuzz/corpus/$name"/*.bin

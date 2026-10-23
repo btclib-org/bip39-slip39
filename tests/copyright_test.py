@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-import btclib_mnemonics
+import bip39_slip39
 
 _ROOT = Path(__file__).parents[1]
 _HEADER = "".join(Path(__file__).read_text(encoding="utf-8").splitlines(True)[:3])
@@ -78,9 +78,7 @@ def test_no_dunder_repeats_the_metadata() -> None:
     installed distribution's metadata instead.
     """
     for dunder in ("__author__", "__author_email__", "__copyright__", "__license__"):
-        assert not hasattr(btclib_mnemonics, dunder), (
-            f"btclib_mnemonics.{dunder} exists"
-        )
+        assert not hasattr(bip39_slip39, dunder), f"bip39_slip39.{dunder} exists"
 
 
 def test_conf_py_author_reads_pyproject_rather_than_repeating_it() -> None:

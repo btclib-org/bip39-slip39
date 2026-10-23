@@ -262,7 +262,7 @@ markdownlint-cli2](https://img.shields.io/badge/lint-markdownlint--cli2-yellowgr
 [![pre-commit
 enabled](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![GitHub repository:
-btclib-org/btclib-mnemonics](https://img.shields.io/badge/GitHub-btclib--org%2Fbtclib--mnemonics-181717?logo=github)](https://github.com/btclib-org/btclib-mnemonics/)
+btclib-org/bip39-slip39](https://img.shields.io/badge/GitHub-btclib--org%2Fbip39--slip39-181717?logo=github)](https://github.com/btclib-org/bip39-slip39/)
 
 To get an overview of the project, read the [README](./README.md).
 
@@ -275,7 +275,7 @@ answer, for a module with nothing public of its own; declaring nothing is
 not. For a package the list is what the `__init__` publishes, submodules
 included; for a module it is what the module itself defines, a name it
 imported belonging to the module that defines it.
-`btclib_mnemonics.__all__` is the root of that tree, written out rather
+`bip39_slip39.__all__` is the root of that tree, written out rather
 than discovered, so that a new module is published by somebody deciding
 to. `tests/all_test.py` checks all of this and finds the modules rather
 than listing them: a public name kept out of a list is recorded in its
@@ -554,11 +554,11 @@ uv venv
 uv pip install "$1"
 .venv/bin/python -c "
 from importlib.metadata import requires, version
-import btclib_mnemonics
-from btclib_mnemonics import bip39
+import bip39_slip39
+from bip39_slip39 import bip39
 
-print(version('btclib-mnemonics'), requires('btclib-mnemonics'))
-assert btclib_mnemonics.__version__ == version('btclib-mnemonics')
+print(version('bip39-slip39'), requires('bip39-slip39'))
+assert bip39_slip39.__version__ == version('bip39-slip39')
 mnemonic = bip39.mnemonic_from_entropy(bytes(16))
 assert mnemonic.split()[-1] == 'about'
 assert bip39.seed_from_mnemonic(mnemonic, 'TREZOR').hex().startswith('c55257c3')

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for the `btclib_mnemonics.dispatch` module.
+"""Tests for the `bip39_slip39.dispatch` module.
 
 The Electrum half of the table is electrum's own, from the Test_seeds
 table of `spesmilo/electrum`'s `tests/test_mnemonic.py` -- the same
@@ -24,8 +24,8 @@ prefix flavour, and the comment beside them gives the rate.
 
 import pytest
 
-from btclib_mnemonics import bip39, dispatch, electrum, slip39
-from btclib_mnemonics.exceptions import BTClibMnemonicsValueError
+from bip39_slip39 import bip39, dispatch, electrum, slip39
+from bip39_slip39.exceptions import BTClibMnemonicsValueError
 from tests import load, vector_id
 
 # every word in the pre-2.0 list, so electrum reads it as "old" although

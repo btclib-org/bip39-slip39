@@ -7,7 +7,7 @@ issue: an issue is public from the moment it is filed, and so is the
 window between filing it and a fix being released.
 
 Report it privately instead, by
-[opening a security advisory](https://github.com/btclib-org/btclib-mnemonics/security/advisories/new).
+[opening a security advisory](https://github.com/btclib-org/bip39-slip39/security/advisories/new).
 Only the maintainers can see it, the discussion stays private until an
 advisory is published, and a CVE can be requested from it if the
 vulnerability warrants one.
@@ -44,7 +44,7 @@ project owns a flaw is not a reason to keep it to yourself.
 The latest security review is dated 2026-09-30.
 [pmazzocchi](https://github.com/pmazzocchi) did it against the
 [assurance case](./ASSURANCE_CASE.md), and
-[issue 26](https://github.com/btclib-org/btclib-mnemonics/issues/26) records it.
+[issue 26](https://github.com/btclib-org/bip39-slip39/issues/26) records it.
 
 ## Supported versions
 
@@ -66,7 +66,7 @@ signer=btclib-org/.github/.github/workflows/reusable-build.yml
 ```
 
 ```shell
-gh attestation verify --repo btclib-org/btclib-mnemonics \
+gh attestation verify --repo btclib-org/bip39-slip39 \
   --signer-workflow "${signer:?}@refs/heads/main" \
   --source-ref refs/tags/v<version> \
   <a distribution file from the release>
@@ -104,7 +104,7 @@ package is used to teach and to prototype as much as to build:
     iterations**; `slip39.master_secret_from_mnemonics`,
     `slip39.EncryptedMasterSecret.master_secret` and `slip39.Recovery`
     refuse an exponent above the `max_iteration_exponent` a caller passes.
-- **`entropy.collect_rolls` and `python -m btclib_mnemonics` are
+- **`entropy.collect_rolls` and `python -m bip39_slip39` are
     interactive**: whatever the terminal keeps, they keep.
     `collect_rolls` reads dice rolls with `input()`. The command prints R
     and the mnemonic or shares, and reads rolls with `getpass`, which

@@ -1251,7 +1251,7 @@ def test_every_vendored_file_the_pin_file_names_is_the_blob_it_records(
     local = {pin.local for pin in pins}
     assert {
         "tests/_data/vectors.json",
-        "src/btclib_mnemonics/_data/wordlist.txt",
+        "src/bip39_slip39/_data/wordlist.txt",
     } <= local
     assert skipped == []
     wrong = [

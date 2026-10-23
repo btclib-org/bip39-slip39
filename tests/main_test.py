@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for `python -m btclib_mnemonics`, the `__main__` module."""
+"""Tests for `python -m bip39_slip39`, the `__main__` module."""
 
 from __future__ import annotations
 
@@ -13,10 +13,10 @@ from pathlib import Path
 
 import pytest
 
-import btclib_mnemonics.__main__ as main
-from btclib_mnemonics import bip39, slip39
+import bip39_slip39.__main__ as main
+from bip39_slip39 import bip39, slip39
 
-_MAIN = "btclib_mnemonics.__main__"
+_MAIN = "bip39_slip39.__main__"
 
 # the vector: two contributors' D6 rolls, 50 each for 128 bits, and R
 _ROLLS_1 = [1, 2, 3, 4, 5, 6] * 8 + [1, 2]
@@ -180,7 +180,7 @@ def test_a_bad_command_line_is_refused_before_anybody_rolls(
 
 def test_python_dash_m_runs_the_command(monkeypatch: pytest.MonkeyPatch) -> None:
     """The `__main__` guard hands the command line to `_main`."""
-    monkeypatch.setattr("sys.argv", ["btclib_mnemonics", "--help"])
+    monkeypatch.setattr("sys.argv", ["bip39_slip39", "--help"])
     with pytest.raises(SystemExit) as excinfo:
         runpy.run_path(str(Path(main.__file__)), run_name="__main__")
     assert excinfo.value.code == 0

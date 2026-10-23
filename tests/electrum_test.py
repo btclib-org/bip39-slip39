@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for the `btclib_mnemonics.electrum` module.
+"""Tests for the `bip39_slip39.electrum` module.
 
 Most of the vectors here are electrum's own, from `spesmilo/electrum`'s
 `tests/test_mnemonic.py` and `tests/test_wallet_vertical.py`, because the
@@ -36,13 +36,13 @@ from btclib import base58
 from btclib_ecc.curves.curve import mult, secp256k1
 from btclib_ecc.curves.sec_point import bytes_from_point
 
-from btclib_mnemonics import bip39, electrum
-from btclib_mnemonics.electrum import ELECTRUM_WORDLISTS
-from btclib_mnemonics.exceptions import (
+from bip39_slip39 import bip39, electrum
+from bip39_slip39.electrum import ELECTRUM_WORDLISTS
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
-from btclib_mnemonics.mnemonic import BIP39_LANGUAGE_FILES, WORDLISTS
+from bip39_slip39.mnemonic import BIP39_LANGUAGE_FILES, WORDLISTS
 from tests import load, vector_id
 
 

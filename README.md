@@ -1,4 +1,4 @@
-# btclib-mnemonics
+# bip39-slip39
 
 The mnemonic schemes of bitcoin wallets -- BIP39, SLIP-0039 and
 Electrum's -- from the entropy to the seed, in typed Python.
@@ -21,34 +21,34 @@ A badge that reports no state -- "we use ruff", "we use uv" -- reports a
 choice instead, and those are in CONTRIBUTING.md, beside the prose that
 says how the choice is enforced.
 -->
-[![PyPI version](https://img.shields.io/pypi/v/btclib-mnemonics.svg?logo=pypi)](https://pypi.org/project/btclib-mnemonics/)
-[![GitHub release](https://img.shields.io/github/v/release/btclib-org/btclib-mnemonics.svg)](https://github.com/btclib-org/btclib-mnemonics/releases)
-[![development status](https://img.shields.io/pypi/status/btclib-mnemonics.svg)](https://pypi.org/project/btclib-mnemonics/)
-[![license](https://img.shields.io/github/license/btclib-org/btclib-mnemonics.svg)](https://github.com/btclib-org/btclib-mnemonics/blob/main/LICENSE)
-[![downloads](https://static.pepy.tech/badge/btclib-mnemonics)](https://pepy.tech/projects/btclib-mnemonics)
-[![supported Python versions](https://img.shields.io/pypi/pyversions/btclib-mnemonics.svg?logo=python)](https://pypi.org/project/btclib-mnemonics/)
-[![implementation](https://img.shields.io/pypi/implementation/btclib-mnemonics.svg)](https://pypi.org/project/btclib-mnemonics/)
-[![wheel](https://img.shields.io/pypi/wheel/btclib-mnemonics.svg)](https://pypi.org/project/btclib-mnemonics/)
+[![PyPI version](https://img.shields.io/pypi/v/bip39-slip39.svg?logo=pypi)](https://pypi.org/project/bip39-slip39/)
+[![GitHub release](https://img.shields.io/github/v/release/btclib-org/bip39-slip39.svg)](https://github.com/btclib-org/bip39-slip39/releases)
+[![development status](https://img.shields.io/pypi/status/bip39-slip39.svg)](https://pypi.org/project/bip39-slip39/)
+[![license](https://img.shields.io/github/license/btclib-org/bip39-slip39.svg)](https://github.com/btclib-org/bip39-slip39/blob/main/LICENSE)
+[![downloads](https://static.pepy.tech/badge/bip39-slip39)](https://pepy.tech/projects/bip39-slip39)
+[![supported Python versions](https://img.shields.io/pypi/pyversions/bip39-slip39.svg?logo=python)](https://pypi.org/project/bip39-slip39/)
+[![implementation](https://img.shields.io/pypi/implementation/bip39-slip39.svg)](https://pypi.org/project/bip39-slip39/)
+[![wheel](https://img.shields.io/pypi/wheel/bip39-slip39.svg)](https://pypi.org/project/bip39-slip39/)
 
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/btclib-org/btclib-mnemonics/main.svg)](https://results.pre-commit.ci/latest/github/btclib-org/btclib-mnemonics/main)
-[![lint workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/lint.yml?query=branch%3Amain)
-[![test workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/test.yml?query=branch%3Amain)
-[![docs workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/docs.yml?query=branch%3Amain)
-[![documentation build](https://app.readthedocs.org/projects/btclib-mnemonics/badge/?version=latest)](https://btclib-mnemonics.readthedocs.io)
-[![vendored-vectors workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/vendored-vectors.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/vendored-vectors.yml?query=branch%3Amain)
-[![mutation workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/mutation.yml?query=branch%3Amain)
-[![fuzz workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/fuzz.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/fuzz.yml?query=branch%3Amain)
-[![deps-latest workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/deps-latest.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/deps-latest.yml?query=branch%3Amain)
-[![pypi-install workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/pypi-install.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/pypi-install.yml?query=branch%3Amain)
-[![deps-oldest workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/deps-oldest.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/deps-oldest.yml?query=branch%3Amain)
-[![os-macos workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/os-macos.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/os-macos.yml?query=branch%3Amain)
-[![os-ubuntu workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/os-ubuntu.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/os-ubuntu.yml?query=branch%3Amain)
-[![os-windows workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/os-windows.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/os-windows.yml?query=branch%3Amain)
-[![links workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/links.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/links.yml?query=branch%3Amain)
-[![sdist-rebuild workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/sdist-rebuild.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/sdist-rebuild.yml?query=branch%3Amain)
-[![codeql workflow status](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/btclib-org/btclib-mnemonics/actions/workflows/codeql.yml?query=branch%3Amain)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/btclib-org/bip39-slip39/main.svg)](https://results.pre-commit.ci/latest/github/btclib-org/bip39-slip39/main)
+[![lint workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/lint.yml?query=branch%3Amain)
+[![test workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/test.yml?query=branch%3Amain)
+[![docs workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/docs.yml?query=branch%3Amain)
+[![documentation build](https://app.readthedocs.org/projects/bip39-slip39/badge/?version=latest)](https://bip39-slip39.readthedocs.io)
+[![vendored-vectors workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/vendored-vectors.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/vendored-vectors.yml?query=branch%3Amain)
+[![mutation workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/mutation.yml?query=branch%3Amain)
+[![fuzz workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/fuzz.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/fuzz.yml?query=branch%3Amain)
+[![deps-latest workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/deps-latest.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/deps-latest.yml?query=branch%3Amain)
+[![pypi-install workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/pypi-install.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/pypi-install.yml?query=branch%3Amain)
+[![deps-oldest workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/deps-oldest.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/deps-oldest.yml?query=branch%3Amain)
+[![os-macos workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/os-macos.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/os-macos.yml?query=branch%3Amain)
+[![os-ubuntu workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/os-ubuntu.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/os-ubuntu.yml?query=branch%3Amain)
+[![os-windows workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/os-windows.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/os-windows.yml?query=branch%3Amain)
+[![links workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/links.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/links.yml?query=branch%3Amain)
+[![sdist-rebuild workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/sdist-rebuild.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/sdist-rebuild.yml?query=branch%3Amain)
+[![codeql workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/codeql.yml?query=branch%3Amain)
 
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/btclib-org/btclib-mnemonics/badge)](https://scorecard.dev/viewer/?uri=github.com/btclib-org/btclib-mnemonics)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/btclib-org/bip39-slip39/badge)](https://scorecard.dev/viewer/?uri=github.com/btclib-org/bip39-slip39)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15087/badge)](https://www.bestpractices.dev/projects/15087)
 [![OpenSSF Baseline](https://www.bestpractices.dev/projects/15087/baseline)](https://www.bestpractices.dev/projects/15087)
 
@@ -71,7 +71,7 @@ but the standard library.
 - which of those schemes a sentence belongs to, where more than one
   claims it (`dispatch`)
 - a command that turns dice rolls into a mnemonic whose seed can be
-  recomputed offline, `python -m btclib_mnemonics` (*Dice to a mnemonic*
+  recomputed offline, `python -m bip39_slip39` (*Dice to a mnemonic*
   below)
 - the entropy the schemes are generated from, drawn from the operating
   system's CSPRNG or from dice rolls, prompted in the mnemonic's language
@@ -91,13 +91,13 @@ to the upstream commit it was copied from.
 ## Installing
 
 ```shell
-python -m pip install --upgrade btclib-mnemonics
+python -m pip install --upgrade bip39-slip39
 ```
 
 ## A seed from a mnemonic, and a secret split into shares
 
 ```python
-from btclib_mnemonics import bip39, dispatch, slip39
+from bip39_slip39 import bip39, dispatch, slip39
 
 words = bip39.mnemonic_from_entropy(bytes(16))
 assert words == "abandon " * 11 + "about"
@@ -118,8 +118,8 @@ examples here are the ones the suite checks.
 ## Dice to a mnemonic
 
 ```shell
-python -m btclib_mnemonics bip39 --contributors 2
-python -m btclib_mnemonics slip39 --groups 2-of-3 3-of-5 --group-threshold 2
+python -m bip39_slip39 bip39 --contributors 2
+python -m bip39_slip39 slip39 --groups 2-of-3 3-of-5 --group-threshold 2
 ```
 
 The command draws 32 random bytes, R, and shows sha256(R) before the
@@ -150,7 +150,7 @@ entropy = sha256(b"".join(map(bytes, rolls)) + r).digest()[: 128 // 8]
 assert entropy.hex() == "dbe61cbdb00fa79d6ffeb01ab203602f"
 
 # the same entropy, as the command shows it
-from btclib_mnemonics import bip39
+from bip39_slip39 import bip39
 
 assert bip39.mnemonic_from_entropy(entropy).startswith("swim couch control")
 ```
@@ -186,9 +186,9 @@ what it intends to do, and what it deliberately does not, is its
 
 ## Links
 
-- Documentation: <https://btclib-mnemonics.readthedocs.io/>
-- Source: <https://github.com/btclib-org/btclib-mnemonics>
-- Releases: <https://github.com/btclib-org/btclib-mnemonics/releases>
+- Documentation: <https://bip39-slip39.readthedocs.io/>
+- Source: <https://github.com/btclib-org/bip39-slip39>
+- Releases: <https://github.com/btclib-org/bip39-slip39/releases>
 - [CHANGELOG.md](./CHANGELOG.md), and [RELEASE_NOTES.md](./RELEASE_NOTES.md)
   for what a release asks a user to act on
 

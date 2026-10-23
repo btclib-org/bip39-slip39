@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""Tests for `btclib_mnemonics.exceptions`, and for who catches what it raises.
+"""Tests for `bip39_slip39.exceptions`, and for who catches what it raises.
 
 The classes add nothing to their bases, so what is tested is the
 hierarchy: one base to catch everything the package raises, and each
@@ -18,8 +18,8 @@ import pickle
 
 import pytest
 
-from btclib_mnemonics import bip39, exceptions, slip39
-from btclib_mnemonics.exceptions import (
+from bip39_slip39 import bip39, exceptions, slip39
+from bip39_slip39.exceptions import (
     BTClibMnemonicsException,
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # LICENSE file or https://opensource.org/license/mit for the full text.
 
-"""What a refusal of `btclib_mnemonics` says, and what it does not.
+"""What a refusal of `bip39_slip39` says, and what it does not.
 
 A wrong type leaves as a `BTClibMnemonicsTypeError` naming the
 parameter, not as a builtin raised from underneath the package (issue
@@ -27,8 +27,8 @@ from typing import Any
 
 import pytest
 
-from btclib_mnemonics import bip39, dispatch, electrum, entropy, mnemonic, slip39
-from btclib_mnemonics.exceptions import (
+from bip39_slip39 import bip39, dispatch, electrum, entropy, mnemonic, slip39
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )

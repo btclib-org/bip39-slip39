@@ -61,12 +61,12 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from hashlib import pbkdf2_hmac, sha256
 
-from btclib_mnemonics._utils import Octets, assert_type, bytes_from_octets, is_integer
-from btclib_mnemonics.exceptions import (
+from bip39_slip39._utils import Octets, assert_type, bytes_from_octets, is_integer
+from bip39_slip39.exceptions import (
     BTClibMnemonicsTypeError,
     BTClibMnemonicsValueError,
 )
-from btclib_mnemonics.mnemonic import (
+from bip39_slip39.mnemonic import (
     WORDLISTS,
     Mnemonic,
     indexes_from_mnemonic,

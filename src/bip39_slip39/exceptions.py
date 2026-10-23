@@ -4,7 +4,7 @@
 
 """Exception classes.
 
-These exist only to tell an exception raised by btclib_mnemonics from one
+These exist only to tell an exception raised by bip39_slip39 from one
 raised by any other code: each derives from the built-in that says what
 kind of failure it is, and adds nothing to it.
 
@@ -38,7 +38,7 @@ __all__ = [
 
 
 class BTClibMnemonicsException(Exception):  # noqa: N818 -- a kind, like Exception itself, not a leaf raised
-    """Anything btclib_mnemonics raised, whatever kind of failure it is.
+    """Anything bip39_slip39 raised, whatever kind of failure it is.
 
     The one name to catch for a caller who handles the standard library's
     exceptions anyway and needs to know which came from here. Never

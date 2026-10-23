@@ -3,7 +3,7 @@
 # its test read straight off the disk. `-text` is what keeps a checkout
 # with `core.autocrlf=true` (Git for Windows' default) from converting
 # them, so those bytes are the ones on disk on every platform.
-src/btclib_mnemonics/_data/wordlist.txt -text
+src/bip39_slip39/_data/wordlist.txt -text
 tests/_data/bip39_test_vectors.json -text
 tests/_data/english.txt -text
 tests/_data/test_JP_BIP39.json -text
