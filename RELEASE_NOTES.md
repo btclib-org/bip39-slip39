@@ -9,13 +9,13 @@ number says when a release was cut, and promises nothing about
 compatibility, so a breaking change is announced in this file — read it
 before upgrading, rather than a digit.
 
-## v2026.10.23
+## v2026.10.24
 
 The first release of `bip39-slip39`, the new name of `btclib-mnemonics`,
 which gets no release after v2026.10.17.
 
 - **Install `bip39-slip39` instead of `btclib-mnemonics`.** Replace the
-  requirement `btclib-mnemonics` by `bip39-slip39>=2026.10.23`, and
+  requirement `btclib-mnemonics` by `bip39-slip39>=2026.10.24`, and
   uninstall the old distribution, which would otherwise stay beside it.
 - **Import `bip39_slip39` instead of `btclib_mnemonics`.** The modules
   `bip39`, `dispatch`, `electrum`, `entropy`, `exceptions`, `mnemonic` and

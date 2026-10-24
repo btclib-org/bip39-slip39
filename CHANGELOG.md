@@ -19,7 +19,7 @@ behind them.
 
 [std]: https://github.com/btclib-org/.github
 
-## v2026.10.23
+## v2026.10.24
 
 ### The package is `bip39-slip39`, imported as `bip39_slip39`
 
