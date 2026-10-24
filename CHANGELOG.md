@@ -19,6 +19,121 @@ behind them.
 
 [std]: https://github.com/btclib-org/.github
 
+## v2026.10.24
+
+### The package is `bip39-slip39`, imported as `bip39_slip39`
+
+The distribution, the import package and the repository URLs drop the btclib
+name (issue #106).
+
+### The exceptions are named after the package
+
+`Bip39Slip39Exception`, `Bip39Slip39TypeError` and `Bip39Slip39ValueError`
+replace the `BTClibMnemonics` ones (closes #148).
+
+### A release is verified by repository id
+
+`SECURITY.md` and `RELEASING.md` check `sourceRepositoryIdentifier` against the
+repository's id, which a rename keeps, in place of `--repo` (closes #158).
+
+### `AGENTS.md` replaces `CLAUDE.md`
+
+`ARCHITECTURE.md` names the package layers, and `CONTRIBUTING.md` has the
+worktree procedure (issue btclib-org/.github#1808).
+
+### `python -m bip39_slip39` turns dice into a recomputable mnemonic
+
+The README recomputes the entropy with `hashlib`. The rolls and random draws
+lose `shuffle`, `entropy` and `to_be_hashed`; `collect_rolls` reads Enter alone
+as a hand-rolled D6 and bounds an answer at three digits (closes #95).
+
+### `entropy.collect_rolls` prompts in every word-list language
+
+A new `lang` parameter selects the language of its texts (closes #94).
+
+### SLIP-0039 recovers share by share and bounds its cost
+
+`EncryptedMasterSecret`, `Recovery` and `max_iteration_exponent` are new, and a
+repeated index is refused (closes #109, closes #111, closes #112, closes #115,
+closes #117, closes #131, closes #132).
+
+### Electrum refuses a sentence longer than it can write
+
+`entropy_from_mnemonic` refuses it before decoding it, and
+`_normalize` and `_is_cjk` are faster (closes #116, closes #110).
+
+### `bip39.is_valid_mnemonic` is public
+
+It answers whether a sentence is a BIP39 mnemonic without an `except`
+(closes #133).
+
+### `WordLists.words_with_prefix` completes a word
+
+The words of a list that begin with a prefix are answered in list order
+(closes #130).
+
+### A language's words and index are one record
+
+A thread converting while another loads a language no longer pairs two
+loads, and a language already loaded skips the lock (closes #124, closes #114).
+
+### `__version__` is read on first access
+
+Importing the package no longer imports `importlib.metadata` (closes #113).
+
+### `_bin_str_entropy_from_int` takes only an `int`
+
+The string branch no caller reached is removed (closes #108).
+
+### The lock-free read test joins the threads it starts
+
+The test no longer leaves them running (closes #138).
+
+### The refusal tests take the shared `secret_free` helper
+
+The helper checks the grouped secret (issue btclib-org/.github#1697).
+
+### `CONTRIBUTING.md` says most wrong values are true
+
+`0`, `None` and `""` are wrong values that read as `False` (closes #107).
+
+### `CONTRIBUTING.md` takes the organization's shared half
+
+The tree's docs drop the bypass (issue btclib-org/.github#1740).
+
+### `SECURITY.md` says to fix a defect easy to rediscover as soon as possible
+
+(issue btclib-org/.github#1771).
+
+### The pyroma hook builds no dependency from source
+
+(issue btclib-org/.github#1763).
+
+### `claude-review.yml` declines zizmor's `dangerous-triggers` on `issue_comment`
+
+(issue btclib-org/.github#1813).
+
+### `dependabot.yml` names the `uv.lock` exception
+
+Its comment on the `uv` ecosystem points to the exception that section 1 of
+btclib-org/.github's `README.md` names (issue btclib-org/.github#1818).
+
+### The publish jobs take v1.14.3 and uv is at least 0.13.4
+
+`gh-action-pypi-publish` v1.14.3 fixes GHSA-5xjx-3w67-w9x9, `required-version`
+refuses a uv that trusts the emSign root (GHSA-hq85-5cpj-mr62), and virtualenv
+21.14.13 fixes GHSA-cx6f-vjhg-g3cc (issue btclib-org/.github#1844).
+
+### The pinned versions move
+
+aiohttp, `certifi`, virtualenv, GitPython, setuptools, filelock, `setup-uv` and
+the hook revisions move (closes #142, issue btclib-org/.github#1824, issue
+btclib-org/.github#1835, issue btclib-org/.github#1849, #144, #145, #151).
+
+### Open 2026.11 after v2026.10.17
+
+The declared version is the month alone between releases (#105).
+
 ## v2026.10.17
 
 ### The refusal tests check that no refusal prints the secret

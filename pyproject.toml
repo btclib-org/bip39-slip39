@@ -16,7 +16,7 @@ name = "bip39-slip39"
 # from this file. A cycle in progress is the month alone; the release's
 # own pull request replaces it by hand with the date the release is cut,
 # YYYY.M.D, whose month need not be the cycle's
-version = "2026.11"
+version = "2026.10.24"
 description = "BIP39, SLIP-0039 and Electrum mnemonic codes, from entropy to seed, on the standard library alone"
 readme = "README.md"
 # PEP 639: a SPDX expression and the files it refers to. COPYRIGHT is not
