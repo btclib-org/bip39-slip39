@@ -448,28 +448,22 @@ gh api "$env/deployment-branch-policies" \
 ```
 
 The two trusted publishers `RELEASING.md`'s *One-time setup* names, on
-PyPI and on TestPyPI, are active under the project name
-`btclib-mnemonics`, environment `pypi` and `testpypi` respectively and
-workflow `release.yml` for both, adding them being an account action and
-the maintainer's. That rests on the maintainer's statement rather than on
-a call: none here reads a publisher back. What a call does read is that
-each index holds the project, which it answers `404` for until a first
-upload creates it:
+PyPI and on TestPyPI, are registered under the project name `bip39-slip39`
+(pending on PyPI until its first upload), environment `pypi` and
+`testpypi` respectively and workflow `release.yml` for both, adding them
+being an account action and the maintainer's. That
+rests on the maintainer's statement rather than on a call: none here reads
+a publisher back. What a call does read is whether each index holds the
+project, which PyPI answers `404` for until a first upload creates it:
 
 ```shell
 curl -s -o /dev/null -w '%{http_code}\n' \
-  https://pypi.org/pypi/btclib-mnemonics/json
-# 200
+  https://pypi.org/pypi/bip39-slip39/json
+# 404
 curl -s -o /dev/null -w '%{http_code}\n' \
-  https://test.pypi.org/pypi/btclib-mnemonics/json
+  https://test.pypi.org/pypi/bip39-slip39/json
 # 200
 ```
-
-The `bip39-slip39` projects on both indexes and on Read the Docs, and
-the two publishers under that name, wait on the setup
-[ISS 106](https://github.com/btclib-org/bip39-slip39/issues/106) asks
-for, and the calls here and under *Read the Docs* are read again under
-that name once it is done.
 
 **The repository's `.homepage` names this tree's own documentation
 site**, set under *Creating the repository* and read back here rather
@@ -483,30 +477,28 @@ gh api repos/btclib-org/bip39-slip39 --jq '.homepage'
 ## Read the Docs
 
 The project is imported on [readthedocs.org](https://app.readthedocs.org/)
-from `btclib-org/btclib-mnemonics` under the slug `btclib-mnemonics`.
-`release.yml`'s `documented` job, `pyproject.toml`'s `documentation` url
-and the `.homepage` *Publishing* reads back name `bip39-slip39`, which
-waits on the setup *Publishing* names. The slug is what serves the site,
-and it is not the project's name: renaming the slug makes the old one
-stop answering rather than redirect.
+from `btclib-org/bip39-slip39` under the slug `bip39-slip39`. The slug is
+what serves the site, and it is not the project's name: renaming the slug
+makes the old one stop answering rather than redirect. The old project,
+slug `btclib-mnemonics`, still builds from this repository and answers.
 
 ```shell
 curl -sL -o /dev/null -w '%{http_code} %{url_effective}\n' \
-  https://btclib-mnemonics.readthedocs.io/
-# 200 https://btclib-mnemonics.readthedocs.io/en/latest/
+  https://bip39-slip39.readthedocs.io/
+# 200 https://bip39-slip39.readthedocs.io/en/latest/
 ```
 
 The project's public API answers without a token:
 
 ```shell
-p=https://app.readthedocs.org/api/v3/projects/btclib-mnemonics
+p=https://app.readthedocs.org/api/v3/projects/bip39-slip39
 curl -s "$p/" | jq -c '{default_branch, repository: .repository.url}'
 # {"default_branch":"main",
-#  "repository":"https://github.com/btclib-org/btclib-mnemonics.git"}
+#  "repository":"https://github.com/btclib-org/bip39-slip39.git"}
 curl -s "$p/" | jq -c '[.programming_language.code, .homepage]'
-# ["py","https://github.com/btclib-org/btclib-mnemonics"]
+# ["py","https://github.com/btclib-org/bip39-slip39"]
 diff <(curl -s "$p/" | jq -r '.tags[]' | sort) \
-     <(gh api repos/btclib-org/btclib-mnemonics --jq '.topics[]' | sort)
+     <(gh api repos/btclib-org/bip39-slip39 --jq '.topics[]' | sort)
 # (nothing, exit 0)
 ```
 
@@ -515,16 +507,16 @@ its homepage is the repository rather than the site it serves.
 
 `stable` follows the highest semantic-version tag, so the next release
 changes this answer with nothing here having decided differently. Read
-at 2026-09-29T20:01:03Z:
+at 2026-10-23:
 
 ```shell
 curl -s "$p/versions/?active=true" \
   | jq -c '.results[] | select(.slug == "latest" or .slug == "stable")
            | [.slug, .type, .ref]'
-# ["stable","tag","v2026.9.29"]
 # ["latest","branch",null]
+# ["stable","tag","v2026.10.17"]
 git tag --list 'v*' --sort=version:refname | tail -1
-# v2026.9.29
+# v2026.10.17
 ```
 
 An automation rule, "Activate each v* release tag", activates each new
@@ -543,7 +535,7 @@ is what tells an absent project from one with nothing active:
 
 ```shell
 curl -s -o /dev/null -w '%{http_code}\n' \
-  https://app.readthedocs.org/api/v3/projects/btclib-mnemonics/
+  https://app.readthedocs.org/api/v3/projects/bip39-slip39/
 # 200
 ```
 

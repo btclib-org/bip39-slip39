@@ -9,6 +9,51 @@ number says when a release was cut, and promises nothing about
 compatibility, so a breaking change is announced in this file — read it
 before upgrading, rather than a digit.
 
+## v2026.10.23
+
+The first release of `bip39-slip39`, the new name of `btclib-mnemonics`,
+which gets no release after v2026.10.17.
+
+- **Install `bip39-slip39` instead of `btclib-mnemonics`.** Replace the
+  requirement `btclib-mnemonics` by `bip39-slip39>=2026.10.23`, and
+  uninstall the old distribution, which would otherwise stay beside it.
+- **Import `bip39_slip39` instead of `btclib_mnemonics`.** The modules
+  `bip39`, `dispatch`, `electrum`, `entropy`, `exceptions`, `mnemonic` and
+  `slip39` keep their names, as do the functions and classes in them
+  except the exceptions below, so `from btclib_mnemonics import bip39`
+  becomes `from bip39_slip39 import bip39`. Read the version with
+  `importlib.metadata.version("bip39-slip39")`.
+- **The exceptions are renamed** (#148): `Bip39Slip39Exception`,
+  `Bip39Slip39ValueError` and `Bip39Slip39TypeError` replace
+  `BTClibMnemonicsException`, `BTClibMnemonicsValueError` and
+  `BTClibMnemonicsTypeError`. Change every `except` and `import` that
+  names one.
+- **The release files are named `bip39_slip39-*`**: the wheel, the sdist
+  and the SBOM `.cdx.json`, where they were `btclib_mnemonics-*`. A script
+  that downloads one by the old name fails.
+- **Verify a release by the repository's id** (#158), as `SECURITY.md` says:
+  `gh attestation verify --owner btclib-org`, with `sourceRepositoryIdentifier`
+  checked against `gh api repos/btclib-org/bip39-slip39 --jq .id`. `--repo`
+  compares the current name, and refuses every release signed before a rename.
+- **The repository and the documentation moved.**
+  <https://github.com/btclib-org/bip39-slip39> and
+  <https://bip39-slip39.readthedocs.io/> replace the old addresses.
+- **`entropy.bin_str_entropy_from_rolls` loses its `shuffle` parameter.**
+  The rolls are read in the order given, so the same rolls give the same
+  entropy. Drop the argument.
+- **`entropy.bin_str_entropy_from_random` loses its `entropy` and
+  `to_be_hashed` parameters.** It is a plain draw of `bits` bits from
+  `secrets`, no longer hashed and no longer capped at 512 bits, and it
+  refuses fewer than one bit. Drop the arguments.
+- **`entropy.collect_rolls` reads Enter alone as a D6 rolled by hand.**
+  `a` alone still automates a D6, and the prompts say `6` where they said
+  `a6`. An answer of more than three digits, for the dice sides or a roll,
+  is asked for again.
+- **Electrum's `entropy_from_mnemonic` refuses a sentence of more than 47
+  words**, 48 for the Portuguese list, before it decodes the words. A longer
+  one from `make_seed --nbits 600` is refused, while `version_from_mnemonic`
+  and `seed_from_mnemonic` still accept it and give the same seed.
+
 ## v2026.10.17
 
 - **Nothing to act on.** The code under `src/` is v2026.10.8's, and
