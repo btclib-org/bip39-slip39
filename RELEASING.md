@@ -659,7 +659,7 @@ result.
    id=$(gh api "repos/$repo" --jq .id) &&
    cert='.[].verificationResult.signature.certificate' &&
    workflows=btclib-org/.github/.github/workflows &&
-   signer=$workflows/reusable-build.yml@refs/heads/main &&
+   signer=$workflows/reusable-build.yml &&
    gh attestation verify "$wheel" --owner btclib-org \
      --signer-workflow "$signer" --source-ref "refs/tags/v${version:?}" \
      --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
@@ -757,7 +757,7 @@ repo=btclib-org/bip39-slip39 &&
 id=$(gh api "repos/$repo" --jq .id) &&
 cert='.[].verificationResult.signature.certificate' &&
 workflows=btclib-org/.github/.github/workflows &&
-signer=$workflows/reusable-build.yml@refs/heads/main &&
+signer=$workflows/reusable-build.yml &&
 tag="v${version:?}" &&
 wheels=$(mktemp -d) &&
 gh release download "v${version:?}" --repo "$repo" --dir "$wheels" \

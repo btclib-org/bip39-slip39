@@ -69,7 +69,7 @@ cert='.[].verificationResult.signature.certificate'
 
 ```shell
 gh attestation verify <file> --owner btclib-org \
-  --signer-workflow "${signer:?}@refs/heads/main" \
+  --signer-workflow "${signer:?}" \
   --source-ref refs/tags/v<version> --format json \
   --jq "${cert:?}.sourceRepositoryIdentifier" | grep -qx "${id:?}"
 ```
