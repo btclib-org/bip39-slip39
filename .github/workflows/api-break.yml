@@ -8,13 +8,12 @@ name: api-break
 # deliberately, and the label is for the reviewer to weigh. `release.yml`'s
 # `public-api` job asks the same question of a release.
 #
-# The trigger, its types and the concurrency group are here, as section 10
-# of the organization's standard has them, with the job's `permissions:`
-# and the `package` input. The job, the script and the label's logic are the
-# callee's, called at `@main` so a fix there reaches this tree in one
-# landing. No `pull_request_target`: section 12 of the organization's
-# standard says why a fork's pull request is not labelled
-# (`OSPS-BR-01.01`).
+# The trigger, its types and the concurrency group are here, as section 10 of
+# the organization's standard has them, with the job's `permissions:` and the
+# `package` input. The job, the script and the label's logic are the callee's,
+# called at a tagged commit (section 10 of btclib-org/.github's README.md). No
+# `pull_request_target`: section 12 of the organization's standard says why a
+# fork's pull request is not labelled (`OSPS-BR-01.01`).
 
 on:
   pull_request:
@@ -45,6 +44,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write # the label; read-only on a fork
-    uses: btclib-org/.github/.github/workflows/reusable-api-break.yml@main
+    uses: btclib-org/.github/.github/workflows/reusable-api-break.yml@0f5684ab3d7bf310b0d7a2e4dd91a03522f75d67 # v2026.10.25
     with:
       package: bip39_slip39
