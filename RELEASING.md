@@ -679,7 +679,7 @@ result.
    bundle.
 
    `--signer-workflow` names the workflow that signed, and both forms
-   need it. The signing runs inside `btclib-org/.github`'s
+   carry it. The signing runs inside `btclib-org/.github`'s
    `reusable-build.yml`, which `release.yml`'s `build` job calls, so
    that is the workflow the certificate names. `--owner` names the
    organization, and the check of `sourceRepositoryIdentifier` names this
@@ -692,7 +692,8 @@ result.
    signed by `reusable-attest.yml`, and verifies with that workflow as
    the signer and the same `--source-ref`. For a signer that is a reusable
    workflow, `gh attestation verify --help` requires `--signer-workflow` or
-   `--signer-repo`, and without one either form refuses the release.
+   `--signer-repo`. `--owner` alone does not pin the signer: without
+   either flag, both forms verify the release.
    Neither form is offline on its own — the
    Sigstore trusted root comes over the network unless
    `gh attestation trusted-root > trusted_root.jsonl` fetched it earlier
