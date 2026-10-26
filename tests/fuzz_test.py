@@ -31,7 +31,7 @@ from functools import partial
 from typing import Any, NamedTuple
 
 import pytest
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 from bip39_slip39 import bip39, dispatch, electrum, slip39
@@ -117,6 +117,9 @@ _SENTENCES = st.one_of(
 
 
 @given(text=_SENTENCES, lang=_LANGS)
+# a valid sentence in its own language, which the draws above meet
+# only by chance, so that every run reaches entropy_from_mnemonic
+@example(text=bip39.mnemonic_from_entropy(bytes(16), "en"), lang="en")
 def test_is_valid_mnemonic_answers_every_str(text: str, lang: str | None) -> None:
     """An `is_*` is total: a bool for any str, with nothing suppressed.
 
