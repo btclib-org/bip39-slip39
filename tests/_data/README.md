@@ -291,7 +291,7 @@ published by spesmilo/electrum:
 
 A master public key is a point of the curve, which this package does not
 compute: `tests/electrum_test.py` multiplies the master private key the
-package answers by the generator, over btclib-ecc, and compares.
+package answers by the generator, over ecc, and compares.
 
 The word-list they run over has no entry here, and being outside
 `tests/` is not the reason -- `wordlist.txt` is outside it and has one.

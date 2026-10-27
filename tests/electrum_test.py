@@ -20,8 +20,8 @@ Some of electrum's values are keys rather than seeds: a root extended
 private key, a pre-2.0 master public key. The package stops at the seed
 and the master private key, so the step from those to a published key is
 taken here, by the few lines of BIP32 and the one point multiplication it
-is, over `btclib` and `btclib_ecc` -- test dependencies, and never
-ones of the package.
+is, over `btclib` and `ecc` -- test dependencies, and never ones of
+the package.
 """
 
 import hmac
@@ -33,8 +33,8 @@ from unicodedata import combining, normalize
 
 import pytest
 from btclib import base58
-from btclib_ecc.curves.curve import mult, secp256k1
-from btclib_ecc.curves.sec_point import bytes_from_point
+from ecc.curves.curve import mult, secp256k1
+from ecc.curves.sec_point import bytes_from_point
 
 from bip39_slip39 import bip39, electrum
 from bip39_slip39.electrum import ELECTRUM_WORDLISTS
