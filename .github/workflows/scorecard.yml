@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   analysis:
-    uses: btclib-org/.github/.github/workflows/reusable-scorecard.yml@0f5684ab3d7bf310b0d7a2e4dd91a03522f75d67 # v2026.10.25
+    uses: btclib-org/.github/.github/workflows/reusable-scorecard.yml@c6f705d85c8354f370ee35dc6d7372233724791e # v2026.10.27
     # a caller's permissions: block bounds the called workflow and refuses
     # rather than trims, so every scope its job declares is named here
     permissions:

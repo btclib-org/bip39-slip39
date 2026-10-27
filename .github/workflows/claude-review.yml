@@ -73,7 +73,7 @@ jobs:
     # by a comment gets no cache access, which is what actionlint's
     # cache-call-unrestricted asks for
     cache-mode: none
-    uses: btclib-org/.github/.github/workflows/reusable-claude-review.yml@0f5684ab3d7bf310b0d7a2e4dd91a03522f75d67 # v2026.10.25
+    uses: btclib-org/.github/.github/workflows/reusable-claude-review.yml@c6f705d85c8354f370ee35dc6d7372233724791e # v2026.10.27
     with:
       # this tree's own paragraph, landing where the callee inserts it
       extra-prompt: |
