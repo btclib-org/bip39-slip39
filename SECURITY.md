@@ -46,6 +46,10 @@ The latest security review is dated 2026-09-30.
 [assurance case](./ASSURANCE_CASE.md), and
 [issue 26](https://github.com/btclib-org/bip39-slip39/issues/26) records it.
 
+The review's scope is the tree at commit `5096ccdc2555`.
+[What changed since](https://github.com/btclib-org/bip39-slip39/compare/5096ccdc2555973dd6b54a226df8a04e30b613c9...main)
+is that commit's comparison with `main`.
+
 ## Supported versions
 
 Only the latest release is supported. Versions are calendar-based
