@@ -61,7 +61,7 @@ concurrency:
 
 jobs:
   mutation:
-    uses: btclib-org/.github/.github/workflows/reusable-mutation.yml@c6f705d85c8354f370ee35dc6d7372233724791e # v2026.10.27
+    uses: btclib-org/.github/.github/workflows/reusable-mutation.yml@ed616d71c43cd4c8bded40d1182befccd99e6ee7 # v2026.10.29
     with:
       # One object per profile, every value this tree's own: the phrase
       # the job is named for, the slug the dropdown and the artifact are
