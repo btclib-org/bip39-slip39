@@ -46,4 +46,4 @@ jobs:
     permissions:
       contents: read
       attestations: read # gh attestation verify reads the attestations API with it
-    uses: btclib-org/.github/.github/workflows/reusable-sdist-rebuild.yml@c6f705d85c8354f370ee35dc6d7372233724791e # v2026.10.27
+    uses: btclib-org/.github/.github/workflows/reusable-sdist-rebuild.yml@ed616d71c43cd4c8bded40d1182befccd99e6ee7 # v2026.10.29
