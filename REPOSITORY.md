@@ -480,12 +480,20 @@ The project is imported on [readthedocs.org](https://app.readthedocs.org/)
 from `btclib-org/bip39-slip39` under the slug `bip39-slip39`. The slug is
 what serves the site, and it is not the project's name: renaming the slug
 makes the old one stop answering rather than redirect. The old project,
-slug `btclib-mnemonics`, still builds from this repository and answers.
+slug `btclib-mnemonics`, redirects to this site. The maintainer turned its
+builds off on 2026-10-31, which the public API does not show; the last
+build it lists finished that day. Read at 2026-10-31:
 
 ```shell
 curl -sL -o /dev/null -w '%{http_code} %{url_effective}\n' \
   https://bip39-slip39.readthedocs.io/
 # 200 https://bip39-slip39.readthedocs.io/en/latest/
+curl -sL -o /dev/null -w '%{http_code} %{url_effective}\n' \
+  https://btclib-mnemonics.readthedocs.io/
+# 200 https://bip39-slip39.readthedocs.io/en/latest/
+o=https://app.readthedocs.org/api/v3/projects/btclib-mnemonics
+curl -s "$o/builds/?limit=1" | jq -c '.results[0] | [.state.code, .finished]'
+# ["finished","2026-10-31T16:43:13.085274Z"]
 ```
 
 The project's public API answers without a token:
