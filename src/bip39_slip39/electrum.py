@@ -697,8 +697,8 @@ def hex_seed_from_old_mnemonic(mnemonic: Mnemonic) -> str:
     Three words can carry a group above 2**32, written as nine hex
     characters rather than eight, so twelve words can decode to more than
     32 hex characters, an odd number of them included, and neither
-    decoder notices. Electrum's master stretches such a seed all the same
-    (spesmilo/electrum#11047), and so does
+    decoder notices. Electrum's master branch stretches such a seed all
+    the same (spesmilo/electrum#11047), and so does
     old_master_prv_key_from_mnemonic. Neither Electrum nor this module
     can spell it back in the words it came from: mn_encode and
     old_mnemonic_from_hex_seed read eight hex characters to a group.

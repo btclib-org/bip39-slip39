@@ -301,8 +301,10 @@ used: it is shipped code, transcribed from the `_words` tuple of
 `electrum/old_mnemonic.py`, and `src/bip39_slip39/electrum.py` carries
 that pin beside the constant that names the file.
 
-Pulled 2018-06-11; the pre-2.0 values 2026-08-02, and those of
-`test_electrum_seed_old_odd_length_hex` 2026-11-02.
+Pulled 2018-06-11; the pre-2.0 values 2026-08-02; those of
+`test_electrum_seed_old_odd_length_hex`, and the `Test_seeds` rows
+starting "early given", "bond decay curtain" and "bInd cLEveR",
+2026-11-02.
 
 ### `tests/_data/fakeenglish.txt`
 

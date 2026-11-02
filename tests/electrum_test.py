@@ -576,11 +576,12 @@ def test_old_mnemonic() -> None:
         electrum.seed_from_mnemonic(old, "")
 
 
-# electrum's own pre-2.0 fixtures, and every one of them is a value taken
-# from a test or a wallet file of spesmilo/electrum rather than from
-# btclib. The scheme has no specification to check against -- it predates
-# the BIPs -- so an invented vector would be testing btclib against
-# btclib, and there is nothing else these could be checked with.
+# electrum's own pre-2.0 fixtures: each case comes from a test or a
+# wallet file of spesmilo/electrum rather than from btclib, and its
+# upstream values are what pin it. The scheme has no specification to
+# check against -- it predates the BIPs -- so an invented vector would be
+# testing btclib against btclib, and there is nothing else these could be
+# checked with.
 #
 # 1. tests/test_mnemonic.py, Test_OldMnemonic.test: the only published
 #    mnemonic-to-hex pair, and the only one that pins the encoder.
@@ -640,12 +641,13 @@ OLD_HEX_SEEDS = [
 def test_old_vectors(hex_seed: str, mnemonic: str, master_pub_key: str | None) -> None:
     """The pre-2.0 scheme, both directions and the stretch, against electrum.
 
-    Only the hex seed and the master public key are upstream values in
-    the third and fourth cases: the mnemonic of the third is what
-    electrum publishes and the hex seed is this decoder's answer for it,
-    and the fourth is the other way round, a wallet file holding a hex
-    seed and no words. Each is still pinned at both ends, the master
-    public key being downstream of the hex seed and upstream of nothing.
+    In the third and fourth cases one of the three values is this
+    package's answer rather than one electrum publishes: the mnemonic of
+    the third is what electrum publishes and the hex seed is this
+    decoder's answer for it, and the fourth is the other way round, a
+    wallet file holding a hex seed and no words. Each is still pinned at
+    both ends, the master public key being downstream of the hex seed and
+    upstream of nothing.
     """
     assert electrum.hex_seed_from_old_mnemonic(mnemonic) == hex_seed
     assert electrum.version_from_mnemonic(mnemonic)[0] == "old"
