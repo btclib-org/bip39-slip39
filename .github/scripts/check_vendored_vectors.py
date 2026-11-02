@@ -17,19 +17,17 @@ a moved commit says the copy is behind. A caller passing two ledgers
 under one title would open one issue for the pair, each run rewriting
 what the other wrote.
 
-This is btclib-ecc's copy, carried with the tree this one was opened
-from and parsing this tree's tests/_data/README.md, a ledger of that same
-shape; its code departs from btclib-ecc's in nothing, and its docstring
-only in what it says of the ledgers. btclib and btclib-wallet carry
-copies under this same name, over ledgers of the same shape;
-btclib-secp256k1 another, over its own tests/README.md, whose entries are
-each pinned to a commit under a heading owning one fenced block; and
-bitcoin-node-tests another, over its TF2.md. What the copies share is
-owed to the others in the same campaign: the parsing, the `gh` calls, a
-field's spelling, the arguments this takes. What answers to one ledger's
-own shape is not, and the collapsing of identical skip lines below is
-that -- a heading owning several blocks being a shape that README does
-not carry.
+This is btclib-org/ecc's copy, carried with the tree this one was opened
+from and parsing this tree's tests/_data/README.md, a ledger of that
+same shape. btclib and btclib-wallet carry copies under this same name,
+over ledgers of the same shape; btclib-secp256k1 another, over its own
+tests/README.md, whose entries are each pinned to a commit under a
+heading owning one fenced block; and btclib-functional-tests another,
+over its TF2.md. What the copies share is owed to the others in the same
+campaign: the parsing, the `gh` calls, a field's spelling, the arguments
+this takes. What answers to one ledger's own shape is not, and the
+collapsing of identical skip lines below is that -- a heading owning
+several blocks being a shape that README does not carry.
 
 Two byte comparisons run over every entry that names a file in its
 heading and records a `blob` or an `ours` line, whatever its `behind`.
