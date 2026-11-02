@@ -312,7 +312,8 @@ GENERATED_VECTORS = [
     for vector in LANGUAGE_VECTORS["generated"]
 ]
 
-# electrum's Test_seeds.mnemonics, the table its calc_seed_type is
+# electrum's Test_seeds.mnemonics, pinned at
+# fc31115ef76b7a8969cf5292bfe3440e5e67a2c0, the table its calc_seed_type is
 # measured against: "" is "electrum would not read this at all". Every
 # case that differs from another by case or by whitespace alone is there
 # on purpose -- it is the normalization under test
@@ -339,13 +340,21 @@ VERSION_VECTORS = [
         "old",
         id="old-mixed-case-and-whitespace",
     ),
+    # electrum calls these "kind-of-invalid": they map to 33 to 36 hex
+    # characters, which the old decoder is too weak to notice
     pytest.param(
-        # electrum calls this one "invalid old": it maps to 33 hex
-        # characters, which the old decoder is too weak to notice
         "hurry idiot prefer sunset mention mist jaw inhale impossible "
         "kingdom rare squeeze",
         "old",
         id="old-invalid",
+    ),
+    pytest.param(
+        "early given garden bond decay curtain companion random storm chair learn lust",
+        "old",
+        id="old-invalid-early-given",
+    ),
+    pytest.param(
+        " ".join(["bond decay curtain"] * 4), "old", id="old-invalid-bond-decay-curtain"
     ),
     pytest.param(
         "cram swing cover prefer miss modify ritual silly deliver chunk "
@@ -397,6 +406,13 @@ VERSION_VECTORS = [
         "hill woman tonight abstract",
         "2fa",
         id="2fa-25-words",
+    ),
+    pytest.param(
+        "  bInd cLEveR    room kidney crucial sausage spy edit canvas soul "
+        "liquid ribbon SLAM open alpha suffer gate relax voice carpet law "
+        "hill woman tonight abstract ",
+        "2fa",
+        id="2fa-25-words-mixed-case-and-whitespace",
     ),
     pytest.param(
         "sibling leg cable timber patient foot occur plate travel finger "
@@ -575,6 +591,10 @@ def test_old_mnemonic() -> None:
 #    the master public key its watch-only half is built from.
 # 4. tests/test_storage_upgrade.py: a real pre-2.0 wallet file, holding
 #    the hex seed and the "master_public_key" beside it.
+# 5. tests/test_wallet_vertical.py, test_electrum_seed_old_odd_length_hex,
+#    pinned at fc31115ef76b7a8969cf5292bfe3440e5e67a2c0: mnemonic, hex seed
+#    and master public key of a wallet whose seed decodes to an odd number
+#    of hex characters.
 OLD_HEX_SEEDS = [
     pytest.param(
         "8edad31a95e7d59f8837667510d75a4d",
@@ -606,6 +626,13 @@ OLD_HEX_SEEDS = [
         "4409e4efbffbcf10084d57c5a98d1f34d20ac1f133bdb64fa02abf4f7bde1dfb",
         id="storage-upgrade",
     ),
+    pytest.param(
+        "976741d01001ab4b7a17d6ce83a1bca93",
+        "early given garden bond decay curtain companion random storm chair learn lust",
+        "8ecdca16d021e997c2d01fc14d95de1ef4baf28ee2425e67646a769f45f2d817"
+        "4ecf5e930b600b969dec9e0ceecc01e5cd2b7aea7d70bf2b37ee9a849f90254f",
+        id="odd-length-hex",
+    ),
 ]
 
 
@@ -624,15 +651,15 @@ def test_old_vectors(hex_seed: str, mnemonic: str, master_pub_key: str | None) -
     assert electrum.version_from_mnemonic(mnemonic)[0] == "old"
 
     if len(hex_seed) % 8:
-        # electrum's offline-signing seed is the weak decoder caught in
-        # the wild: two of its four groups exceeded 2**32, so twelve words
-        # decoded to 34 hex characters rather than 32. Even, so it is
-        # still octets and the stretch below runs on it and matches the
-        # published master public key -- but electrum's own get_seed
-        # cannot show the user those twelve words again, mn_encode
-        # asserting a multiple of eight. Refusing the same way is what
-        # agreeing means; a 17-byte seed is not a seed the encoder has an
-        # answer for
+        # the weak decoder caught in the wild: a group above 2**32 is
+        # written as nine hex characters, so twelve words decode to more
+        # than 32 -- an even number of them in the offline-signing seed,
+        # an odd one in the odd-length one. The stretch below runs on the
+        # characters whatever their number and matches the published
+        # master public key, but electrum's own get_seed cannot show the
+        # user those twelve words again, refusing a hex seed that is not a
+        # multiple of eight characters. Refusing the same way is what
+        # agreeing means
         with pytest.raises(Bip39Slip39ValueError, match="not a multiple of eight"):
             electrum.old_mnemonic_from_hex_seed(hex_seed)
     else:
@@ -652,7 +679,7 @@ def test_old_vectors(hex_seed: str, mnemonic: str, master_pub_key: str | None) -
         # more than a curiosity
         assert electrum.old_master_prv_key_from_mnemonic(hex_seed) == prv_key
     else:
-        # and the same 34-character seed is not one it restores from:
+        # and the same hex seed is not one it restores from:
         # is_old_seed takes 16 or 32 octets of hex and no other length,
         # so that wallet can be reopened from its twelve words alone
         with pytest.raises(
@@ -747,40 +774,54 @@ def test_old_normalization() -> None:
 
 
 def test_old_weak_decoder() -> None:
-    """Twelve words can decode to 33 hex characters, and electrum agrees.
+    """Twelve words can decode to more than 32 hex characters, as in electrum.
 
-    The "invalid old" seed of electrum's Test_seeds table. Three words
-    carry a group that can exceed 2**32 -- the largest is 1625 * (1 +
-    1626 + 1626**2), about 4.3 billion against 4.29 -- and the decoder
+    The "kind-of-invalid" seeds of electrum's Test_seeds table. Three
+    words carry a group that can exceed 2**32 -- the largest is 1625 * (1
+    + 1626 + 1626**2), about 4.3 billion against 4.29 -- and the decoder
     writes it out as nine hex characters instead of eight without
-    noticing. Electrum's decoder does the same and its stretch_key then
-    asserts is_hex_str and fails, so refusing here is what agreeing means.
+    noticing. Electrum's decoder does the same, and Electrum stretches
+    the result whatever its length: the odd-length-hex case of
+    OLD_HEX_SEEDS pins that stretch against a published master public
+    key.
     """
     mnemonic = (
         "hurry idiot prefer sunset mention mist jaw inhale impossible "
         "kingdom rare squeeze"
     )
     assert electrum.version_from_mnemonic(mnemonic)[0] == "old"
-    hex_seed = electrum.hex_seed_from_old_mnemonic(mnemonic)
-    assert hex_seed == "025d2f2d005036911003ca78900ca155c"
-    assert len(hex_seed) == 33
+    assert electrum.hex_seed_from_old_mnemonic(mnemonic) == (
+        "025d2f2d005036911003ca78900ca155c"
+    )
 
-    with pytest.raises(Bip39Slip39ValueError, match="decodes to 33 hex characters"):
-        electrum.old_master_prv_key_from_mnemonic(mnemonic)
+    # electrum's own comment on this one: the triple decodes to nine hex
+    # digits instead of eight
+    assert electrum.hex_seed_from_old_mnemonic(
+        " ".join(["bond decay curtain"] * 4)
+    ) == ("1001ab4b7" * 4)
 
 
 def test_old_invalid() -> None:
     """What the two pre-2.0 converters refuse, and where the line is."""
     # the encoder takes hex and only hex: bytes.fromhex would skip the
     # space and int() would take the underscore, and neither is a seed
-    for hex_seed in ("nonsense", "0123456789abcde", "01234567 89abcdef", "0123_4567"):
+    for hex_seed in ("nonsense", "01234567 89abcdef", "0123_4567"):
         with pytest.raises(Bip39Slip39ValueError, match="not a hex string"):
             electrum.old_mnemonic_from_hex_seed(hex_seed)
 
     # eight hex characters to a group, so a length that is not a multiple
-    # of eight has no third word for its last group
-    with pytest.raises(Bip39Slip39ValueError, match="not a multiple of eight"):
-        electrum.old_mnemonic_from_hex_seed("0123456789abcdef" * 2 + "abcdef")
+    # of eight has no third word for its last group, an odd length included
+    for hex_seed in ("0123456789abcdef" * 2 + "abcdef", "0123456789abcde"):
+        with pytest.raises(Bip39Slip39ValueError, match="not a multiple of eight"):
+            electrum.old_mnemonic_from_hex_seed(hex_seed)
+
+    # the stretch takes the same hex and only hex: a seed written as hex
+    # with a space between groups is an old seed to the recognizer, whose
+    # bytes.fromhex skips the space, and electrum's Old_KeyStore refuses it
+    spaced = "00112233 44556677 8899aabb ccddeeff"
+    assert electrum.version_from_mnemonic(spaced)[0] == "old"
+    with pytest.raises(Bip39Slip39ValueError, match="not a hex string"):
+        electrum.old_master_prv_key_from_mnemonic(spaced)
 
     # the decoder takes what the recognizer accepts and nothing else: a
     # versioned electrum seed is not a pre-2.0 one, whatever it decodes to
