@@ -256,16 +256,21 @@ def _old_word_indexes() -> dict[str, int]:
 def _is_hex_str(text: str) -> bool:
     """Return True for a string of hex characters and nothing else.
 
-    Electrum's is_hex_str, and neither of the two shorter spellings:
-    bytes.fromhex skips ASCII whitespace between pairs, so "0123 4567"
-    would pass as four octets, and int(text, 16) takes a sign and
-    underscore separators besides. The length check is what closes both.
+    Electrum's is_hex_str with allow_odd_len, the test its Old_KeyStore
+    puts a pre-2.0 seed to: any number of hex characters, an odd one
+    included, read with a zero in front so that bytes.fromhex takes it.
+
+    Neither of the two shorter spellings: bytes.fromhex skips ASCII
+    whitespace between pairs, so "0123 4567" would pass as four octets,
+    and int(text, 16) takes a sign and underscore separators besides.
+    The length check is what closes both.
     """
+    padded = "0" * (len(text) % 2) + text
     try:
-        octets = bytes.fromhex(text)
+        octets = bytes.fromhex(padded)
     except ValueError:
         return False
-    return len(text) == 2 * len(octets)
+    return len(padded) == 2 * len(octets)
 
 
 def _is_old_mnemonic(mnemonic: Mnemonic) -> bool:
@@ -689,12 +694,14 @@ def hex_seed_from_old_mnemonic(mnemonic: Mnemonic) -> str:
     one Electrum applies a step later, in stretch_key, and the gap
     between them is upstream's rather than something to close here.
 
-    Whether the answer is a seed at all is a question this cannot answer,
-    and Electrum cannot either: three words can carry a group above
-    2**32, so twelve words can decode to 33 or 34 hex characters instead
-    of 32, and neither decoder notices. Deriving is where that fails, if
-    it fails at all -- 34 characters are still octets, and one of
-    Electrum's own published seeds is exactly that.
+    Three words can carry a group above 2**32, written as nine hex
+    characters rather than eight, so twelve words can decode to more than
+    32 hex characters, an odd number of them included, and neither
+    decoder notices. Electrum's master stretches such a seed all the same
+    (spesmilo/electrum#11047), and so does
+    old_master_prv_key_from_mnemonic. Neither Electrum nor this module
+    can spell it back in the words it came from: mn_encode and
+    old_mnemonic_from_hex_seed read eight hex characters to a group.
     """
     assert_type(mnemonic, str, "mnemonic")
     if not _is_old_mnemonic(mnemonic):
@@ -751,14 +758,10 @@ def old_master_prv_key_from_mnemonic(
 
     hex_seed = hex_seed_from_old_mnemonic(mnemonic)
     if not _is_hex_str(hex_seed):
-        # electrum asserts is_hex_str here and this is the assertion that
-        # fires: a decode that overflowed 32 bits leaves an odd number of
-        # hex characters, which bytes.fromhex refuses. Neither
-        # implementation can derive from such a seed, and refusing is
-        # what agreeing with electrum means
-        err_msg = f"pre-2.0 electrum mnemonic decodes to {len(hex_seed)} hex "
-        err_msg += "characters, which are not octets"
-        raise Bip39Slip39ValueError(err_msg)
+        # a seed written as hex passes through as bytes.fromhex read it,
+        # whitespace between pairs included, and Electrum's Old_KeyStore
+        # refuses to stretch that: refusing is what agreeing means
+        raise Bip39Slip39ValueError("pre-2.0 electrum seed is not a hex string")
 
     encoded = hex_seed.encode("ascii")
     digest = encoded

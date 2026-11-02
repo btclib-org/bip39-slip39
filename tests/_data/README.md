@@ -283,8 +283,9 @@ published by spesmilo/electrum:
   `tests/test_mnemonic.py`, which is the only published pair and the only
   thing that pins the encoder;
 - the mnemonic, hex seed and master public key of
-  `test_electrum_seed_old`, and the mnemonic and master public key of
-  `test_sending_offline_old_electrum_seed_online_mpk`, both in
+  `test_electrum_seed_old` and of `test_electrum_seed_old_odd_length_hex`,
+  and the mnemonic and master public key of
+  `test_sending_offline_old_electrum_seed_online_mpk`, all in
   `tests/test_wallet_vertical.py`;
 - the hex seed and `master_public_key` of the pre-2.0 wallet file in
   `tests/test_storage_upgrade.py`.
@@ -300,7 +301,8 @@ used: it is shipped code, transcribed from the `_words` tuple of
 `electrum/old_mnemonic.py`, and `src/bip39_slip39/electrum.py` carries
 that pin beside the constant that names the file.
 
-Pulled 2018-06-11; the pre-2.0 values 2026-08-02.
+Pulled 2018-06-11; the pre-2.0 values 2026-08-02, and those of
+`test_electrum_seed_old_odd_length_hex` 2026-11-02.
 
 ### `tests/_data/fakeenglish.txt`
 
