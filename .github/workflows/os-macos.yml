@@ -55,8 +55,9 @@ jobs:
   suite-macos:
     uses: btclib-org/.github/.github/workflows/reusable-os-suite.yml@ed616d71c43cd4c8bded40d1182befccd99e6ee7 # v2026.10.29
     with:
-      # two images of the family, one per architecture it ships runners for
-      runners: '["macos-26-intel", "macos-latest"]'
+      # macOS is supported on arm64 alone: section 10 of the organization's
+      # standard
+      runners: '["macos-latest"]'
       # every interpreter the classifiers name, the free-threaded build of
       # the two newest, and PyPy: section 1 of the organization's standard
       # has a library cover every interpreter still in support
