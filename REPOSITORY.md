@@ -56,7 +56,8 @@ gh api -X PATCH repos/btclib-org/bip39-slip39 -f default_branch=main
 Then the switches section 11 turns off or on at the repository level, in
 one call — the projects board and the wiki off, the tracker on, squash as
 the only merge method with auto-merge, the head branch deleted on merge,
-and the squash commit's title and body:
+and the squash commit's title and body — together with the `.homepage`,
+section 3's page on btclib.org:
 
 ```shell
 gh api -X PATCH repos/btclib-org/bip39-slip39 \
@@ -66,7 +67,7 @@ gh api -X PATCH repos/btclib-org/bip39-slip39 \
   -F delete_branch_on_merge=true \
   -f squash_merge_commit_title=COMMIT_OR_PR_TITLE \
   -f squash_merge_commit_message=COMMIT_MESSAGES \
-  -f homepage=https://bip39-slip39.readthedocs.io/
+  -f homepage=https://btclib.org/bip39-slip39/
 ```
 
 Read back:
@@ -465,13 +466,14 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 # 200
 ```
 
-**The repository's `.homepage` names this tree's own documentation
-site**, set under *Creating the repository* and read back here rather
-than from `pyproject.toml`'s own copy of it:
+**The repository's `.homepage` is its page on btclib.org**, as
+section 3 has it, set under *Creating the repository* and read back
+here rather than from `pyproject.toml`'s own copy of it. Read at
+2026-11-02:
 
 ```shell
 gh api repos/btclib-org/bip39-slip39 --jq '.homepage'
-# https://bip39-slip39.readthedocs.io/
+# https://btclib.org/bip39-slip39/
 ```
 
 ## Read the Docs

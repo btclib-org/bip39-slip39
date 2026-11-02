@@ -64,7 +64,7 @@ classifiers = [
 ]
 
 [project.urls]
-homepage = "https://bip39-slip39.readthedocs.io/"
+homepage = "https://btclib.org/bip39-slip39/"
 documentation = "https://bip39-slip39.readthedocs.io/"
 download = "https://github.com/btclib-org/bip39-slip39/releases"
 changelog = "https://github.com/btclib-org/bip39-slip39/blob/main/RELEASE_NOTES.md"
