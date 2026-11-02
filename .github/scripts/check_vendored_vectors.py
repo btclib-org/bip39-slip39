@@ -22,8 +22,8 @@ from and parsing this tree's tests/_data/README.md, a ledger of that
 same shape. btclib and btclib-wallet carry copies under this same name,
 over ledgers of the same shape; btclib-secp256k1 another, over its own
 tests/README.md, whose entries are each pinned to a commit under a
-heading owning one fenced block; and btclib-functional-tests another,
-over its TF2.md. What the copies share is owed to the others in the same
+heading owning one fenced block; and functional-tests another, over its
+TF2.md. What the copies share is owed to the others in the same
 campaign: the parsing, the `gh` calls, a field's spelling, the arguments
 this takes. What answers to one ledger's own shape is not, and the
 collapsing of identical skip lines below is that -- a heading owning
