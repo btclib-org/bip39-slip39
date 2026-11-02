@@ -19,6 +19,81 @@ behind them.
 
 [std]: https://github.com/btclib-org/.github
 
+## v2026.11.2
+
+### Electrum stretches a pre-2.0 seed of odd length
+
+`old_master_prv_key_from_mnemonic` derives from a pre-2.0 mnemonic whose words
+decode to an odd number of hex characters, as Electrum's master branch does
+(closes #185).
+
+### The electrum docstrings and tests correct sentences left unclear or false
+
+(closes #198).
+
+### The homepage is <https://btclib.org/bip39-slip39/>
+
+`[project.urls]` names it as the homepage; the documentation stays on Read the
+Docs (closes #189).
+
+### The calls into btclib-org/.github are pinned to a tag
+
+The workflows call btclib-org/.github's reusable workflows at a tagged commit
+rather than at `main`, v2026.10.29 at this release (issue
+btclib-org/.github#1870, #183).
+
+### macOS runs on arm64 alone
+
+(issue btclib-org/.github#1982).
+
+### `uv_build` is below 0.14, and the tests require `ecc`
+
+`btclib-ecc` gives way to `ecc` in the test group, and `dependabot.yml` says
+only `uv_build` has a ceiling (closes #153, closes #165, issue
+btclib-org/.github#1848).
+
+### `check_vendored_vectors.py` names btclib-functional-tests
+
+It prints a failed `gh` call's error and retries a server error (closes #188,
+closes #191).
+
+### `fuzz_test.py` reaches `entropy_from_mnemonic` on every run
+
+(closes #174).
+
+### The contributor documents take btclib-org/.github's shared text
+
+`CONTRIBUTING.md` and `REVIEWING.md` take the shared part (issue
+btclib-org/.github#1846, issue btclib-org/.github#1904, issue
+btclib-org/.github#1919).
+
+### A contribution must have been read and understood by its submitter
+
+The README, `CONTRIBUTING.md` and `REVIEWING.md` say so (issue
+btclib-org/.github#1846).
+
+### `SECURITY.md` links what changed since the security review
+
+(issue btclib-org/.github#1795).
+
+### `RELEASING.md` says what `--owner` verifies and which jobs a release skips
+
+`--owner` verifies without a signer flag, and the lint jobs a release run skips
+are named (closes #172, issue btclib-org/.github#1989).
+
+### `REPOSITORY.md` says the old Read the Docs project redirects here
+
+(closes #186).
+
+### The pinned versions move
+
+The GitHub Actions, `uv-build`, `hypothesis` and the hook revisions move
+(#177, #178, #179, #182, #183).
+
+### Open 2026.11 after v2026.10.24
+
+(#167).
+
 ## v2026.10.24
 
 ### The package is `bip39-slip39`, imported as `bip39_slip39`

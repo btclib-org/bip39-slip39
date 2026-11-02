@@ -9,6 +9,31 @@ number says when a release was cut, and promises nothing about
 compatibility, so a breaking change is announced in this file — read it
 before upgrading, rather than a digit.
 
+## v2026.11.2
+
+- **`electrum.old_master_prv_key_from_mnemonic` derives from a pre-2.0 mnemonic
+  whose words decode to an odd number of hex characters** (#185), where
+  v2026.10.24 refused it as not octets. Its master public key matches Electrum's
+  own test of such a seed, which is on Electrum's master branch and in no
+  Electrum release on 2026-11-02. A caller that relied on the refusal gets a key
+  instead.
+- **`old_master_prv_key_from_mnemonic` and `old_mnemonic_from_hex_seed` change
+  a refusal's message**, for a caller that matches it; the exception is still
+  `Bip39Slip39ValueError`. `old_master_prv_key_from_mnemonic` refuses a seed
+  written as hex with whitespace between pairs as "pre-2.0 electrum seed is not
+  a hex string", where it said the seed decodes to hex characters "which are
+  not octets". `old_mnemonic_from_hex_seed` refuses a hex seed of odd length as
+  "not a multiple of eight", where it said "not a hex string".
+- **The attestations name `reusable-build.yml` at a commit, not at
+  `refs/heads/main`.** The signer is btclib-org/.github's
+  `reusable-build.yml` at `ed616d71c43cd4c8bded40d1182befccd99e6ee7`, its tag
+  v2026.10.29, where v2026.10.24's was at `refs/heads/main`. The command
+  `SECURITY.md` gives names the signer without a ref and verifies both. A check
+  that pins `--signer-workflow` to `@refs/heads/main` fails: drop the ref.
+- **The homepage is <https://btclib.org/bip39-slip39/>** in the package
+  metadata, where it was the documentation, which stays at
+  <https://bip39-slip39.readthedocs.io/>.
+
 ## v2026.10.24
 
 The first release of `bip39-slip39`, the new name of `btclib-mnemonics`,
