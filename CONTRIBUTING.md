@@ -482,8 +482,8 @@ that do not are deliberate:
 - The `dev-version` action re-locks after writing a rehearsal's version
   suffix; `uv lock` keeps the versions already locked.
 - `public-api`, in btclib-org/.github's `reusable-public-api.yml`, runs
-  `uvx griffe==2.2.0`: a pinned version, with its own dependencies
-  unlocked.
+  `uvx griffe==2.2.0`, and `api_gaps.py` under `uv run --no-project --with
+  griffe==2.2.0`: a pinned version, with its own dependencies unlocked.
 
 **Check exit codes, not filtered output.** `pre-commit run ... | grep -v
 Passed` hides a failure, and `grep` finding nothing exits 1, which is not
@@ -646,12 +646,22 @@ if grep -rn 'href="#\.\.\?/' docs/build/html --include='*.html'; then
     echo "::error::the links above resolve to no page (unresolved relative path)"
     exit 1
 fi
+served=$(mktemp -d)
+git clone --depth 1 --filter=blob:none --sparse \
+    https://github.com/btclib-org/.github "$served"
+git -C "$served" sparse-checkout set .github/scripts
+uv run --no-project --python 3.15 \
+    "$served"/.github/scripts/check_included_links.py docs/build/html
 ```
 
 What myst renders for a destination it cannot resolve is an anchor to an
 id no page has. `-W` reports it because `docs/source/conf.py` resolves the
 links the included root files carry and suppresses no myst warning; the
 `grep` is what still finds one the day a suppression goes back in.
+
+`check_included_links.py` is btclib-org/.github's: the job checks it out at
+the commit `docs.yml` pins, and the commands above fetch it from `main`. Its
+docstring says what it refuses.
 
 `codeql.yml` has no line here: its jobs run `github/codeql-action` and no
 command of this project's, so reproducing it locally means the CodeQL CLI
