@@ -339,8 +339,8 @@ def test_invalid_share_field(field: str, value: int) -> None:
         "member_index": 0,
         "member_threshold": 1,
         "value": bytes(16),
+        field: value,
     }
-    fields[field] = value
     with pytest.raises(Bip39Slip39ValueError, match="invalid "):
         slip39.Share(**fields)  # type: ignore[arg-type]
 
@@ -371,8 +371,8 @@ def test_share_field_of_another_type(field: str, value: object, err_msg: str) ->
         "member_index": 0,
         "member_threshold": 1,
         "value": bytes(16),
+        field: value,
     }
-    fields[field] = value
     with pytest.raises(Bip39Slip39TypeError, match=err_msg):
         slip39.Share(**fields)  # type: ignore[arg-type]
 
@@ -608,7 +608,9 @@ def test_shares_that_are_no_sequence() -> None:
 
     with pytest.raises(Bip39Slip39TypeError, match="invalid mnemonics type: set"):
         slip39.master_secret_from_mnemonics(set(shares))  # type: ignore[arg-type]
-    generator = (share for share in shares)
+    # the generator is the input under test, which iter() would make a
+    # list_iterator
+    generator = (share for share in shares)  # sourcery skip: simplify-generator
     with pytest.raises(Bip39Slip39TypeError, match="invalid mnemonics type: gen"):
         slip39.master_secret_from_mnemonics(generator)  # type: ignore[arg-type]
 
@@ -811,8 +813,8 @@ def test_an_encrypted_master_secret_field_out_of_its_domain(
         "extendable": True,
         "iteration_exponent": 0,
         "value": bytes(16),
+        field: value,
     }
-    fields[field] = value
     with pytest.raises(error, match=err_msg):
         slip39.EncryptedMasterSecret(**fields)  # type: ignore[arg-type]
 

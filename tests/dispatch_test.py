@@ -201,8 +201,10 @@ def test_no_normalization_of_its_own() -> None:
     assert dispatch.all_seed_types_from_mnemonic(shouted_bip39) == []
 
     # whitespace, on the other hand, both schemes already collapse
-    spaced = "  abandon  abandon\tabandon abandon abandon abandon abandon "
-    spaced += "abandon abandon abandon abandon\nabout  "
+    spaced = (
+        "  abandon  abandon\tabandon abandon abandon abandon abandon "
+        "abandon abandon abandon abandon\nabout  "
+    )
     assert dispatch.seed_type_from_mnemonic(spaced) == "bip39"
 
 
@@ -308,8 +310,8 @@ def test_slip39_bad_sentence_is_not_claimed(mnemonics: list[str]) -> None:
     over the set because these vectors carry one bad sentence among sound
     ones; what must not happen is every sentence passing.
     """
-    assert not all(
-        "slip39" in dispatch.all_seed_types_from_mnemonic(mnemonic)
+    assert any(
+        "slip39" not in dispatch.all_seed_types_from_mnemonic(mnemonic)
         for mnemonic in mnemonics
     )
 
