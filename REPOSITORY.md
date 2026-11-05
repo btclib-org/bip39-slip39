@@ -206,7 +206,7 @@ gh api repos/btclib-org/bip39-slip39/branches/main/protection \
 #  "strict":false}
 ```
 
-Read on 2026-11-05T07:19:00Z, after a `PATCH` of `required_status_checks`
+Read on 2026-11-05T10:23Z, after a `PATCH` of `required_status_checks`
 carrying the `checks` of the `PUT` above, it printed the answer above.
 
 Three rulesets sit beside it, additive — rules aggregate across rulesets
