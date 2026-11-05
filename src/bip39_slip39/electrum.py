@@ -603,8 +603,10 @@ def entropy_from_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> BinStr
     # would report it as an unknown language rather than as what it is
     mnemonic_type, _ = version_from_mnemonic(mnemonic)
     if mnemonic_type == "old":
-        err_msg = "pre-2.0 electrum mnemonic: entropy is not a base conversion; "
-        err_msg += "use hex_seed_from_old_mnemonic"
+        err_msg = (
+            "pre-2.0 electrum mnemonic: entropy is not a base conversion; "
+            "use hex_seed_from_old_mnemonic"
+        )
         raise Bip39Slip39ValueError(err_msg)
     lang = lang or lang_from_mnemonic(mnemonic)
     # the sentence handed in, and not the normalized one version_from_mnemonic
@@ -635,8 +637,10 @@ def seed_from_mnemonic(mnemonic: Mnemonic, passphrase: str) -> bytes:
     version, mnemonic = version_from_mnemonic(mnemonic)
     assert_type(passphrase, str, "passphrase")
     if version == "old":
-        err_msg = "pre-2.0 electrum mnemonic has no seed; "
-        err_msg += "use old_master_prv_key_from_mnemonic"
+        err_msg = (
+            "pre-2.0 electrum mnemonic has no seed; "
+            "use old_master_prv_key_from_mnemonic"
+        )
         raise Bip39Slip39ValueError(err_msg)
 
     hf_name = "sha512"
@@ -726,7 +730,7 @@ def hex_seed_from_old_mnemonic(mnemonic: Mnemonic) -> str:
         first, second, third = (indexes[word] for word in words[3 * i : 3 * i + 3])
         group = first
         group += base * ((second - first) % base)
-        group += base * base * ((third - second) % base)
+        group += base**2 * ((third - second) % base)
         hex_seed += f"{group:08x}"
     return hex_seed
 

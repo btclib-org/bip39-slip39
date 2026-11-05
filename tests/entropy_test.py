@@ -477,7 +477,13 @@ def test_the_rolls_are_read_in_the_order_rolled() -> None:
         (4, None, "invalid rolls type: NoneType"),
         # a set would have dropped the repeated rolls
         (4, {1, 2}, "invalid rolls type: set"),
-        (4, (roll for roll in [1, 2, 1, 2]), "invalid rolls type: generator"),
+        # the generator is the input under test, which iter() would make a
+        # list_iterator
+        (
+            4,
+            (roll for roll in [1, 2, 1, 2]),  # sourcery skip: simplify-generator
+            "invalid rolls type: generator",
+        ),
         (4, "1212", "invalid roll type: str"),
         (4, [1, 2.0, 1, 2], "invalid roll type: float"),
         (4, [True, 2, 1, 2], "invalid roll type: bool"),

@@ -250,4 +250,4 @@ def test_no_module_imports_outside_the_stdlib() -> None:
         for path in sorted(root.rglob("*.py"))
     }
     assert "slip39.py" in found
-    assert {file: names for file, names in found.items() if names} == {}
+    assert not {file: names for file, names in found.items() if names}
