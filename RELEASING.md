@@ -1,7 +1,7 @@
-# Releasing bip39-slip39
+# Releasing
 
 Releases are published by GitHub Actions
-([release.yml](./.github/workflows/release.yml)), not from a developer
+(`.github/workflows/release.yml`), not from a developer
 machine. Pushing a `v<version>` tag runs the full test matrix, builds and
 checks the distribution files, publishes them to PyPI, and creates the
 GitHub release. There is no PyPI token anywhere: both indices are
@@ -10,6 +10,15 @@ configured to trust the workflow itself
 
 The same workflow, started by hand instead of by a tag, is a full rehearsal
 against TestPyPI. A rehearsal is never tagged.
+
+**This file is the same in every repository that publishes, up to its
+last section.** Section 14 of the
+[organization standard](https://github.com/btclib-org/.github#14-copied-verbatim-and-decided-per-repository)
+says so, and `tests/verbatim_test.py` of that repository compares the
+copies. The steps read this tree's names from shell variables, set by a
+block in its last section: run that block first, in the shell the steps
+run in. Prose and URLs write the same names as `<repo>`, `<dist>` and so
+on. What one tree does beyond these steps is under that section too.
 
 **A workflow GitHub has not registered cannot be dispatched, and it
 registers one only once its file has reached the default branch.** Any new
@@ -59,13 +68,13 @@ Telling these apart is most of what can go wrong when cutting a release.
   such run's first attempt, rehearsing `2026.8.6`, produces exactly
   that. The multiplier is what makes a re-run a version of its own
   rather than a collision: a re-run keeps the run's own number and only
-  raises the attempt, so the run number alone was identical across every
-  re-run of one dispatch and PEP 440 could not tell them apart. Placing
-  the attempt below the run number's own place value keeps a run's later
-  attempts sorting after its earlier ones and before the next run's, the
-  attempt therefore capped at two digits and the workflow refusing a
-  hundredth rather than silently wrapping into the next run's range.
-  Nothing writes it down, and no commit ever carries it
+  raises the attempt, so the run number alone would be identical across
+  every re-run of one dispatch and PEP 440 could not tell them apart.
+  Placing the attempt below the run number's own place value keeps a
+  run's later attempts sorting after its earlier ones and before the
+  next run's, the attempt therefore capped at two digits and the workflow
+  refusing a hundredth rather than silently wrapping into the next run's
+  range. Nothing writes it down, and no commit ever carries it
 - **`2026.8.6rc1`**, and a `v2026.8.6rc1` tag, have no place in this
   scheme: there are no release candidates here, only a version not yet
   tagged. `version-check` refuses anything that is not digits and dots,
@@ -81,20 +90,20 @@ reads them as PEP 440 does.
 
 ## One-time setup
 
-Neither index holds the project until an upload creates it, so both entries
-below are added as *pending* publishers, on that same page: a publisher
-attached to a project can only be added to a project that exists, and a
-first upload has nothing else to authenticate with, there being no token
-anywhere. The upload PyPI accepts turns its pending entry into an ordinary
-one, and TestPyPI's rehearsal does the same there.
+A publisher attached to a project can only be added to a project that
+exists, and a first upload has nothing else to authenticate with, there
+being no token anywhere. So where an index holds no project of that name
+yet, its entry below is added as a *pending* publisher, on the account's
+own publishing page, and the first upload it accepts turns the entry into
+an ordinary one. Where the project exists, the entry is added on that
+project's publishing page.
 
-1. On [PyPI](https://pypi.org/manage/account/publishing/), add a trusted
-   publisher: PyPI project name `bip39-slip39`, owner `btclib-org`,
-   repository `bip39-slip39`, workflow `release.yml`,
+1. On PyPI, add a trusted publisher to the project `dist` names: owner
+   `btclib-org`, the repository `repo` names, workflow `release.yml`,
    environment `pypi`.
 
-1. On [TestPyPI](https://test.pypi.org/), add the same trusted publisher,
-   with environment `testpypi`.
+1. On TestPyPI, add the same trusted publisher to the project
+   `test_dist` names, with environment `testpypi`.
 
 1. In the GitHub repository settings, create the `pypi` and `testpypi`
    environments. Both require a review from one of `fametrano`,
@@ -127,8 +136,7 @@ one, and TestPyPI's rehearsal does the same there.
 A rehearsal runs the identical pipeline — lint gate, test matrix, the
 `build` job's build and signature, the `dist` job's packaging checks
 (twine, check-wheel-contents, pyroma) and its wheel smoke test — and
-publishes the very files those checks passed to
-[TestPyPI](https://test.pypi.org/project/bip39-slip39/) instead of
+publishes the very files those checks passed to TestPyPI instead of
 PyPI, so what `release.yml` publishes and what `test.yml` checked are
 the same files (issue btclib-org/btclib#1166).
 
@@ -152,12 +160,12 @@ the tag exercises the first.
    written: before, `public-api` reads the previous release's section and
    fails.
 
-1. The workflow appends `.dev<run*100+attempt>` to whatever
-   `pyproject.toml` declares on the branch dispatched — the outgoing
-   cycle's placeholder if the version about to ship has not landed yet,
-   which publishes something like `2026.9.dev401` and still tests the
-   identical pipeline the tag will run; the number is not what is being
-   asked about.
+1. The workflow publishes under the name `test_dist` holds, and appends
+   `.dev<run*100+attempt>` to whatever `pyproject.toml` declares on the
+   branch dispatched — the outgoing cycle's placeholder if the version
+   about to ship has not landed yet, which publishes something like
+   `2026.9.dev401` and still tests the identical pipeline the tag will
+   run; the number is not what is being asked about.
    Every rehearsal is unique on TestPyPI this way, re-runs included: a
    re-run raises only `github.run_attempt`, which the run number is
    multiplied by 100 to make room for, so re-running a failed or finished
@@ -184,8 +192,8 @@ the tag exercises the first.
    uv run --isolated --no-project \
      --index https://test.pypi.org/simple/ \
      --index-strategy unsafe-best-match \
-     --with "bip39-slip39==${dev:?}" \
-     python -c "import bip39_slip39; print(bip39_slip39.__version__)"
+     --with "${test_dist:?}==${dev:?}" \
+     python -c "${smoke:?}"
    ```
 
 1. Check that the `build` job is green. It signs a rehearsal's files too,
@@ -202,9 +210,10 @@ the tag exercises the first.
 
 **A release is a tag on `main`, and everything below that edits a file
 does so on a branch of its own.** Nothing is pushed to `main` directly,
-this release included: the steps that write the notes and set the
-version are one pull request, the one that sets the next cycle's version
-is another, and the tag names the commit the first of them left behind.
+this release included: the steps that write the release's sections and
+set the version are one pull request, the one that sets the next cycle's
+version is another, and the tag names the commit the first of them left
+behind.
 
 `deps-latest` is worth dispatching before the tag rather than waiting for
 its cron, because what it answers is cheaper to know before a version is
@@ -216,12 +225,12 @@ inferring it from a sibling. A release ships what `uv.lock` pins, so drift
 against a newer version of some dependency does not make the release
 wrong — it says the next bump is going to be work.
 
-Whether to close that drift now — `uv lock --upgrade`, gated by nothing
-here — or leave it for Dependabot's own pull requests is a decision
-worth stating rather than defaulting by omission: silence at the tag
-reads as "nobody looked", not as "looked and chose to leave it". State
-the choice in the release pull request, next to `deps-latest`'s own
-result.
+**The drift it reports is left to Dependabot.** The release pull request
+does not run `uv lock --upgrade`: section 1's
+[`uv.lock`](https://github.com/btclib-org/.github#uvlock) says what moves
+the lock, and its one exception, a single package the audit asks for,
+holds here as on any other pull request. Say so in the release pull
+request, next to `deps-latest`'s own result.
 
 1. Read what is open, and land first anything that fixes the release path
    itself:
@@ -251,17 +260,20 @@ result.
    is what landed rather than what is nearly landed.
 
 1. Read the public API against the previous release, before the notes that
-   describe it are declared final. [RELEASE_NOTES.md](./RELEASE_NOTES.md)
+   describe it are declared final. `RELEASE_NOTES.md`
    promises that a breaking change is announced there, the calendar version
    promising nothing, and nothing else reads that promise: the suite judges the
    code, and a reviewer weighs what the prose says rather than what it leaves
-   out. griffe reads both revisions and answers that second question for the
-   breaks it compares — not whether the list is right, but whether it is
-   complete:
+   out. griffe and `api_gaps.py` read both revisions and answer that second
+   question — not whether the list is right, but whether it is complete:
 
    ```shell
-   uv run --locked --with griffe griffe check bip39_slip39 \
-       -s . -s src -a v<previous version>
+   tag=v<previous version>
+   ```
+
+   ```shell
+   uv run --no-project --python 3.15 --with griffe==2.2.0 \
+       griffe check "${pkg:?}" -s . -s src -a "${tag:?}"
    ```
 
    griffe reads the `-a` revision from a temporary git worktree and
@@ -270,31 +282,69 @@ result.
    answers `ModuleNotFoundError` for a package under `src/`. The pair is
    the one `release.yml`'s `public-api` job passes.
 
+   The griffe version is the one that job pins, and `tests/api_gaps_test.py`
+   of btclib-org/.github holds this step to it: two griffe releases can
+   answer differently for the same two revisions (btclib-org/.github#1977).
+
+   Then run btclib-org/.github's `api_gaps.py`, against the same tag and
+   with the same griffe, as the job does after griffe. It reports, in
+   griffe's format, the breaks its docstring names, which griffe does not
+   compare or can skip:
+
+   ```shell
+   gaps=$(mktemp -d) &&
+   ref=$(grep -oE 'reusable-public-api\.yml@[0-9a-f]{40}' \
+       .github/workflows/release.yml | cut -d@ -f2) &&
+   gh api -X GET -H 'Accept: application/vnd.github.raw' -f "ref=${ref:?}" \
+       repos/btclib-org/.github/contents/.github/scripts/api_gaps.py \
+       > "${gaps:?}/api_gaps.py" &&
+   uv run --no-project --python 3.15 --with griffe==2.2.0 \
+       "${gaps:?}/api_gaps.py" "${pkg:?}" "${tag:?}"
+   ```
+
+   The script is fetched at the commit `release.yml` pins
+   `reusable-public-api.yml` to, because the job runs the script at that
+   commit and `main`'s copy can differ from it. Where `release.yml` names
+   no such commit, `${ref:?}` stops the chain before the fetch.
+
+   The script is written to a file before it runs, because a failed fetch
+   piped into `uv run -` runs an empty script, which exits 0. An error
+   starting `gh:` is the fetch failing, and the chain stops before the
+   script runs.
+
    The first release has no previous tag, and there is nothing for this
    step to read; `release.yml`'s `public-api` job skips its check for the
    same reason.
 
-   It reports breakage only: a public object removed, a parameter that
-   changed kind or default, an attribute whose value moved. An addition is
-   silent, so the output is short and every line of it wants an entry —
-   what the step asks is that nothing it names is missing from RELEASE_NOTES.md.
-   The converse is not its to answer: an entry describing a break it did
-   not find is a claim about the prose, which review still has to read.
-   Not a hook and not a job of `lint.yml`, deliberately: the comparison is
-   against the previous *release*, so a break lands on `main` on purpose and
-   remains a finding until the release that announces it, leaving every
-   pull request in between red for something no branch introduced. It exits
-   1 on a finding, so the day that reasoning stops holding — a cycle that
-   means to break nothing — making it a gate is one line.
+   The two report breakage only: a public object removed, a parameter that
+   changed kind or default, an attribute whose value moved, a changed return
+   annotation. An addition is silent, so the output is short and every line
+   of it wants an entry — what the step asks is that nothing they name is
+   missing from RELEASE_NOTES.md. The converse is not theirs to answer: an
+   entry describing a break they did not find is a claim about the prose,
+   which review still has to read. Not a hook and not a job of `lint.yml`,
+   deliberately: the comparison is against the previous *release*, so a
+   break lands on `main` on purpose and remains a finding until the release
+   that announces it, leaving every pull request in between red for
+   something no branch introduced. Each exits 1 on a finding, so the day
+   that reasoning stops holding — a cycle that means to break nothing —
+   making the step a gate is a line per command.
 
-   `release.yml` asks the same question again as its `public-api` job, with
-   btclib-org/.github's `api_gaps.py` beside griffe for the breaks griffe does
-   not compare or can skip, and a red one there is a break `RELEASE_NOTES.md`
-   does not name: the job gates nothing, its own comment saying why, and every
-   job behind it opens its `if:` with `always()` and names the results it does
-   require, so a red `public-api` costs the release nothing. What it costs is
-   the run's own badge, red while every job that matters is green, which is why
-   the step after the approval below reads the run job by job rather than as a
+   griffe also exits 1 when it fails on an error it does not catch, such
+   as a tag the repository lacks: its output is then a Python traceback,
+   not findings. So an exit of 1 is read in the output before it is taken
+   for a finding. `api_gaps.py` exits 2 when it fails. Any other non-zero
+   exit is the tool failing, which answers nothing: read its error before
+   going on.
+
+   `release.yml` asks the same question again as its `public-api` job. A
+   red one there is a break `RELEASE_NOTES.md` does not name, or one of the
+   two tools failing: read the job's log to tell which. The job gates
+   nothing, its own comment saying why, and every job behind it opens its
+   `if:` with `always()` and names the results it does require, so a red
+   `public-api` costs the release nothing. What it costs is the run's own
+   badge, red while every job that matters is green, which is why the step
+   after the approval below reads the run job by job rather than as a
    whole.
 
 1. Name in RELEASE_NOTES.md every change to the release's assets or to how they
@@ -305,18 +355,14 @@ result.
 
 1. Write the release's sections in the release pull request, above the
    previous release's, as section 12 of the organization standard says:
-   `## v<version>` in [CHANGELOG.md](./CHANGELOG.md), from the squash
+   `## v<version>` in `CHANGELOG.md`, from the squash
    subjects since the previous tag, grouped and shortened,
-
-   ```shell
-   tag=v<previous version>
-   ```
 
    ```shell
    git log "${tag:?}"..HEAD --format=%s
    ```
 
-   and in [RELEASE_NOTES.md](./RELEASE_NOTES.md), what a user has to act
+   and in `RELEASE_NOTES.md`, what a user has to act
    on. The heading must be the version alone and the section must not be
    empty: `release.yml` checks both before anything is built, because PyPI
    never accepts a version's file names twice, even once the release is
@@ -358,10 +404,8 @@ result.
    git reset --hard origin/main
    ```
 
-   The sections are rewritten from `git log` and from what `main` holds,
-   which a reset does not touch. `git diff --cached` at the landing step
-   below is the second reading of the same hazard, not a substitute for
-   this one: by then the dropped line is what is being committed.
+   The sections are written again from `git log` of the new tip, and the
+   version is a few lines.
 
 1. Give the release pull request its title and its body, before merging it
    and not after. The title is the version; the body says what the release
@@ -374,46 +418,19 @@ result.
    discover at the button belongs there too.
 
    The section of RELEASE_NOTES.md written above is what that body is
-   written from.
-   Griffe's result belongs in the body too, a line rather than a
-   screenshot — it is a step nothing else enforces, and a pull request
-   that never mentions it reads exactly like one that skipped it.
+   written from. The public API step's result belongs in the body too, a
+   line rather than a screenshot — it is a step nothing else enforces, and a
+   pull request that never mentions it reads exactly like one that skipped
+   it.
 
 1. Run `uv run pre-commit run --all-files` and `uv run pytest --cov`
-   before pressing anything, then verify the
-   [read the docs](https://readthedocs.org/projects/bip39-slip39/builds/)
-   build renders. Read the *builds* page and not only the rendered one: a
-   site that answers 200 may be serving the last build that succeeded,
-   the webhook having quietly refused every delivery since.
+   before pressing anything, then verify the Read the Docs build renders,
+   on `https://app.readthedocs.org/projects/<rtd>/builds/`. Read the
+   *builds* page and not only the rendered one: a site that answers 200
+   may be serving the last build that succeeded, the webhook having
+   quietly refused every delivery since.
 
-1. Run each dependent's suite with this release in place of its PyPI
-   version, whether or not the notes declare a break. Section 12 of the
-   [organization standard](https://github.com/btclib-org/.github#12-releasing)
-   has the rule. The one dependent of `bip39-slip39` is
-   `btclib-wallet`. Re-derive it with the loop in that section
-   before each release rather than carry this list.
-
-   From a throwaway checkout of each dependent's default branch, with the
-   sha of the release pull request's head for `<sha>`, before it merges:
-
-   ```shell
-   ref=git+https://github.com/btclib-org/bip39-slip39@<sha>
-   ```
-
-   ```shell
-   uv run --locked --no-default-groups --group test \
-     --with "bip39-slip39 @ ${ref:?}" \
-     python -m pytest --no-cov
-   ```
-
-   It is `python -m pytest`, not `pytest`: that script is the environment's
-   own and imports the locked version. `--no-cov` because the question is
-   pass or fail, not the dependent's coverage floor.
-
-   A dependent that fails gets its fix ready first. The release is tagged,
-   then the dependent releases with its floor raised to it.
-
-1. Merge it as CONTRIBUTING.md's *Landing it* says.
+1. Merge it as `CONTRIBUTING.md`'s *Landing it* says.
 
    Name the release commit's title and body explicitly, rather than leave
    them to `squash_merge_commit_message`'s repository default, which
@@ -499,9 +516,9 @@ result.
 
    ```shell
    tagsha=$(gh api \
-     repos/btclib-org/bip39-slip39/git/refs/tags/"v${version:?}" \
+     "repos/btclib-org/${repo:?}/git/refs/tags/v${version:?}" \
      --jq '.object.sha') &&
-   gh api repos/btclib-org/bip39-slip39/git/tags/"${tagsha:?}" \
+   gh api "repos/btclib-org/${repo:?}/git/tags/${tagsha:?}" \
      --jq '.verification.verified'
    ```
 
@@ -553,34 +570,38 @@ result.
    ```shell
    gh api --paginate \
      --jq '.jobs[] | [.conclusion, (.steps|length), .name] | @tsv' \
-     "repos/btclib-org/bip39-slip39/actions/runs/${run:?}/jobs?per_page=100"
+     "repos/btclib-org/${repo:?}/actions/runs/${run:?}/jobs?per_page=100"
    ```
 
-   On a tag `Publish to TestPyPI` is `skipped`, its trigger being the dispatch,
-   and `public-api` is red for a break `RELEASE_NOTES.md` does not name, being
-   the griffe step above run again with btclib-org/.github's `api_gaps.py`
-   beside it. `Run the lint workflow / lint / Dependency review` and `Run the
-   lint workflow / lint / Sign-off` are `skipped` on every run, as they run only
-   on a `pull_request`; a tagged commit had both checks on its own pull request.
-   Every other job reads `success`, the ones behind `public-api` included: each
-   of them opens its `if:` with `always()` and names the results it does
-   require, so a red `public-api` costs the release nothing, and a `skipped`
-   among them is a defect in `release.yml` rather than a red to look past. A
-   rehearsal is the mirror image, `Publish to PyPI` skipped and with it whatever
-   is guarded on its success, and `documented` skipped on its own account, its
-   guard being the push. `gh run rerun` does not reach a skipped job, `--failed`
-   rerunning `failure` and `--job` refusing a skip outright, so what recovers
-   one is doing by hand what it would have done: for `github-release` the script
-   "If something goes wrong" gives, for `published` a dispatch of
-   `pypi-install.yml`, which installs what the index serves at the time.
+   On a tag `Publish to TestPyPI` is `skipped`, its trigger being the
+   dispatch, and `public-api` is red as the public API step above says. `Run
+   the lint workflow / lint / Dependency review` and `Run the lint workflow
+   / lint / Sign-off` are `skipped` on every run, as they run only on a
+   `pull_request`; a tagged commit had both checks on its own pull request.
+   Every other job reads `success`, the ones behind `public-api` included:
+   each of them opens its `if:` with `always()` and names the results it
+   does require, so a red `public-api` costs the release nothing, and a
+   `skipped` among them is a defect in `release.yml` rather than a red to
+   look past. A rehearsal is the mirror image, `Publish to PyPI` skipped and
+   with it whatever is guarded on its success, and `documented` skipped on
+   its own account, its guard being the push. `gh run rerun` does not reach
+   a skipped job, `--failed` rerunning `failure` and `--job` refusing a skip
+   outright, so what recovers one is doing by hand what it would have done:
+   for `github-release` the script "If something goes wrong" gives, for
+   `published` a dispatch of `pypi-install.yml`, which installs what the
+   index serves at the time.
+
+   Read the Docs builds a tag on its first push only: a deleted and
+   re-pushed tag is rebuilt by hand from the builds page, and `documented`
+   stays red until it is.
 
 1. Install what was just published, in an environment of its own rather
    than one that may already hold it, and run something with it:
 
    ```shell
-   uv run --isolated --no-project --with bip39-slip39 \
-     --refresh-package bip39-slip39 \
-     python -c "import bip39_slip39; print(bip39_slip39.__version__)"
+   uv run --isolated --no-project --with "${dist:?}" \
+     --refresh-package "${dist:?}" \
+     python -c "${smoke:?}"
    ```
 
    from a directory that belongs to no checkout of this project: run
@@ -589,12 +610,12 @@ result.
    rather than its cache, which can miss a version just published.
 
    then check the attestations — the JSON API answers `null` for
-   `provenance` even where they exist; the
-   [simple API](https://pypi.org/simple/bip39-slip39/) (`Accept:
-   application/vnd.pypi.simple.v1+json`) carries the real link, under
+   `provenance` even where they exist; the simple API,
+   `https://pypi.org/simple/<dist>/` with `Accept:
+   application/vnd.pypi.simple.v1+json`, carries the real link, under
    `/integrity/<project>/<version>/<filename>/provenance`, and
    `pypi-attestations verify pypi <file> --repository
-   https://github.com/btclib-org/bip39-slip39` checks the
+   https://github.com/btclib-org/<repo>` checks the
    signature rather than merely its presence.
 
 1. Read the `published` job of the release run, which needs no dispatch:
@@ -604,13 +625,11 @@ result.
    before this one. It installs from PyPI on every image `os-ubuntu.yml`,
    `os-macos.yml` and `os-windows.yml` run between them, at the floor of
    the supported interpreter range and at its two newest interpreters,
-   each of those beside its free-threaded build, and imports it. From
-   then on it runs weekly on
-   its own, and a failure means the outside world moved, not this
-   repository — a new
-   runner image, an interpreter release, PyPI serving a file that does not
-   match its own hash — which is why it is a workflow of its own rather
-   than a job of this one.
+   each of those beside its free-threaded build, and runs its smoke test.
+   From then on it runs weekly on its own, and a failure means the outside
+   world moved, not this repository — a new runner image, an interpreter
+   release, PyPI serving a file that does not match its own hash — which
+   is why it is a workflow of its own rather than a job of this one.
 
 1. Check the GitHub release the previous step's workflow run created —
    **ask for the release itself, not for the run's conclusion**, a
@@ -638,14 +657,15 @@ result.
    replacing by hand if it ever fires.
 
 1. Read the bill of materials attached to the release,
-   `bip39_slip39-<version>.cdx.json`: a CycloneDX 1.6 document naming
-   the distribution, its licence, the two files with their SHA-256, and
-   one component per dependency the wheel's metadata declares. It is read
-   out of the built wheel and not out of `pyproject.toml`, which is what
-   lets a rehearsal describe the `.dev` version it actually built. A
-   component that is not a dependency `pyproject.toml` declares is one
-   this repository did not mean to ship. Attested with the distribution
-   files, so `gh attestation verify` below covers it too.
+   `<dist>-<version>.cdx.json` with the `-` of `dist` written `_`: a
+   CycloneDX 1.6 document naming the distribution, its licence, the two
+   files with their SHA-256, and one component per dependency the wheel's
+   metadata declares. It is read out of the built wheel and not out of
+   `pyproject.toml`, which is what lets a rehearsal describe the `.dev`
+   version it actually built. A component that is not a dependency
+   `pyproject.toml` declares is one this repository did not mean to ship.
+   Attested with the distribution files, so `gh attestation verify` below
+   covers it too.
 
 1. Verify the provenance of an asset, which is the release's own and not
    the PEP 740 attestations checked two steps up: those cover the copies
@@ -657,22 +677,21 @@ result.
    ```
 
    ```shell
-   gh release download "v${version:?}" --repo btclib-org/bip39-slip39 &&
-   wheel=bip39_slip39-${version:?}-py3-none-any.whl &&
-   repo=btclib-org/bip39-slip39 &&
-   id=$(gh api "repos/$repo" --jq .id) &&
+   signer=btclib-org/.github/.github/workflows/reusable-build.yml &&
+   id=$(gh api "repos/btclib-org/${repo:?}" --jq .id) &&
    cert='.[].verificationResult.signature.certificate' &&
-   workflows=btclib-org/.github/.github/workflows &&
-   signer=$workflows/reusable-build.yml &&
-   gh attestation verify "$wheel" --owner btclib-org \
-     --signer-workflow "$signer" --source-ref "refs/tags/v${version:?}" \
-     --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
-     grep -qx "${id:?}" &&
-   gh attestation verify "$wheel" --owner btclib-org \
-     --signer-workflow "$signer" --source-ref "refs/tags/v${version:?}" \
+   : "${dist:?}" &&
+   wheel="${dist//-/_}-${version:?}-py3-none-any.whl" &&
+   gh release download "v${version:?}" --repo "btclib-org/${repo:?}" &&
+   gh attestation verify "${wheel:?}" --owner btclib-org \
+     --signer-workflow "${signer:?}" \
+     --source-ref "refs/tags/v${version:?}" --format json \
+     --jq "${cert:?}.sourceRepositoryIdentifier" | grep -qx "${id:?}" &&
+   gh attestation verify "${wheel:?}" --owner btclib-org \
+     --signer-workflow "${signer:?}" \
+     --source-ref "refs/tags/v${version:?}" --format json \
      --bundle "v${version:?}.intoto.jsonl" \
-     --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
-     grep -qx "${id:?}"
+     --jq "${cert:?}.sourceRepositoryIdentifier" | grep -qx "${id:?}"
    ```
 
    the first asks the attestations API for the signed statement, the
@@ -682,35 +701,26 @@ result.
    given, so the sdist and the bill of materials verify against the same
    bundle.
 
-   `--signer-workflow` names the workflow that signed, and both forms
-   carry it. The signing runs inside `btclib-org/.github`'s
-   `reusable-build.yml`, which `release.yml`'s `build` job calls, so
-   that is the workflow the certificate names. `--owner` names the
-   organization, and the check of `sourceRepositoryIdentifier` names this
-   repository by its id, which a rename keeps: `--repo` compares the
-   current name, and refuses every release signed before a rename. The
-   exit code is `0` only where a verified attestation names this
-   repository. `--source-ref` names the tag, which is what stops a
-   rehearsal dispatched from a branch from verifying as this release. A
-   release made before this repository called `reusable-build.yml` was
-   signed by `reusable-attest.yml`, and verifies with that workflow as
-   the signer and the same `--source-ref`. For a signer that is a reusable
-   workflow, `gh attestation verify --help` requires `--signer-workflow` or
-   `--signer-repo`. `--owner` alone does not pin the signer: without
-   either flag, both forms verify the release.
-   Neither form is offline on its own — the
-   Sigstore trusted root comes over the network unless
-   `gh attestation trusted-root > trusted_root.jsonl` fetched it earlier
-   and `--custom-trusted-root` points at it.
+   Each command is section 12's verifier. Section 12 of the organization
+   standard says what its exit code means, why the signer is named without a
+   ref, why `--source-ref` names the tag, why the repository is compared by
+   its id, and which workflow signed a release made before this repository
+   called `reusable-build.yml`. For a signer that is a reusable workflow,
+   `gh attestation verify --help` requires `--signer-workflow` or
+   `--signer-repo`. `--owner` alone does not pin the signer: without either
+   flag, both forms verify the release. Neither form is offline on its own —
+   the Sigstore trusted root comes over the network unless `gh attestation
+   trusted-root > trusted_root.jsonl` fetched it earlier and
+   `--custom-trusted-root` points at it.
 
-1. Review the bestpractices.dev answers. Refresh the saved answers with
-   btclib-org/.github's `.github/scripts/bestpractices.py`, and run its
-   `--stale` and `--differ` to find what to read (section 10 of its README).
-   Read <https://www.bestpractices.dev/projects/15087> against the release
-   and update every answer it changed: the release notes and the
-   vulnerabilities it fixed, signed tags and assets, attestation names.
-   Then refresh the saved answers again. An advisory this repository
-   publishes is owed the same review.
+1. **Review the bestpractices.dev answers.** Refresh the saved answers
+   in btclib-org/.github with its `.github/scripts/bestpractices.py`,
+   and use its `--stale` and `--differ` to find what to read (section 10
+   of its README). Read `https://www.bestpractices.dev/projects/<bp>`
+   against the release, and update every answer it changed: the release
+   notes and the vulnerabilities it fixed, signed tags and assets,
+   attestation names. Then refresh the saved answers again. An advisory
+   this repository publishes is owed the same review.
 
 1. Open the next cycle: set a generic next version without the day (e.g.
    after 2026.8.6, use 2026.9) in `pyproject.toml`, through a pull
@@ -725,11 +735,13 @@ result.
    uv lock
    ```
 
-   No section is opened: the next release's pull request writes it. What
-   stays here is the version, which cannot move earlier:
-   `version-check` compares the tag against what `pyproject.toml`
-   declares, so a tree already bumped would offer it the next cycle's
-   month instead of the version being released.
+   No section is opened here: the next release's pull request writes its
+   own. The version cannot move earlier: `version-check` compares the tag
+   against what `pyproject.toml` declares, so a tree already bumped would
+   offer it the next cycle's month instead of the version being released.
+
+A dependent adapts after the release, as section 12 of the organization
+standard says.
 
 ## Rebuild a release from its tag
 
@@ -754,23 +766,22 @@ command, and both scripts below read the variable out of their own
 environment and refuse to run without it.
 
 ```shell
-git worktree add --detach /tmp/bip39-slip39-rebuild "v${version:?}" &&
-cd /tmp/bip39-slip39-rebuild &&
+git worktree add --detach "/tmp/${repo:?}-rebuild" "v${version:?}" &&
+cd "/tmp/${repo:?}-rebuild" &&
 python=$(grep -Ev '^[[:space:]]*(#|$)' .python-version) &&
 export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct) &&
-repo=btclib-org/bip39-slip39 &&
-id=$(gh api "repos/$repo" --jq .id) &&
+signer=btclib-org/.github/.github/workflows/reusable-build.yml &&
+id=$(gh api "repos/btclib-org/${repo:?}" --jq .id) &&
 cert='.[].verificationResult.signature.certificate' &&
-workflows=btclib-org/.github/.github/workflows &&
-signer=$workflows/reusable-build.yml &&
-tag="v${version:?}" &&
+: "${dist:?}" &&
+stem="${dist//-/_}-${version:?}" &&
 wheels=$(mktemp -d) &&
-gh release download "v${version:?}" --repo "$repo" --dir "$wheels" \
-  --pattern '*.whl' &&
+gh release download "v${version:?}" --repo "btclib-org/${repo:?}" \
+  --dir "$wheels" --pattern '*.whl' &&
 gh attestation verify "$wheels"/*.whl --owner btclib-org \
-  --signer-workflow "$signer" --source-ref "refs/tags/$tag" \
-  --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
-  grep -qx "${id:?}" &&
+  --signer-workflow "${signer:?}" \
+  --source-ref "refs/tags/v${version:?}" --format json \
+  --jq "${cert:?}.sourceRepositoryIdentifier" | grep -qx "${id:?}" &&
 uv_version=$(unzip -p "$wheels"/*.whl '*.dist-info/WHEEL' |
   sed -n 's/^Generator: uv //p') &&
 [[ $uv_version =~ ^[0-9]+([.][0-9]+)*$ ]] &&
@@ -783,25 +794,22 @@ git clone --depth 1 --filter=blob:none --sparse \
 git -C "$served" sparse-checkout set .github/scripts &&
 uv run --no-project --python "$python" \
   "$served"/.github/scripts/generate_sbom.py dist/ sbom/ &&
-gh attestation verify "dist/bip39_slip39-${version:?}.tar.gz" \
-  --owner btclib-org \
-  --signer-workflow "$signer" --source-ref "refs/tags/$tag" \
-  --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
-  grep -qx "${id:?}" &&
-gh attestation verify "dist/bip39_slip39-${version:?}-py3-none-any.whl" \
-  --owner btclib-org \
-  --signer-workflow "$signer" --source-ref "refs/tags/$tag" \
-  --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
-  grep -qx "${id:?}" &&
-gh attestation verify "sbom/bip39_slip39-${version:?}.cdx.json" \
-  --owner btclib-org \
-  --signer-workflow "$signer" --source-ref "refs/tags/$tag" \
-  --format json --jq "${cert:?}.sourceRepositoryIdentifier" |
-  grep -qx "${id:?}"
+gh attestation verify "dist/${stem:?}.tar.gz" --owner btclib-org \
+  --signer-workflow "${signer:?}" \
+  --source-ref "refs/tags/v${version:?}" --format json \
+  --jq "${cert:?}.sourceRepositoryIdentifier" | grep -qx "${id:?}" &&
+gh attestation verify "dist/${stem:?}-py3-none-any.whl" --owner btclib-org \
+  --signer-workflow "${signer:?}" \
+  --source-ref "refs/tags/v${version:?}" --format json \
+  --jq "${cert:?}.sourceRepositoryIdentifier" | grep -qx "${id:?}" &&
+gh attestation verify "sbom/${stem:?}.cdx.json" --owner btclib-org \
+  --signer-workflow "${signer:?}" \
+  --source-ref "refs/tags/v${version:?}" --format json \
+  --jq "${cert:?}.sourceRepositoryIdentifier" | grep -qx "${id:?}"
 ```
 
-A release made before this repository called `reusable-build.yml` names
-`reusable-attest.yml` as the signer instead, with the same `--source-ref`.
+Section 12 of the organization standard names the signer of a release
+made before this repository called `reusable-build.yml`.
 
 `python` is the interpreter the tag's own `.python-version` pins, its
 comment and blank lines dropped, and not the one `main` pins:
@@ -833,7 +841,7 @@ so the third command fails wherever the first two do.
 the tag, so once `main` changes what it writes the third command fails
 with the files unchanged.
 
-Three things bound that guarantee, and each is worth knowing before
+These things bound that guarantee, and each is worth knowing before
 reading a mismatch as tampering:
 
 - **the build reads the working directory, not git.** `uv_build` walks
@@ -947,7 +955,7 @@ reading a mismatch as tampering:
   gh run download "${run:?}" -n sbom -D sbom &&
   gh run download "${run:?}" -n attestation -D attestation &&
   shasum -a 256 dist/* &&
-  curl -s "https://pypi.org/pypi/bip39-slip39/${version:?}/json" \
+  curl -s "https://pypi.org/pypi/${dist:?}/${version:?}/json" \
     | python3 -c 'import json,sys; d=json.load(sys.stdin)
   [print(u["filename"], u["digests"]["sha256"]) for u in d["urls"]]' &&
 
@@ -967,3 +975,20 @@ reading a mismatch as tampering:
   establish, confirming the files a human is about to attach are the
   exact bytes the token exchange already accepted rather than a fresh
   local build that merely claims to be.
+
+## This repository in particular
+
+Everything above is the same file in every repository that publishes;
+everything below is this one's, and the comparison stops at this heading.
+
+The block the steps above read:
+
+```shell
+repo=bip39-slip39
+dist=bip39-slip39
+test_dist=bip39-slip39
+pkg=bip39_slip39
+rtd=bip39-slip39
+bp=15087
+smoke='import bip39_slip39; print(bip39_slip39.__version__)'
+```
