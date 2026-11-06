@@ -655,7 +655,7 @@ def test_the_hook_refuses_a_run_that_cannot_see_its_floor() -> None:
 
     assert str(_INIPATH) in str(raised.value)
     # no --cov-config is offered: in a checkout, from anywhere but the
-    # rootdir, it leaves `.github/scripts` unmeasured, which
+    # tree, it leaves `.github/scripts` unmeasured, which
     # `sources_out_of_reach` refuses
     assert str(raised.value).endswith(f"Run from {_ROOT}.")
     # the raise is ahead of the write, so the copy pytest-cov reads is
@@ -776,10 +776,10 @@ def _laid_out(root: Path) -> Path:
     return root
 
 
-def test_every_source_directory_is_in_reach_from_the_rootdir(
+def test_every_source_directory_is_in_reach_from_the_tree(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """From the rootdir, where the gate runs, the guard is silent."""
+    """From the tree, where the gate runs, the guard is silent."""
     root = _laid_out(tmp_path)
     monkeypatch.chdir(root)
     measuring = _cov_config(str(root / "pyproject.toml"), _SOURCE)
