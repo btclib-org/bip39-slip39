@@ -97,6 +97,9 @@ test = [
     # itself imports neither, and tests/imports_test.py is what says so
     "btclib>=2026.10.24",
     "ecc>=2026.10.23",
+    # tests/docs_conf_test.py executes docs/source/conf.py, which imports
+    # it; the marker and the bound are `docs`'s, below
+    "sphinx>=9.1.0; python_full_version >= '3.12'",
     # `typing.override` is 3.12's and the floor is 3.11, so a test
     # overriding a method takes it from the backport; 4.4 is the release
     # that adds it
