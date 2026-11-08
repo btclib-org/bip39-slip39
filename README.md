@@ -3,7 +3,7 @@
 The mnemonic schemes of bitcoin wallets -- BIP39, SLIP-0039 and
 Electrum's -- from the entropy to the seed, in typed Python.
 
-<!-- Section 2 of btclib-org/.github's README.md says which badges sit here. -->
+<!-- Section 2 of the organization's standard says which badges sit here. -->
 [![PyPI version](https://img.shields.io/pypi/v/bip39-slip39.svg?logo=pypi)](https://pypi.org/project/bip39-slip39/)
 [![GitHub release](https://img.shields.io/github/v/release/btclib-org/bip39-slip39.svg)](https://github.com/btclib-org/bip39-slip39/releases)
 [![development status](https://img.shields.io/pypi/status/bip39-slip39.svg)](https://pypi.org/project/bip39-slip39/)
@@ -166,7 +166,7 @@ what it intends to do, and what it deliberately does not, is its
 
 ## Status
 
-<!-- Section 2 of btclib-org/.github's README.md says which badges sit here. -->
+<!-- Section 2 of the organization's standard says which badges sit here. -->
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/btclib-org/bip39-slip39/main.svg)](https://results.pre-commit.ci/latest/github/btclib-org/bip39-slip39/main)
 [![lint workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/lint.yml?query=branch%3Amain)
 [![test workflow status](https://github.com/btclib-org/bip39-slip39/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/btclib-org/bip39-slip39/actions/workflows/test.yml?query=branch%3Amain)
