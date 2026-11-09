@@ -11,7 +11,7 @@ name: api-break
 # The trigger, its types and the concurrency group are here, as section 10 of
 # the organization's standard has them, with the job's `permissions:` and the
 # `package` input. The job, the script and the label's logic are the callee's,
-# called at a tagged commit (section 10 of btclib-org/.github's README.md). No
+# called at a tagged commit (section 10 of the organization's standard). No
 # `pull_request_target`: section 12 of the organization's standard says why a
 # fork's pull request is not labelled (`OSPS-BR-01.01`).
 
