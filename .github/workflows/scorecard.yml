@@ -9,7 +9,7 @@ name: scorecard
 #
 # The action, its inputs and the SARIF upload are btclib-org/.github's
 # reusable-scorecard.yml, called at a tagged commit (section 10 of
-# btclib-org/.github's README.md)
+# the organization's standard)
 
 # the action's own triggers and not section 10's: ossf/scorecard-action
 # supports push and schedule on the default branch and calls
