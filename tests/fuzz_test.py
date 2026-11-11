@@ -191,13 +191,13 @@ def test_a_lone_surrogate_is_refused_within_the_contract(
 ) -> None:
     """A lone surrogate is a `Bip39Slip39ValueError`, not a codec error."""
     for decoder in DECODERS.values():
-        _read(decoder, sentence + " " + text)
+        _read(decoder, f"{sentence} {text}")
     with contextlib.suppress(*CONTRACT):
-        bip39.seed_from_mnemonic(sentence + " " + text, "", verify_checksum=False)
+        bip39.seed_from_mnemonic(f"{sentence} {text}", "", verify_checksum=False)
     with contextlib.suppress(*CONTRACT):
         bip39.seed_from_mnemonic(sentence, text, verify_checksum=False)
     with contextlib.suppress(*CONTRACT):
-        electrum.seed_from_mnemonic(sentence + " " + text, text)
+        electrum.seed_from_mnemonic(f"{sentence} {text}", text)
     assert isinstance(dispatch.all_seed_types_from_mnemonic(sentence + text), list)
 
 

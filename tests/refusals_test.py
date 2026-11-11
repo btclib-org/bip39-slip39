@@ -452,8 +452,8 @@ _LONE_SURROGATES: list[tuple[str, Callable[[], Any]]] = [
         "mnemonic",
         lambda: bip39.seed_from_mnemonic(_ABOUT + _LONE, "", verify_checksum=False),
     ),
-    ("passphrase", lambda: bip39.seed_from_mnemonic(_ABOUT, "pw" + _LONE)),
-    ("passphrase", lambda: electrum.seed_from_mnemonic(_ELECTRUM, "pw" + _LONE)),
+    ("passphrase", lambda: bip39.seed_from_mnemonic(_ABOUT, f"pw{_LONE}")),
+    ("passphrase", lambda: electrum.seed_from_mnemonic(_ELECTRUM, f"pw{_LONE}")),
 ]
 
 

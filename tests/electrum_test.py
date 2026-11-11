@@ -1065,7 +1065,7 @@ def test_is_bip39_mnemonic() -> None:
         "btclib " * 11 + "btclib", ELECTRUM_WORDLISTS._record("en"), "en"
     )
     assert not electrum._is_bip39_mnemonic(
-        ENGLISH + " abandon", ELECTRUM_WORDLISTS._record("en"), "en"
+        f"{ENGLISH} abandon", ELECTRUM_WORDLISTS._record("en"), "en"
     )
 
     # electrum's portuguese, 1626 words read as though eleven bits each.

@@ -60,6 +60,7 @@ import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from hashlib import pbkdf2_hmac, sha256
+from itertools import accumulate
 
 from bip39_slip39._utils import Octets, assert_type, bytes_from_octets, is_integer
 from bip39_slip39.exceptions import (
@@ -165,10 +166,13 @@ def _mul_tables() -> tuple[bytes, ...]:
     constant at once. Each is the one before it multiplied by 3.
     """
     times_3 = b"\x00" + bytes(_EXP[(_LOG[a] + 1) % 255] for a in range(1, 256))
-    tables = [bytes(range(256))]
-    for _ in range(254):
-        tables.append(tables[-1].translate(times_3))
-    return tuple(tables)
+    return tuple(
+        accumulate(
+            range(254),
+            lambda table, _: table.translate(times_3),
+            initial=bytes(range(256)),
+        )
+    )
 
 
 _MUL_TABLES = _mul_tables()
