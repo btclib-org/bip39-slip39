@@ -19,7 +19,8 @@ ungated, and this file is the second of the two: such a run is refused
 A guard on the file set sits beside it. Pointed at its configuration
 with `--cov-config`, a run from `tests/` still reads the directories
 `source` names against `tests/`, and `.github/scripts` is not one there,
-so such a run is refused as well.
+so such a run is refused as well. So is a run from another checkout,
+whose `.github/scripts` coverage would measure in place of this tree's.
 """
 
 import os
@@ -284,13 +285,22 @@ def sources_out_of_reach(
 
     coverage takes an entry for a directory where it is one from the
     directory the run started in, and for a module name otherwise. An
-    entry that is a directory under `tree`, is none from here, and
-    cannot be a module name is measured by neither reading: from
-    `tests/`, `.github/scripts` is that entry, and the floor still
-    passes without it. An entry that is a module name, `tests` from
-    `tests/` among them, is measured as one. In an sdist, which ships no
-    `.github`, `.github/scripts` is no directory under `tree`, so a run
-    there is not refused.
+    entry that is a directory under `tree` can be left unmeasured two
+    ways.
+
+    Where the entry is a directory from here, coverage measures that
+    directory, which is the one under `tree` only where both are the
+    same: from another checkout, `.github/scripts` and `tests` are that
+    checkout's, and the floor passes where they hold no Python file.
+    `samefile` asks it of the directories and not of their paths, which
+    differ where a symlink or a `..` spells one of them.
+
+    Where the entry is none from here and cannot be a module name, it is
+    measured by neither reading, and the floor still passes without it:
+    from `tests/`, `.github/scripts` is that entry. An entry that is a
+    module name, `tests` from `tests/` among them, is measured as one. In
+    an sdist, which ships no `.github`, `.github/scripts` is no directory
+    under `tree`, so a run there is not refused.
     """
     if cov_config is None or not held_to_a_floor(asked, asked_for_help, collect_only):
         return []
@@ -298,8 +308,11 @@ def sources_out_of_reach(
         entry
         for entry in cov_config.source or []
         if (tree / entry).is_dir()
-        and not Path(entry).is_dir()
-        and not all(part.isidentifier() for part in entry.split("."))
+        and (
+            not Path(entry).samefile(tree / entry)
+            if Path(entry).is_dir()
+            else not all(part.isidentifier() for part in entry.split("."))
+        )
     ]
 
 
@@ -343,8 +356,8 @@ def pytest_configure(config: pytest.Config) -> None:
         raise pytest.UsageError(
             f"coverage would not measure {', '.join(unmeasured)}: it reads"
             " a source directory against the directory the run started in,"
-            f" {Path.cwd()}, and no such directory is there. Run from"
-            f" {TREE}."
+            f" {Path.cwd()}, and from there that name is not this tree's"
+            f" directory. Run from {TREE}."
         )
     namespace = config.known_args_namespace
     namespace.cov_fail_under = coverage_fail_under(

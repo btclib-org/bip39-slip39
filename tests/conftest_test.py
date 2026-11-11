@@ -849,6 +849,40 @@ def test_a_tree_without_the_directory_is_not_refused(
     assert sources_out_of_reach(measuring, tmp_path, None, False, False) == []
 
 
+@pytest.mark.parametrize("with_tests", [False, True], ids=["scripts", "both"])
+def test_another_checkout_s_directories_are_not_the_tree_s(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, with_tests: bool
+) -> None:
+    """From another checkout, coverage would measure that checkout's.
+
+    There each entry is a directory, so coverage measures it, and the
+    floor passes without the tree's own. Each entry the other checkout
+    holds is refused.
+    """
+    root = _laid_out(tmp_path / "tree")
+    elsewhere = tmp_path / "elsewhere"
+    for directory in _DIRECTORIES:
+        (elsewhere / directory).mkdir(parents=True)
+    if with_tests:
+        (elsewhere / "tests").mkdir()
+    monkeypatch.chdir(elsewhere)
+    measuring = _cov_config(str(root / "pyproject.toml"), _SOURCE)
+    expected = ["tests", *_DIRECTORIES] if with_tests else _DIRECTORIES
+    unmeasured = sources_out_of_reach(measuring, root, None, False, False)
+    assert sorted(unmeasured) == sorted(expected)
+
+
+def test_the_tree_spelled_another_way_is_still_the_tree(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The directories are compared, not the paths that name them."""
+    root = _laid_out(tmp_path)
+    monkeypatch.chdir(root)
+    measuring = _cov_config(str(root / "pyproject.toml"), _SOURCE)
+    spelled = root / "tests" / ".."
+    assert sources_out_of_reach(measuring, spelled, None, False, False) == []
+
+
 @pytest.mark.parametrize(
     "asked, asked_for_help, collect_only",
     [(0, False, False), (None, True, False), (None, False, True)],
