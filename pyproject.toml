@@ -298,9 +298,10 @@ ignore-regex = '`[^`]*`'
 # deep for typos. The hook runs with --write-changes, so a word it
 # "corrects" in a vector is a rewrite of the vector, not a report.
 #
-# .bestpractices.json is not in [tool.codespell]'s skip: it holds the
-# bestpractices.dev answers of record, which --write-changes would
-# rewrite, printing nothing
+# .bestpractices.json is not in [tool.codespell]'s skip, and codespell
+# flags nothing in it. typos flags a word there that is no typo, `CPY`
+# of the rule id CPY001, and the file is the bestpractices.dev answers of
+# record, not text to correct
 extend-exclude = [
     "**/_data/*.json",
     "**/_data/*.txt",
