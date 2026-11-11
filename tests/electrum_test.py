@@ -20,7 +20,7 @@ Some of electrum's values are keys rather than seeds: a root extended
 private key, a pre-2.0 master public key. The package stops at the seed
 and the master private key, so the step from those to a published key is
 taken here, by the few lines of BIP32 and the one point multiplication it
-is, over `btclib` and `ecc` -- test dependencies, and never ones of
+is, over `base58_bech32` and `ecc` -- test dependencies, and never ones of
 the package.
 """
 
@@ -32,7 +32,7 @@ from itertools import pairwise
 from unicodedata import combining, normalize
 
 import pytest
-from btclib import base58
+from base58_bech32.base58 import b58decode_check
 from ecc.curves.curve import mult, secp256k1
 from ecc.curves.sec_point import bytes_from_point
 
@@ -55,7 +55,7 @@ def _xprv_key(xprv: str) -> tuple[int, int, bytes, int]:
     fingerprint are left out, being what a wallet names the key with
     rather than what the seed decides.
     """
-    payload = base58.decode(xprv, 78)
+    payload = b58decode_check(xprv, out_size=78)
     assert payload[45] == 0
     return (
         payload[4],

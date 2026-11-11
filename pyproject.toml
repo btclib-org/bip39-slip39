@@ -91,11 +91,12 @@ harness = [
 test = [
     { include-group = "harness" },
     # the originals of the coercions src/bip39_slip39/_utils.py copies,
-    # which tests/utils_test.py runs beside the copies, and the Base58 and
-    # the curve tests/electrum_test.py reads electrum's published keys
+    # which tests/utils_test.py runs beside the copies, and the Base58Check
+    # and the curve tests/electrum_test.py reads electrum's published keys
     # with. A test group's and never a runtime dependency: the package
-    # itself imports neither, and tests/imports_test.py is what says so
-    "btclib>=2026.10.24",
+    # itself imports none of them, and tests/imports_test.py is what says so
+    "base58-bech32>=2026.11.7",
+    "btclib>=2026.11.10",
     "ecc>=2026.10.23",
     # tests/docs_conf_test.py executes docs/source/conf.py, which imports
     # it; the marker and the bound are `docs`'s, below
