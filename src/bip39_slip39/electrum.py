@@ -210,19 +210,19 @@ def _normalize(text: str) -> str:
     if not text.isascii():
         text = "".join(char for char in text if not unicodedata.combining(char))
     text = " ".join(text.split())
-    if text.isascii():
-        return text
     # the collapse above leaves no leading or trailing whitespace, so the
     # neighbour lookups cannot run off either end: at i == 0 and at
-    # i == len - 1 the character is not whitespace, and the "and" stops
+    # i == len - 1 the character is not whitespace, and the "or" stops
     # before text[i - 1] or text[i + 1] is asked for
-    return "".join(
-        text[i]
-        for i in range(len(text))
-        if not (
-            text[i] in string.whitespace
-            and _is_cjk(text[i - 1])
-            and _is_cjk(text[i + 1])
+    return (
+        text
+        if text.isascii()
+        else "".join(
+            text[i]
+            for i in range(len(text))
+            if text[i] not in string.whitespace
+            or not _is_cjk(text[i - 1])
+            or not _is_cjk(text[i + 1])
         )
     )
 

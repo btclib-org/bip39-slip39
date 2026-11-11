@@ -35,7 +35,8 @@ import pytest
 
 from bip39_slip39 import slip39
 from bip39_slip39.exceptions import Bip39Slip39Exception
-from tests.fuzz_test import DECODERS
+
+from .fuzz_test import DECODERS
 
 _FUZZ = Path(__file__).parent.parent / "fuzz"
 _CORPUS = _FUZZ / "corpus"

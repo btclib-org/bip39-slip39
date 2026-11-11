@@ -43,7 +43,8 @@ from bip39_slip39.exceptions import (
     Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import BIP39_LANGUAGE_FILES, WORDLISTS
-from tests import load, vector_id
+
+from . import load, vector_id
 
 
 def _xprv_key(xprv: str) -> tuple[int, int, bytes, int]:
@@ -1064,7 +1065,7 @@ def test_is_bip39_mnemonic() -> None:
         "btclib " * 11 + "btclib", ELECTRUM_WORDLISTS._record("en"), "en"
     )
     assert not electrum._is_bip39_mnemonic(
-        ENGLISH + " abandon", ELECTRUM_WORDLISTS._record("en"), "en"
+        f"{ENGLISH} abandon", ELECTRUM_WORDLISTS._record("en"), "en"
     )
 
     # electrum's portuguese, 1626 words read as though eleven bits each.

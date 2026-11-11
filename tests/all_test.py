@@ -28,7 +28,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 import bip39_slip39
-from tests import module_names
+
+from . import module_names
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator

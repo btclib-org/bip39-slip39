@@ -32,8 +32,9 @@ from bip39_slip39.exceptions import (
     Bip39Slip39TypeError,
     Bip39Slip39ValueError,
 )
-from tests import load
-from tests.secret_free import assert_secret_free
+
+from . import load
+from .secret_free import assert_secret_free
 
 _ABOUT = "abandon " * 11 + "about"
 _ABOUT_WORDS = _ABOUT.split()
@@ -451,8 +452,8 @@ _LONE_SURROGATES: list[tuple[str, Callable[[], Any]]] = [
         "mnemonic",
         lambda: bip39.seed_from_mnemonic(_ABOUT + _LONE, "", verify_checksum=False),
     ),
-    ("passphrase", lambda: bip39.seed_from_mnemonic(_ABOUT, "pw" + _LONE)),
-    ("passphrase", lambda: electrum.seed_from_mnemonic(_ELECTRUM, "pw" + _LONE)),
+    ("passphrase", lambda: bip39.seed_from_mnemonic(_ABOUT, f"pw{_LONE}")),
+    ("passphrase", lambda: electrum.seed_from_mnemonic(_ELECTRUM, f"pw{_LONE}")),
 ]
 
 

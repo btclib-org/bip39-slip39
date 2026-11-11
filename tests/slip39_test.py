@@ -21,8 +21,9 @@ from bip39_slip39.exceptions import (
     Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import WORDLISTS
-from tests import load, vector_id
-from tests.secret_free import assert_secret_free
+
+from . import load, vector_id
+from .secret_free import assert_secret_free
 
 # the passphrase SLIP-0039 uses for every valid set of mnemonics in its
 # own vectors, and the one value that makes those 15 answers

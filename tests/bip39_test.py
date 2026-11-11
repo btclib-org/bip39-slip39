@@ -31,8 +31,9 @@ from bip39_slip39.mnemonic import (
     data_file,
     normalize_mnemonic,
 )
-from tests import load, vector_id
-from tests.mnemonic_test import fullwidth
+
+from . import load, vector_id
+from .mnemonic_test import fullwidth
 
 
 def candidates(mnemonic: str) -> list[str]:
