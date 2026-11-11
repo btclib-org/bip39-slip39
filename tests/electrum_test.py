@@ -43,7 +43,8 @@ from bip39_slip39.exceptions import (
     Bip39Slip39ValueError,
 )
 from bip39_slip39.mnemonic import BIP39_LANGUAGE_FILES, WORDLISTS
-from tests import load, vector_id
+
+from . import load, vector_id
 
 
 def _xprv_key(xprv: str) -> tuple[int, int, bytes, int]:

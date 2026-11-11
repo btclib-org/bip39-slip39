@@ -30,7 +30,7 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any
 
-from tests.all_test import library_modules
+from .all_test import library_modules
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

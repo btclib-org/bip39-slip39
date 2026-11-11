@@ -26,7 +26,8 @@ import pytest
 
 from bip39_slip39 import bip39, dispatch, electrum, slip39
 from bip39_slip39.exceptions import Bip39Slip39ValueError
-from tests import load, vector_id
+
+from . import load, vector_id
 
 # every word in the pre-2.0 list, so electrum reads it as "old" although
 # its HMAC also carries the "01" prefix of a "standard" seed. The

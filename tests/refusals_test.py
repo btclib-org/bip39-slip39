@@ -32,8 +32,9 @@ from bip39_slip39.exceptions import (
     Bip39Slip39TypeError,
     Bip39Slip39ValueError,
 )
-from tests import load
-from tests.secret_free import assert_secret_free
+
+from . import load
+from .secret_free import assert_secret_free
 
 _ABOUT = "abandon " * 11 + "about"
 _ABOUT_WORDS = _ABOUT.split()
