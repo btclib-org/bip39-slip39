@@ -217,10 +217,12 @@ package = ["src/bip39_slip39"]
 # tracked files the sdist is meant not to carry, beyond what
 # [tool.uv.build-backend] source-exclude takes out, which check-sdist
 # reads for the uv backend: the workspaces of an editor and of an agent,
-# the file git reads, COPYRIGHT, which `project.license-files` does not
-# name, and ClusterFuzzLite's configuration with the harnesses it builds,
-# which fuzz.yml reads and nothing installed from the sdist runs
+# the file git reads, the bestpractices.dev answers, COPYRIGHT, which
+# `project.license-files` does not name, and ClusterFuzzLite's
+# configuration with the harnesses it builds, which fuzz.yml reads and
+# nothing installed from the sdist runs
 git-only = [
+    ".bestpractices.json",
     ".claude/",
     ".clusterfuzzlite/",
     ".gitattributes",
@@ -294,7 +296,13 @@ ignore-regex = '`[^`]*`'
 # again rather than shared because the glob syntax differs:
 # "*/_data/*.json" matches at any depth for codespell and one directory
 # deep for typos. The hook runs with --write-changes, so a word it
-# "corrects" in a vector is a rewrite of the vector, not a report
+# "corrects" in a vector is a rewrite of the vector, not a report.
+#
+# .bestpractices.json is not in [tool.codespell]'s skip, and codespell
+# flags nothing in it. typos flags a word there that is no typo, `CPY`
+# of the rule id CPY001, which it leaves unflagged in this file only
+# because it skips any file named pyproject.toml. .bestpractices.json is
+# the bestpractices.dev answers of record, not text to correct
 extend-exclude = [
     "**/_data/*.json",
     "**/_data/*.txt",
@@ -302,6 +310,7 @@ extend-exclude = [
     ".secrets.baseline",
     "uv.lock",
     "fuzz/corpus/**",
+    ".bestpractices.json",
 ]
 
 [tool.typos.default]
