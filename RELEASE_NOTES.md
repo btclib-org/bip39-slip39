@@ -9,6 +9,30 @@ number says when a release was cut, and promises nothing about
 compatibility, so a breaking change is announced in this file — read it
 before upgrading, rather than a digit.
 
+## v2026.11.13
+
+- **`dispatch.seed_type_from_mnemonic` and
+  `dispatch.all_seed_types_from_mnemonic` default `lang` to `None`, and try
+  every BIP39 word-list that holds the words** (#253), where v2026.11.12 tried
+  English alone. An Italian mnemonic answers `"bip39"` where it answered
+  `""`; `lang=""` tries every list where it tried none; `lang=None` is
+  accepted where it was refused with `Bip39Slip39TypeError`. A caller that
+  relied on the English default passes `lang="en"`. Against v2026.11.12,
+  griffe reports these two defaults, and `api_gaps.py` the annotation of the
+  same `lang`, `str` to `str | None`; neither reports anything else.
+- **`bip39.langs_from_mnemonic` is new**: it returns every BIP39 language whose
+  word-list holds each word of the sentence.
+- **`bip39.seed_from_mnemonic` seeds a sentence valid in two word-lists with a
+  different entropy in each** (#257), where v2026.11.12 refused it as
+  ambiguous with `verify_checksum=True`. The seed stretches the sentence, so it
+  is the same whichever list is meant. A caller that relied on the refusal
+  gets a seed instead.
+- **The attestations name `reusable-build.yml` at btclib-org/.github's commit
+  `cb5a79443399980ba717df2dea23dbedf6bdbc3a`, its tag v2026.11.12**, where
+  v2026.11.12's named `305b1840909ffd49d653d20cc6f5f9e1ab6a3382`. The command
+  `SECURITY.md` gives names the signer without a ref and verifies both. A check
+  that pins `--signer-workflow` to the old commit fails: drop the ref.
+
 ## v2026.11.12
 
 - **Nothing in the code to act on.** The code under `src/` takes Sourcery's

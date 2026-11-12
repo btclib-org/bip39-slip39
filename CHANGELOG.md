@@ -19,6 +19,52 @@ behind them.
 
 [std]: https://github.com/btclib-org/.github
 
+## v2026.11.13
+
+### The dispatch asks every BIP39 word-list when no language is named
+
+`seed_type_from_mnemonic` and `all_seed_types_from_mnemonic` take `lang=None`
+by default, and with no `lang`, or an empty one, try every BIP39 word-list that
+holds the words; `bip39.langs_from_mnemonic` names those lists (closes #253).
+
+### `bip39.seed_from_mnemonic` seeds a sentence valid in two word-lists
+
+A sentence valid in two lists with a different entropy in each is seeded,
+where it was refused as ambiguous (closes #257).
+
+### `check_vendored_vectors.py` takes only an issue titled exactly as searched
+
+(issue btclib-org/.github#2152).
+
+### Sourcery turns `dont-import-test-modules` off
+
+Beside ruff's relative-imports rule; `sourcery.yml` takes the shared
+concurrency comment (issue btclib-org/.github#2162, issue
+btclib-org/.github#2049, issue btclib-org/.github#2190, #265).
+
+### The bestpractices.dev answers follow v2026.11.12
+
+`osps_qa_07_01` cites `main-self-merge` by id (closes #218, closes #247, issue
+btclib-org/.github#2214).
+
+### The contributor documents, fuzz.yml and the docs build take the shared text
+
+`RELEASING.md`, `CONTRIBUTING.md`, `fuzz.yml` and `docs/source/conf.py`
+(issue btclib-org/.github#1927, issue btclib-org/.github#2015, issue
+btclib-org/.github#2166, issue btclib-org/.github#2205).
+
+### The calls into btclib-org/.github are pinned to v2026.11.12
+
+(#255).
+
+### coverage moves
+
+(#256).
+
+### Open 2026.12 after v2026.11.12
+
+(#250).
+
 ## v2026.11.12
 
 ### The code under `src/` takes Sourcery's rewrites
