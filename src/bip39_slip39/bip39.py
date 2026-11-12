@@ -39,8 +39,8 @@ things follow from a mnemonic being more than English.
   reference implementation joins it. NFKD maps that space to a plain one,
   so the seed is the same either way; the sentence is not
 - the language need not be given: `lang_from_mnemonic` reads it off the
-  words, which is what makes `seed_from_mnemonic` work for a mnemonic
-  that is not English
+  words, and `seed_from_mnemonic` accepts a sentence valid in any
+  word-list that holds them
 
 Translating a mnemonic from one word-list to another is *not* here, and
 BIP39 says why in its own Shortcomings section: the seed is stretched
@@ -278,10 +278,7 @@ def is_valid_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> bool:
     That is where this differs from `entropy_from_mnemonic`, which
     refuses a sentence valid in two languages with a different entropy
     in each as ambiguous: such a sentence is a valid mnemonic, and the
-    ambiguity is only about which entropy it spells. For such a sentence
-    `seed_from_mnemonic` with `verify_checksum=True` still raises
-    "ambiguous language", as it takes no `lang`; `verify_checksum=False`
-    avoids it.
+    ambiguity is only about which entropy it spells.
 
     A `lang` that names no BIP39 word-list -- a typo, a language that
     was never registered, or `"slip39"`, whose list is not 2048 words --
@@ -343,7 +340,12 @@ def seed_from_mnemonic(
 ) -> bytes:
     """Return the seed from the provided BIP39 mnemonic sentence.
 
-    The mnemonic checksum verification can be skipped if needed.
+    The mnemonic checksum verification can be skipped if needed. Where
+    it is not, the sentence passes where `is_valid_mnemonic` with no
+    `lang` accepts it: one valid in two languages with a different
+    entropy in each passes, though `entropy_from_mnemonic` refuses it as
+    ambiguous, because the seed stretches the sentence and not the
+    entropy.
 
     Both the sentence and the passphrase are normalized NFKD, which is
     what BIP39 stretches: "a mnemonic sentence (in UTF-8 NFKD) used as
@@ -365,7 +367,13 @@ def seed_from_mnemonic(
     assert_type(passphrase, str, "passphrase")
 
     if verify_checksum:
-        entropy_from_mnemonic(mnemonic)
+        try:
+            entropy_from_mnemonic(mnemonic)
+        except Bip39Slip39ValueError:
+            # asked only after a refusal, so that every other refusal
+            # keeps entropy_from_mnemonic's message
+            if not is_valid_mnemonic(mnemonic):
+                raise
 
     # the passphrase is decomposed and otherwise left alone: its
     # whitespace is content the user chose, not a separator between
