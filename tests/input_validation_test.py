@@ -163,6 +163,8 @@ _DRIVEN = sorted(_DRIVABLE)
 _ANSWERS_A_WRONG_VALUE = {
     # an `is_*` is total over the declared types: False is its answer
     "bip39_slip39.bip39.is_valid_mnemonic",
+    # where the words are: a sentence in no list is in the empty list
+    "bip39_slip39.bip39.langs_from_mnemonic",
     # a sentence no scheme claims: the empty list, and "", are the answers
     # the two docstrings give for it
     "bip39_slip39.dispatch.all_seed_types_from_mnemonic",
