@@ -9,6 +9,17 @@ number says when a release was cut, and promises nothing about
 compatibility, so a breaking change is announced in this file — read it
 before upgrading, rather than a digit.
 
+## v2026.11.12
+
+- **Nothing in the code to act on.** The code under `src/` takes Sourcery's
+  rewrites, and griffe and `api_gaps.py` find no break in the public API
+  against v2026.11.2. [CHANGELOG.md](./CHANGELOG.md) lists what moved.
+- **The attestations name `reusable-build.yml` at btclib-org/.github's commit
+  `305b1840909ffd49d653d20cc6f5f9e1ab6a3382`, its tag v2026.11.10**, where
+  v2026.11.2's named `ed616d71c43cd4c8bded40d1182befccd99e6ee7`. The command
+  `SECURITY.md` gives names the signer without a ref and verifies both. A check
+  that pins `--signer-workflow` to the old commit fails: drop the ref.
+
 ## v2026.11.2
 
 - **`electrum.old_master_prv_key_from_mnemonic` derives from a pre-2.0 mnemonic
