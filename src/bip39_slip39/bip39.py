@@ -221,12 +221,16 @@ def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
     not a word anywhere else in this module either.
     """
     assert_type(mnemonic, str, "mnemonic")
+    words = mnemonic.split()
+    if not words:
+        # no sentence is in no list, and no checksum can save it
+        raise Bip39Slip39ValueError("unknown language for mnemonic: 0 words")
     candidates = _candidate_langs(mnemonic)
     if not candidates:
         # never the sentence itself: a mnemonic one typo away from being
         # valid is one typo away from being recovered, and an exception
         # message ends up in logs and crash reports
-        n_words = len(mnemonic.split())
+        n_words = len(words)
         raise Bip39Slip39ValueError(f"unknown language for mnemonic: {n_words} words")
     if len(candidates) == 1:
         return candidates[0]

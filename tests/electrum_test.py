@@ -1135,6 +1135,15 @@ def test_lang_from_mnemonic() -> None:
         electrum.lang_from_mnemonic(shared)
 
 
+def test_lang_from_mnemonic_empty_and_whitespace() -> None:
+    """An empty or whitespace-only sentence is in no list: refuse it."""
+    for empty in ("", "   ", "\t\n "):
+        with pytest.raises(
+            Bip39Slip39ValueError, match="unknown language for mnemonic: 0 words"
+        ):
+            electrum.lang_from_mnemonic(empty)
+
+
 def test_italian() -> None:
     """Italian is btclib's own extension, and it round-trips.
 

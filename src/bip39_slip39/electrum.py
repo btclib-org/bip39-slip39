@@ -576,12 +576,16 @@ def lang_from_mnemonic(mnemonic: Mnemonic) -> str:
     Simplified and Traditional sharing 1275 of their 2048 words.
     """
     assert_type(mnemonic, str, "mnemonic")
-    candidates = ELECTRUM_WORDLISTS.langs_of_words(_decodable(mnemonic).split())
+    words = _decodable(mnemonic).split()
+    if not words:
+        # no sentence is in no list, and no checksum can save it
+        raise Bip39Slip39ValueError("unknown language for mnemonic: 0 words")
+    candidates = ELECTRUM_WORDLISTS.langs_of_words(words)
     if not candidates:
         # never the sentence itself: a mnemonic one typo away from being
         # valid is one typo away from being recovered, and an exception
         # message ends up in logs and crash reports
-        n_words = len(_decodable(mnemonic).split())
+        n_words = len(words)
         raise Bip39Slip39ValueError(f"unknown language for mnemonic: {n_words} words")
     if len(candidates) > 1:
         err_msg = f"ambiguous language for mnemonic: {candidates}"
