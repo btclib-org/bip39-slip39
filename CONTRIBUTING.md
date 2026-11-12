@@ -713,7 +713,7 @@ which is the reliance `REVIEWING.md` provides for.
 | `scorecard` | weekly, push to main | — |
 | `links` | weekly | — |
 | `mutation` | weekly | the `.github/mutation/` profiles |
-| `fuzz` | weekly, and by hand before a release | — |
+| `fuzz` | weekly | — |
 | `vendored-vectors` | weekly | the pin ledger |
 | `pypi-install` | weekly, a release | what PyPI serves |
 | `sdist-rebuild` | weekly | the latest release's sdist, rebuilt |
