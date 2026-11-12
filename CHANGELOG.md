@@ -19,6 +19,78 @@ behind them.
 
 [std]: https://github.com/btclib-org/.github
 
+## v2026.11.12
+
+### The code under `src/` takes Sourcery's rewrites
+
+The rewrites in `electrum` and `slip39` change no result and no refusal; griffe
+finds no break against v2026.11.2 (issue btclib-org/.github#2005, issue
+btclib-org/.github#2162).
+
+### Sourcery runs on every pull request, with every rule on
+
+`sourcery.yml` is a required check, and `.sourcery.yaml` turns no rule off
+(issue btclib-org/.github#2005, issue btclib-org/.github#2162).
+
+### The electrum tests read extended keys with `base58-bech32`
+
+The test group takes `base58-bech32`, and btclib 2026.11.10, which removes
+`btclib.base58`; the package itself imports neither (closes #225).
+
+### The coverage floor measures `.github/scripts`
+
+A run that leaves them unmeasured is refused, and so is a run whose source
+directory is another tree's (closes #204, closes #208, closes #226, issue #235).
+
+### `check_vendored_vectors.py` names the functional-tests repository
+
+(closes #200).
+
+### The bestpractices.dev answers are held in `.bestpractices.json`
+
+(issue btclib-org/.github#2153, issue btclib-org/.github#2159).
+
+### The README's status badges are in a Status section at its end
+
+Its links to the tree's own files are absolute, and stay local in the docs
+(issue btclib-org/.github#1851, issue btclib-org/.github#1856).
+
+### `CONTRIBUTING.md` takes btclib-org/.github's shared part
+
+(issue btclib-org/.github#2022, issue btclib-org/.github#2054, issue
+btclib-org/.github#2088, issue btclib-org/.github#2145).
+
+### `RELEASING.md` takes btclib-org/.github's shared file
+
+(issue btclib-org/.github#1855, issue btclib-org/.github#2058, issue
+btclib-org/.github#2107).
+
+### `REVIEWING.md`, `.coderabbit.yaml` and `secret_free` take the shared text
+
+(issue btclib-org/.github#1950, issue btclib-org/.github#1998, issue
+btclib-org/.github#2004).
+
+### The shared files cite the organization's standard by name
+
+(issue btclib-org/.github#2137, #229, #234).
+
+### `check-executables-have-shebangs` runs
+
+(issue btclib-org/btclib#2852).
+
+### The calls into btclib-org/.github are pinned to v2026.11.10
+
+(issue btclib-org/.github#1988, issue btclib-org/.github#2005, #230).
+
+### The pinned versions move
+
+The GitHub Actions, the development tools and the hook revisions move
+(#205, #213, #214, #230, #232, #237).
+
+### Open 2026.12 after v2026.11.2
+
+(#202).
+
 ## v2026.11.2
 
 ### Electrum stretches a pre-2.0 seed of odd length
