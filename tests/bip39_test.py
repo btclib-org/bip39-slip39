@@ -301,6 +301,41 @@ def test_ambiguous_language() -> None:
         bip39.entropy_from_mnemonic(invalid)
 
 
+def test_seed_from_a_mnemonic_valid_in_two_languages() -> None:
+    """The seed of a sentence valid in two languages, its checksum verified.
+
+    Each sentence here spells a different entropy in each language, and
+    the seed does not differ: it stretches the sentence. A sentence valid
+    in neither is refused, with the checksum named.
+    """
+    for ambiguous in (
+        (
+            "nature distance angle abandon simple palace opinion fatigue "
+            "noble volume simple wagon"
+        ),
+        (
+            "civil festival festival palace rival concert distance panda "
+            "junior unique spatial science"
+        ),
+    ):
+        assert candidates(ambiguous) == ["en", "fr"]
+        assert bip39.entropy_from_mnemonic(
+            ambiguous, "en"
+        ) != bip39.entropy_from_mnemonic(ambiguous, "fr")
+        with pytest.raises(Bip39Slip39ValueError, match="ambiguous language"):
+            bip39.entropy_from_mnemonic(ambiguous)
+        seed = bip39.seed_from_mnemonic(ambiguous, "TREZOR")
+        assert seed == bip39.seed_from_mnemonic(ambiguous, "TREZOR", False)
+
+    invalid = (
+        "exact aspect caution nation mobile brave fatigue caution "
+        "puzzle muscle bonus relief"
+    )
+    assert candidates(invalid) == ["en", "fr"]
+    with pytest.raises(Bip39Slip39ValueError, match="invalid checksum: "):
+        bip39.seed_from_mnemonic(invalid, "")
+
+
 def test_chinese_is_ambiguous_and_answerable() -> None:
     """The two chinese word-lists are aligned, so an ambiguity is not one.
 
