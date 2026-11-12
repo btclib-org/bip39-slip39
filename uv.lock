@@ -346,7 +346,7 @@ wheels = [
 
 [[package]]
 name = "bip39-slip39"
-version = "2026.11.13"
+version = "2026.12"
 source = { editable = "." }
 
 [package.dev-dependencies]
