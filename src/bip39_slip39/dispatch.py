@@ -21,21 +21,22 @@ The answers, one string each:
 - "electrum_old", "electrum_standard", "electrum_segwit",
   "electrum_2fa", "electrum_2fa_segwit" -- the five Electrum reports.
   Prefixed, because "standard" says nothing once BIP39 is in the running.
-- "bip39" -- every word in the list, a length BIP39 defines, and a
-  checksum that verifies.
-- "bip39_wordlist" -- every word in the list and nothing else true: the
-  checksum failed, or the word count is not one of BIP39's five. Kept
-  apart from "" rather than folded into it because it is exactly what
-  bip39.seed_from_mnemonic stretches with verify_checksum=False, and
-  Electrum's own wizard accepts it as BIP39 too (spesmilo/electrum#8720).
+- "bip39" -- every word in a BIP39 word-list, a length BIP39 defines,
+  and a checksum that verifies in that list.
+- "bip39_wordlist" -- every word in a BIP39 word-list and nothing else
+  true: the checksum failed, or the word count is not one of BIP39's
+  five. Kept apart from "" rather than folded into it because it is
+  exactly what bip39.seed_from_mnemonic stretches with
+  verify_checksum=False, and Electrum's own wizard accepts it as BIP39
+  too (spesmilo/electrum#8720).
 - "" -- no scheme claims it.
 
-Expect "bip39_wordlist" beside most English Electrum seeds, and read
-nothing into it: Electrum's english.txt is BIP39's, byte for byte, so
-every word of an English Electrum seed is a BIP39 word and only the
-checksum says no. The overlap worth noticing is "bip39" beside an
-Electrum type, which is one sentence that two schemes both read as
-valid and derive two different wallets from.
+Expect "bip39_wordlist" beside most versioned Electrum seeds, and read
+nothing into it: Electrum's versioned seeds are written in BIP39's
+word-lists, Portuguese excepted, so every word of such a seed is a BIP39
+word and only the checksum says no. The overlap worth noticing is
+"bip39" beside an Electrum type, which is one sentence that two schemes
+both read as valid and derive two different wallets from.
 
 The order is Electrum's where Electrum has one, and this package's
 where it does not, and the two halves are worth telling apart.
@@ -73,6 +74,14 @@ sentence has to be built from that list to pass its checksum at all. Last
 in the chain would therefore report one share in 250 as an Electrum seed
 and hand the caller the wrong scheme, which is the failure "old before
 standard" exists to prevent, one scheme further out.
+
+**The language is BIP39's question only.** By default every BIP39
+word-list that holds the words is tried, and "bip39" means the sentence
+is a mnemonic in one of them at least; a `lang` names the one list to
+try. The Electrum branch takes no language, so `lang` does not reach
+it. The answer names no language, because the seed does not depend on
+one; bip39.langs_from_mnemonic names the lists that hold the words, and
+says why.
 
 Normalization is deliberately not done here. Each branch normalizes as
 its own scheme defines -- Electrum's NFKD, lower-casing, accent dropping
@@ -128,7 +137,7 @@ def _slip39_seed_type(mnemonic: Mnemonic) -> str:
     return "slip39"
 
 
-def _bip39_seed_type(mnemonic: Mnemonic, lang: str) -> str:
+def _bip39_seed_type(mnemonic: Mnemonic, lang: str | None) -> str:
     """Return "bip39", "bip39_wordlist" or "" for the sentence.
 
     The three answers are the two booleans of Electrum's
@@ -136,6 +145,10 @@ def _bip39_seed_type(mnemonic: Mnemonic, lang: str) -> str:
     written as one string: (True, True), (False, True) and (False,
     False). Electrum reports the middle one for a wrong checksum and for
     a word count outside BIP39's five alike, and so does this.
+
+    A `lang` is the one list asked; no `lang`, or an empty one, as
+    bip39.entropy_from_mnemonic reads it, asks every list that holds
+    the words.
     """
     words = mnemonic.split()
     if not words:
@@ -143,22 +156,28 @@ def _bip39_seed_type(mnemonic: Mnemonic, lang: str) -> str:
         # empty string would otherwise be "bip39_wordlist". Electrum
         # rejects it as its own case in validate_seed for the same reason
         return ""
-    try:
-        indexes_from_mnemonic(mnemonic, lang)
-    except ValueError:
-        # Bip39Slip39ValueError is a ValueError, so this catches the
-        # unknown word and the unknown language together
-        return ""
+    if lang:
+        try:
+            indexes_from_mnemonic(mnemonic, lang)
+        except ValueError:
+            # Bip39Slip39ValueError is a ValueError, so this catches the
+            # unknown word and the unknown language together
+            return ""
+        langs = [lang]
+    else:
+        langs = bip39.langs_from_mnemonic(mnemonic)
+        if not langs:
+            return ""
     if len(words) not in _BIP39_WORD_COUNTS:
         return "bip39_wordlist"
-    try:
-        bip39.entropy_from_mnemonic(mnemonic, lang)
-    except Bip39Slip39ValueError:
-        return "bip39_wordlist"
-    return "bip39"
+    if any(bip39.is_valid_mnemonic(mnemonic, candidate) for candidate in langs):
+        return "bip39"
+    return "bip39_wordlist"
 
 
-def all_seed_types_from_mnemonic(mnemonic: Mnemonic, lang: str = "en") -> list[str]:
+def all_seed_types_from_mnemonic(
+    mnemonic: Mnemonic, lang: str | None = None
+) -> list[str]:
     """Return every seed type that claims the mnemonic, best first.
 
     The list is empty when nothing claims it, and holds more than one
@@ -173,7 +192,7 @@ def all_seed_types_from_mnemonic(mnemonic: Mnemonic, lang: str = "en") -> list[s
     # checked here and not left to the word-list: _bip39_seed_type
     # answers "" for any ValueError, and a lang of another type is the
     # caller's mistake rather than a sentence no scheme claims
-    assert_type(lang, str, "lang")
+    assert_type(lang, (str, type(None)), "lang")
     seed_types = []
 
     if slip39_seed_type := _slip39_seed_type(mnemonic):
@@ -192,7 +211,7 @@ def all_seed_types_from_mnemonic(mnemonic: Mnemonic, lang: str = "en") -> list[s
     return seed_types
 
 
-def seed_type_from_mnemonic(mnemonic: Mnemonic, lang: str = "en") -> str:
+def seed_type_from_mnemonic(mnemonic: Mnemonic, lang: str | None = None) -> str:
     """Return what the mnemonic is, "" if no scheme claims it.
 
     The first of all_seed_types_from_mnemonic, which is the answer the

@@ -137,9 +137,9 @@ _WRONG_TYPES: list[tuple[str, Callable[[], Any], str]] = [
         "invalid lang type: int",
     ),
     (
-        "dispatch.all_seed_types_from_mnemonic(lang=None)",
-        lambda: dispatch.all_seed_types_from_mnemonic(_ABOUT, None),  # type: ignore[arg-type]
-        "invalid lang type: NoneType",
+        "dispatch.all_seed_types_from_mnemonic(lang=int)",
+        lambda: dispatch.all_seed_types_from_mnemonic(_ABOUT, 1),  # type: ignore[arg-type]
+        "invalid lang type: int",
     ),
     (
         "entropy.bin_str_entropy_from_random",

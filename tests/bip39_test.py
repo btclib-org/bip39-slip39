@@ -219,6 +219,46 @@ def test_lang_from_mnemonic() -> None:
     )
 
 
+def test_langs_from_mnemonic(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every BIP39 list holding the words, in the registry's order."""
+    entropy = bytes.fromhex("0000003974d093eda670121023cd0000")
+    for lang in ("cs", "en", "es", "fr", "it", "ja", "ko", "pt", "ru", "tr"):
+        mnemonic = bip39.mnemonic_from_entropy(entropy, lang)
+        assert bip39.langs_from_mnemonic(mnemonic) == [lang]
+    # NFC in, NFKD word-list
+    spanish = bip39.mnemonic_from_entropy(entropy, "es")
+    assert bip39.langs_from_mnemonic(normalize("NFC", spanish)) == ["es"]
+
+    # shared words: every list that holds them, the checksum not asked
+    invalid = (
+        "exact aspect caution nation mobile brave fatigue caution "
+        "puzzle muscle bonus relief"
+    )
+    assert not bip39.is_valid_mnemonic(invalid)
+    assert bip39.langs_from_mnemonic(invalid) == ["en", "fr"]
+    assert bip39.langs_from_mnemonic("的 的 在") == ["zh", "zh_tw"]
+
+    # words of slip39's list that are english words too: its list is
+    # not 2048 words long, so it is no answer
+    both = "acid acquire actress adapt adjust admit adult advance"
+    assert candidates(both) == ["en", "slip39"]
+    assert bip39.langs_from_mnemonic(both) == ["en"]
+
+    # no words, and no word in any list
+    assert bip39.langs_from_mnemonic("") == []
+    assert bip39.langs_from_mnemonic(" \t　") == []
+    assert bip39.langs_from_mnemonic("btclib") == []
+
+    # a list load_lang adds comes after the shipped ones
+    word_lists = WordLists()
+    word_lists.load_lang("en2", data_file("english.txt"))
+    monkeypatch.setattr(bip39, "WORDLISTS", word_lists)
+    assert bip39.langs_from_mnemonic(both) == ["en", "en2"]
+
+    with pytest.raises(Bip39Slip39TypeError, match="invalid mnemonic type: int"):
+        bip39.langs_from_mnemonic(1)  # type: ignore[arg-type]
+
+
 def test_ambiguous_language() -> None:
     """Two word-lists holding every word, and what settles it.
 

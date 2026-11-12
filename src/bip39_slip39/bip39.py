@@ -79,6 +79,7 @@ __all__ = [
     "entropy_from_mnemonic",
     "is_valid_mnemonic",
     "lang_from_mnemonic",
+    "langs_from_mnemonic",
     "mnemonic_from_entropy",
     "seed_from_mnemonic",
 ]
@@ -192,6 +193,27 @@ def _candidate_langs(mnemonic: Mnemonic) -> list[str]:
     # written from it is not a BIP39 mnemonic in a language nobody named --
     # it is not a BIP39 mnemonic at all
     return WORDLISTS._langs_of(mnemonic.split(), _BIP39_WORDLIST_LENGTH)
+
+
+def langs_from_mnemonic(mnemonic: Mnemonic) -> list[str]:
+    """Return every BIP39 language whose word-list holds each word.
+
+    The languages are in the order of `WORDLISTS.languages`: those of
+    `BIP39_LANGUAGE_FILES` first, in its order, then any that
+    `load_lang` added. A list that is not 2048 words long, slip39's
+    among them, is not a BIP39 word-list and is never an answer.
+
+    Neither the word count nor the checksum is asked: the answer is
+    where the words are, and `is_valid_mnemonic` with a language says
+    in which of them the sentence is a mnemonic. A sentence of no words
+    has no language, and the answer is empty.
+
+    The language does not change the seed: `seed_from_mnemonic`
+    stretches the sentence, whichever list it is read in. It changes the
+    entropy, where a word sits at another index in another list.
+    """
+    mnemonic = normalize_mnemonic(mnemonic)
+    return _candidate_langs(mnemonic) if mnemonic else []
 
 
 def lang_from_mnemonic(mnemonic: Mnemonic) -> str:

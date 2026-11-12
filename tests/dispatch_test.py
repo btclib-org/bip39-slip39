@@ -219,8 +219,57 @@ def test_italian() -> None:
     """
     mnemonic = bip39.mnemonic_from_entropy(0x0102030405060708090A0B0C0D0E0F10, "it")
     assert dispatch.seed_type_from_mnemonic(mnemonic, "it") == "bip39"
+    # no language: every list is asked, the italian one among them
+    assert dispatch.seed_type_from_mnemonic(mnemonic) == "bip39"
     # the same sentence against the english list: no word of it is there
     assert dispatch.all_seed_types_from_mnemonic(mnemonic, "en") == []
+
+    electrum_it = electrum.mnemonic_from_entropy("standard", bytes(range(16)), "it")
+    assert dispatch.all_seed_types_from_mnemonic(electrum_it, "en") == [
+        "electrum_standard"
+    ]
+    assert dispatch.all_seed_types_from_mnemonic(electrum_it) == [
+        "electrum_standard",
+        "bip39_wordlist",
+    ]
+
+
+# twelve words english and french share, valid in french and not in
+# english. Found by search
+FRENCH_IN_SHARED_WORDS = (
+    "festival correct crucial intact social mobile exact fortune talent "
+    "notable nation muscle"
+)
+
+
+@pytest.mark.parametrize("no_lang", [None, ""])
+def test_every_language_by_default(no_lang: str | None) -> None:
+    """No language asks every list, and a valid reading in one is "bip39".
+
+    The sentence below is in two lists, a mnemonic in one of them and not
+    in the other: named, each list gives its own answer; not named, the
+    valid reading is the one reported. The empty string is no language,
+    as bip39.entropy_from_mnemonic reads it.
+    """
+    sentence = FRENCH_IN_SHARED_WORDS
+    assert bip39.langs_from_mnemonic(sentence) == ["en", "fr"]
+    assert dispatch.all_seed_types_from_mnemonic(sentence, "en") == ["bip39_wordlist"]
+    assert dispatch.all_seed_types_from_mnemonic(sentence, "fr") == ["bip39"]
+    assert dispatch.all_seed_types_from_mnemonic(sentence, no_lang) == ["bip39"]
+    assert dispatch.seed_type_from_mnemonic(sentence, no_lang) == "bip39"
+
+    # in two lists and a mnemonic in neither
+    invalid = (
+        "exact aspect caution nation mobile brave fatigue caution "
+        "puzzle muscle bonus relief"
+    )
+    assert dispatch.all_seed_types_from_mnemonic(invalid, no_lang) == ["bip39_wordlist"]
+    # in a list, and of a length BIP39 has no mnemonic for
+    assert dispatch.all_seed_types_from_mnemonic("abandon " * 13, no_lang) == [
+        "bip39_wordlist"
+    ]
+    # in no list
+    assert dispatch.all_seed_types_from_mnemonic("not a seed", no_lang) == []
 
 
 SLIP39_VECTORS = load("_data", "vectors.json")
