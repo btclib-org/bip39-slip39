@@ -1,8 +1,8 @@
 # Repository instructions
 
 Follow [CONTRIBUTING.md](./CONTRIBUTING.md) for issues, pull requests,
-local gates, and worktree commands. Use [REVIEWING.md](./REVIEWING.md)
-for reviews, [ARCHITECTURE.md](./ARCHITECTURE.md) for package layers,
+local gates, and worktree commands. Use
+[ARCHITECTURE.md](./ARCHITECTURE.md) for package layers,
 [README.md](./README.md) for scope and examples, and
 [REPOSITORY.md](./REPOSITORY.md) before changing workflows or settings.
 See [SECURITY.md](./SECURITY.md) for vulnerability reporting.
