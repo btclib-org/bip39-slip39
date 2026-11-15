@@ -32,7 +32,12 @@ recognition of which scheme a sentence belongs to, the word lists it
 ships, and the distributions published to PyPI and their provenance. A
 refusal that prints a secret is a vulnerability to report here: section 7's
 [*A refusal carries no secret*](https://github.com/btclib-org/.github#a-refusal-carries-no-secret)
-says what a refusal may print.
+says what a refusal may print. A flaw that lets funds be stolen, lost or
+locked is a vulnerability to report here as well, for example a generated
+sentence whose entropy can be guessed, a sentence or a set of shares
+that gives back a seed or secret other than the one its specification
+gives, which puts the funds it backs up out of reach, or fewer shares
+than the threshold that give the secret away.
 
 A master key derived from a seed is not here: `btclib-wallet` is where
 BIP32 is. Report a flaw wherever you found it, though: routing a report
