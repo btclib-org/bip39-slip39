@@ -20,7 +20,7 @@ place the answer lives, which is what *Topics* and *Publishing* say of
 them.
 
 Each section carries the command that sets its setting and the command
-that reads it back, and the `#` lines under a read-back are what it
+that reads it back, and the fence under a read-back holds what it
 printed on 2026-09-29 — section 16's last step — unless a later date
 stands beside it. Every call on `repos/btclib-org/bip39-slip39` was
 read again on 2026-10-21, after the repository was renamed, and printed
@@ -76,10 +76,19 @@ Read back:
 gh api repos/btclib-org/bip39-slip39 \
   --jq '{visibility, default_branch: .default_branch, has_issues,
          wiki: .has_wiki, projects: .has_projects}'
-# {"default_branch":"main","has_issues":true,"projects":false,
-#  "visibility":"public","wiki":false}
+```
+
+```json
+{"default_branch":"main","has_issues":true,"projects":false,
+ "visibility":"public","wiki":false}
+```
+
+```shell
 gh api -i repos/btclib-org/bip39-slip39/pages 2>/dev/null | head -1
-# HTTP/2.0 404 Not Found
+```
+
+```text
+HTTP/2.0 404 Not Found
 ```
 
 `has_issues` is what `CONTRIBUTING.md`'s *The issue tracker* rests on,
@@ -193,17 +202,20 @@ gh api repos/btclib-org/bip39-slip39/branches/main/protection \
          force_pushes: .allow_force_pushes.enabled,
          deletions: .allow_deletions.enabled,
          conversation: .required_conversation_resolution.enabled}'
-# {"checks":[["test: every job passed",15368],
-#   ["docs / Build the documentation",15368],
-#   ["lint / Lint and type-check",15368],
-#   ["lint / Dependency review",15368],
-#   ["lint / Sign-off",15368],
-#   ["sourcery / Sourcery",15368]],
-#  "conversation":true,"deletions":false,"enforce_admins":false,
-#  "force_pushes":false,"linear":true,
-#  "reviews":{"dismiss_stale_reviews":true,
-#   "required_approving_review_count":1},
-#  "strict":false}
+```
+
+```json
+{"checks":[["test: every job passed",15368],
+  ["docs / Build the documentation",15368],
+  ["lint / Lint and type-check",15368],
+  ["lint / Dependency review",15368],
+  ["lint / Sign-off",15368],
+  ["sourcery / Sourcery",15368]],
+ "conversation":true,"deletions":false,"enforce_admins":false,
+ "force_pushes":false,"linear":true,
+ "reviews":{"dismiss_stale_reviews":true,
+  "required_approving_review_count":1},
+ "strict":false}
 ```
 
 Read on 2026-11-05T10:23Z, after a `PATCH` of `required_status_checks`
@@ -306,7 +318,10 @@ Classic protection's own copy of the signature rule is off:
 ```shell
 gh api repos/btclib-org/bip39-slip39/branches/main/protection \
   --jq '.required_signatures.enabled'
-# false
+```
+
+```text
+false
 ```
 
 No ruleset over `main` carries `required_signatures`, so nothing refuses an
@@ -344,16 +359,19 @@ for id in $(gh api repos/btclib-org/bip39-slip39/rulesets --jq '.[].id'); do
            methods: [.rules[] | select(.type=="pull_request")
                               | .parameters.allowed_merge_methods]}'
 done
-# {"bypass":[],"enforcement":"active","include":["refs/heads/main"],
-#  "methods":[],"name":"main-integrity",
-#  "rules":["required_linear_history","non_fast_forward","deletion"],
-#  "target":"branch"}
-# {"bypass":[[3296421,"pull_request"]],"enforcement":"active",
-#  "include":["refs/heads/main"],"methods":[["squash"]],
-#  "name":"main-self-merge","rules":["pull_request"],"target":"branch"}
-# {"bypass":[],"enforcement":"active","include":["refs/tags/v*"],
-#  "methods":[],"name":"tag-integrity","rules":["required_signatures"],
-#  "target":"tag"}
+```
+
+```text
+{"bypass":[],"enforcement":"active","include":["refs/heads/main"],
+ "methods":[],"name":"main-integrity",
+ "rules":["required_linear_history","non_fast_forward","deletion"],
+ "target":"branch"}
+{"bypass":[[3296421,"pull_request"]],"enforcement":"active",
+ "include":["refs/heads/main"],"methods":[["squash"]],
+ "name":"main-self-merge","rules":["pull_request"],"target":"branch"}
+{"bypass":[],"enforcement":"active","include":["refs/tags/v*"],
+ "methods":[],"name":"tag-integrity","rules":["required_signatures"],
+ "target":"tag"}
 ```
 
 A `v*` tag push that brings an unsigned commit is refused. A tag on a
@@ -369,19 +387,23 @@ gh api repos/<owner>/<repo>/git/tags/<sha> --jq .verification
 ## Merge methods
 
 **Squash is the only method GitHub can be asked for**, and auto-merge is
-off, so no pull request can be armed and the merge is explicit; the call
-is the one under *Creating the repository*. Read back:
+off, [for the reason section 11
+gives](https://github.com/btclib-org/.github#merge-method); the call is
+the one under *Creating the repository*. Read back:
 
 ```shell
 gh api repos/btclib-org/bip39-slip39 \
   --jq '{allow_squash_merge, allow_merge_commit, allow_rebase_merge,
          allow_auto_merge, squash_merge_commit_title,
          squash_merge_commit_message, delete_branch_on_merge}'
-# {"allow_auto_merge":false,"allow_merge_commit":false,
-#  "allow_rebase_merge":false,"allow_squash_merge":true,
-#  "delete_branch_on_merge":true,
-#  "squash_merge_commit_message":"COMMIT_MESSAGES",
-#  "squash_merge_commit_title":"COMMIT_OR_PR_TITLE"}
+```
+
+```json
+{"allow_auto_merge":false,"allow_merge_commit":false,
+ "allow_rebase_merge":false,"allow_squash_merge":true,
+ "delete_branch_on_merge":true,
+ "squash_merge_commit_message":"COMMIT_MESSAGES",
+ "squash_merge_commit_title":"COMMIT_OR_PR_TITLE"}
 ```
 
 Read on 2026-11-14T16:30Z.
@@ -421,8 +443,11 @@ value it gets:
 ```shell
 gh api repos/btclib-org/bip39-slip39/actions/permissions/workflow \
   --jq '{default_workflow_permissions, can_approve_pull_request_reviews}'
-# {"can_approve_pull_request_reviews":false,
-#  "default_workflow_permissions":"read"}
+```
+
+```json
+{"can_approve_pull_request_reviews":false,
+ "default_workflow_permissions":"read"}
 ```
 
 The expected answer is `read` and `false`. Where it is not, the
@@ -436,10 +461,19 @@ Read for this repository and for the organization:
 ```shell
 gh api repos/btclib-org/bip39-slip39/actions/permissions \
   --jq '{allowed_actions, sha_pinning_required}'
-# {"allowed_actions":"all","sha_pinning_required":true}
+```
+
+```json
+{"allowed_actions":"all","sha_pinning_required":true}
+```
+
+```shell
 gh api orgs/btclib-org/actions/permissions \
   --jq '{allowed_actions, sha_pinning_required}'
-# {"allowed_actions":"all","sha_pinning_required":true}
+```
+
+```json
+{"allowed_actions":"all","sha_pinning_required":true}
 ```
 
 `sha_pinning_required` is set at the organization level: [section 11 of
@@ -450,9 +484,18 @@ fields](https://github.com/btclib-org/.github#tokens-publishing-scanning).
 
 ```shell
 gh api repos/btclib-org/bip39-slip39 --jq .web_commit_signoff_required
-# true
+```
+
+```text
+true
+```
+
+```shell
 gh api orgs/btclib-org --jq .web_commit_signoff_required
-# true
+```
+
+```text
+true
 ```
 
 Set at the organization level, [for the reason section 11
@@ -499,17 +542,26 @@ gh api repos/btclib-org/bip39-slip39/environments \
   --jq '.environments[] | {name, dbp: .deployment_branch_policy,
          rules: [.protection_rules[] | .type],
          reviewers: [.protection_rules[].reviewers[]?.reviewer.login]}'
-# {"dbp":{"custom_branch_policies":true,"protected_branches":false},
-#  "name":"pypi",
-#  "reviewers":["fametrano","giacomocaironi","pmazzocchi"],
-#  "rules":["required_reviewers","branch_policy"]}
-# {"dbp":null,"name":"testpypi",
-#  "reviewers":["fametrano","giacomocaironi","pmazzocchi"],
-#  "rules":["required_reviewers"]}
+```
+
+```text
+{"dbp":{"custom_branch_policies":true,"protected_branches":false},
+ "name":"pypi",
+ "reviewers":["fametrano","giacomocaironi","pmazzocchi"],
+ "rules":["required_reviewers","branch_policy"]}
+{"dbp":null,"name":"testpypi",
+ "reviewers":["fametrano","giacomocaironi","pmazzocchi"],
+ "rules":["required_reviewers"]}
+```
+
+```shell
 env=repos/btclib-org/bip39-slip39/environments/pypi
 gh api "$env/deployment-branch-policies" \
   --jq '.branch_policies[] | [.name, .type]'
-# ["v*","tag"]
+```
+
+```json
+["v*","tag"]
 ```
 
 The two trusted publishers `RELEASING.md`'s *One-time setup* names, on
@@ -524,10 +576,19 @@ project, which PyPI answers `404` for until a first upload creates it:
 ```shell
 curl -s -o /dev/null -w '%{http_code}\n' \
   https://pypi.org/pypi/bip39-slip39/json
-# 404
+```
+
+```text
+404
+```
+
+```shell
 curl -s -o /dev/null -w '%{http_code}\n' \
   https://test.pypi.org/pypi/bip39-slip39/json
-# 200
+```
+
+```text
+200
 ```
 
 **The repository's `.homepage` is its page on btclib.org**, as
@@ -537,7 +598,10 @@ here rather than from `pyproject.toml`'s own copy of it. Read at
 
 ```shell
 gh api repos/btclib-org/bip39-slip39 --jq '.homepage'
-# https://btclib.org/bip39-slip39/
+```
+
+```text
+https://btclib.org/bip39-slip39/
 ```
 
 ## Read the Docs
@@ -553,13 +617,28 @@ build it lists finished that day. Read at 2026-10-31:
 ```shell
 curl -sL -o /dev/null -w '%{http_code} %{url_effective}\n' \
   https://bip39-slip39.readthedocs.io/
-# 200 https://bip39-slip39.readthedocs.io/en/latest/
+```
+
+```text
+200 https://bip39-slip39.readthedocs.io/en/latest/
+```
+
+```shell
 curl -sL -o /dev/null -w '%{http_code} %{url_effective}\n' \
   https://btclib-mnemonics.readthedocs.io/
-# 200 https://bip39-slip39.readthedocs.io/en/latest/
+```
+
+```text
+200 https://bip39-slip39.readthedocs.io/en/latest/
+```
+
+```shell
 o=https://app.readthedocs.org/api/v3/projects/btclib-mnemonics
 curl -s "$o/builds/?limit=1" | jq -c '.results[0] | [.state.code, .finished]'
-# ["finished","2026-10-31T16:43:13.085274Z"]
+```
+
+```json
+["finished","2026-10-31T16:43:13.085274Z"]
 ```
 
 The project's public API answers without a token:
@@ -567,17 +646,29 @@ The project's public API answers without a token:
 ```shell
 p=https://app.readthedocs.org/api/v3/projects/bip39-slip39
 curl -s "$p/" | jq -c '{default_branch, repository: .repository.url}'
-# {"default_branch":"main",
-#  "repository":"https://github.com/btclib-org/bip39-slip39.git"}
-curl -s "$p/" | jq -c '[.programming_language.code, .homepage]'
-# ["py","https://github.com/btclib-org/bip39-slip39"]
-diff <(curl -s "$p/" | jq -r '.tags[]' | sort) \
-     <(gh api repos/btclib-org/bip39-slip39 --jq '.topics[]' | sort)
-# (nothing, exit 0)
 ```
 
-The project's tags are the repository's topics, which *Topics* sets, and
-its homepage is the repository rather than the site it serves.
+```json
+{"default_branch":"main",
+ "repository":"https://github.com/btclib-org/bip39-slip39.git"}
+```
+
+```shell
+curl -s "$p/" | jq -c '[.programming_language.code, .homepage]'
+```
+
+```json
+["py","https://github.com/btclib-org/bip39-slip39"]
+```
+
+```shell
+diff <(curl -s "$p/" | jq -r '.tags[]' | sort) \
+     <(gh api repos/btclib-org/bip39-slip39 --jq '.topics[]' | sort)
+```
+
+The `diff` printed nothing and exited `0`. The project's tags are the
+repository's topics, which *Topics* sets, and its homepage is the
+repository rather than the site it serves.
 
 `stable` follows the highest semantic-version tag, so the next release
 changes this answer with nothing here having decided differently. Read
@@ -587,10 +678,19 @@ at 2026-10-23:
 curl -s "$p/versions/?active=true" \
   | jq -c '.results[] | select(.slug == "latest" or .slug == "stable")
            | [.slug, .type, .ref]'
-# ["latest","branch",null]
-# ["stable","tag","v2026.10.17"]
+```
+
+```text
+["latest","branch",null]
+["stable","tag","v2026.10.17"]
+```
+
+```shell
 git tag --list 'v*' --sort=version:refname | tail -1
-# v2026.10.17
+```
+
+```text
+v2026.10.17
 ```
 
 An automation rule, "Activate each v* release tag", activates each new
@@ -610,7 +710,10 @@ is what tells an absent project from one with nothing active:
 ```shell
 curl -s -o /dev/null -w '%{http_code}\n' \
   https://app.readthedocs.org/api/v3/projects/bip39-slip39/
-# 200
+```
+
+```text
+200
 ```
 
 **What connects the repository to Read the Docs is the organization-wide
@@ -621,9 +724,18 @@ the repository is expected to carry no hook:
 gh api orgs/btclib-org/installations \
   --jq '.installations[] | select(.app_slug == "read-the-docs-community")
         | [.app_slug, .repository_selection]'
-# ["read-the-docs-community","all"]
+```
+
+```json
+["read-the-docs-community","all"]
+```
+
+```shell
 gh api repos/btclib-org/bip39-slip39/hooks --jq length
-# 0
+```
+
+```text
+0
 ```
 
 A hook the second command finds is stale and is deleted rather than
@@ -663,21 +775,54 @@ Read back:
 
 ```shell
 gh api repos/btclib-org/bip39-slip39 --jq '.security_and_analysis'
-# {"dependabot_security_updates":{"status":"enabled"},
-#  "secret_scanning":{"status":"enabled"},
-#  "secret_scanning_non_provider_patterns":{"status":"disabled"},
-#  "secret_scanning_push_protection":{"status":"enabled"},
-#  "secret_scanning_validity_checks":{"status":"disabled"}}
+```
+
+```json
+{"dependabot_security_updates":{"status":"enabled"},
+ "secret_scanning":{"status":"enabled"},
+ "secret_scanning_non_provider_patterns":{"status":"disabled"},
+ "secret_scanning_push_protection":{"status":"enabled"},
+ "secret_scanning_validity_checks":{"status":"disabled"}}
+```
+
+```shell
 gh api -i repos/btclib-org/bip39-slip39/vulnerability-alerts | head -1
-# HTTP/2.0 204 No Content
+```
+
+```text
+HTTP/2.0 204 No Content
+```
+
+```shell
 gh api repos/btclib-org/bip39-slip39/automated-security-fixes
-# {"enabled":true,"paused":false}
+```
+
+```json
+{"enabled":true,"paused":false}
+```
+
+```shell
 gh api repos/btclib-org/bip39-slip39/private-vulnerability-reporting
-# {"enabled":true}
+```
+
+```json
+{"enabled":true}
+```
+
+```shell
 gh api repos/btclib-org/bip39-slip39/code-scanning/default-setup --jq .state
-# not-configured
+```
+
+```text
+not-configured
+```
+
+```shell
 gh api repos/btclib-org/bip39-slip39/code-quality/setup --jq .state
-# not-configured
+```
+
+```text
+not-configured
 ```
 
 The alerts endpoint has no body and answers with its status, 204 for
@@ -704,15 +849,19 @@ of its own; the diff is expected empty:
 diff <(gh api repos/btclib-org/bip39-slip39 --jq '.topics[]' | sort) \
      <(sed -n '/^keywords = \[/,/^]/s/^ *"\(.*\)",$/\1/p' pyproject.toml \
        | sort)
-# (nothing, exit 0)
 ```
+
+It printed nothing and exited `0`.
 
 What the diff compares, the topics as the endpoint returns them:
 
 ```shell
 gh api repos/btclib-org/bip39-slip39 --jq '.topics'
-# ["bip39","bitcoin","dice","electrum","mnemonic","seed-phrase",
-#  "shamir-secret-sharing","slip39"]
+```
+
+```json
+["bip39","bitcoin","dice","electrum","mnemonic","seed-phrase",
+ "shamir-secret-sharing","slip39"]
 ```
 
 ## Plan-gated settings
@@ -724,7 +873,10 @@ configures, so prose that needs the reasoning — a workflow header,
 
 ```shell
 gh api orgs/btclib-org --jq .plan.name
-# free
+```
+
+```text
+free
 ```
 
 [GitHub's own table](https://docs.github.com/en/actions/reference/limits)
@@ -761,9 +913,18 @@ either would be that decision undone:
 
 ```shell
 gh api repos/btclib-org/bip39-slip39/actions/secrets --jq .total_count
-# 0
+```
+
+```text
+0
+```
+
+```shell
 gh api repos/btclib-org/bip39-slip39/dependabot/secrets --jq .total_count
-# 0
+```
+
+```text
+0
 ```
 
 **A switch this repository does not set.** `claude-review.yml` calls
@@ -774,5 +935,8 @@ store is read too:
 
 ```shell
 gh api repos/btclib-org/bip39-slip39/actions/variables --jq .total_count
-# 0
+```
+
+```text
+0
 ```
