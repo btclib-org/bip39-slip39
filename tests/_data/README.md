@@ -56,9 +56,32 @@ says so in prose instead. The verdicts used:
 `pulled` is the date of the btclib commit that put the current content in
 btclib's tree, from `git log --follow --diff-filter=A` there: the files
 came here unchanged, by way of btclib-wallet. `behind` counts upstream
-revisions of that path since the pin. It is a staleness figure, not a
-defect: a vector file is a fixed set of cases and refreshing it is a
-decision, not a chore.
+revisions of that path since the pin, except on an entry carrying a
+`pattern`, below. It is a staleness figure, not a defect: a vector file is
+a fixed set of cases and refreshing it is a decision, not a chore.
+
+`pattern` marks a file derived from upstream rather than copied from it:
+the file is every match of that pattern in the regular files under
+`path` (`git grep` reads no symlink), one per line, sorted bytewise and
+deduplicated, as `LC_ALL=C git grep -aohP` of the pattern at `commit`
+over `path`, piped to `LC_ALL=C sort -u`, prints it. `-a` has git read
+every file as text and print its matches: without it, git can take a
+file holding a NUL for binary and print a line saying the binary file
+matches instead. `.github/scripts/check_vendored_vectors.py` reads every
+file as text too, finds the matches as its `_line_matches` says,
+following git's loop and naming where it departs from it, and, for an
+entry whose `behind` reads zero, derives the file again at the tip of
+the path, weekly. It reports the entry where that is not the file here,
+where the file is not here at all, and, as it reports any entry, where
+no commit on the branch it walks touches the path. A commit upstream
+that leaves the derived lines as they are reports nothing, and the value
+of `commit` decides nothing. `behind` there counts the lines the
+derivation and the file do not share, not revisions.
+
+The script reads the pattern with Python's `re` and matches it against
+bytes, as `git grep -P` matches it with PCRE under `LC_ALL=C`: under a
+Unicode locale git matches characters instead. A pattern is written in
+what both read alike.
 
 A vector this package fails is vendored anyway and marked `xfail`, never
 left out: an absent vector hides the defect it would have shown, and
@@ -90,9 +113,10 @@ whose heading is one file's path and which carries a `blob` or an `ours`
 line. It holds the file to `ours` (or `blob`), holds `blob` to upstream's
 at `commit`, and fails, naming the file, on a mismatch: a file edited here
 and a pin whose blob is not the one at its commit both fail. It also
-reports an entry whose upstream moved past the pin. Add an `ours` line to
-a new entry whose file is not upstream's bytes, and a `-text` line for the
-file to `.gitattributes`.
+reports an entry whose upstream moved past the pin, unless the entry
+carries a `pattern`: *Reading an entry* says what is reported then. Add
+an `ours` line to a new entry whose file is not upstream's bytes, and a
+`-text` line for the file to `.gitattributes`.
 
 ## bitcoin/bips
 
@@ -330,7 +354,8 @@ Pulled 2018-06-01.
   deliberate stopping point: a network call in the test suite would trade
   a documented drift for a flaky one. The weekly `vendored-vectors`
   workflow asks upstream instead: a byte mismatch fails the run, and a pin
-  that moved opens an issue.
+  that moved opens an issue, unless its entry carries a `pattern`, as
+  *Reading an entry* says.
 
 ## Summary
 
