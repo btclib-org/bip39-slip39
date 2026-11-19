@@ -19,8 +19,10 @@ page points at it instead of repeating it.
   from, and says whether the two still match, which its *Re-checking a
   pin* procedure re-checks by hand. `.github/workflows/vendored-vectors.yml`
   runs weekly: it holds each vendored file to the `ours` or `blob`
-  recorded there and `blob` to upstream's at the pinned commit, and
-  reports a pin that is no longer upstream's tip.
+  recorded there and `blob` to upstream's at the pinned commit. Of the
+  pins whose `behind` reads 0, it reports one that is no longer
+  upstream's tip, except one carrying a `pattern`, which it reports where
+  its file is not what that pattern derives at the tip.
 - **Malformed input is refused the way the package says it is.** A
   public function handed an argument it cannot use raises
   `Bip39Slip39TypeError` or `Bip39Slip39ValueError`
