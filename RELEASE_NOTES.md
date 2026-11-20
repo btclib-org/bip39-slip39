@@ -1,8 +1,11 @@
 # Release notes
 
-Notable changes are documented here.
-[CHANGELOG.md](./CHANGELOG.md) is the record behind them: this file says
-what a user has to act on, that one says what changed.
+Notable changes are documented here. The release's own pull request
+assembles its section from the entries under `changelog/next/`, the same
+section it assembles into [CHANGELOG.md](./CHANGELOG.md), and the GitHub
+release shows this file's. Sections released before that were written
+for each file apart: there this file says what a user has to act on, and
+CHANGELOG.md what changed.
 
 Versions are *[calendar versions](https://calver.org/)*, `YYYY.M.D`: the
 number says when a release was cut, and promises nothing about
